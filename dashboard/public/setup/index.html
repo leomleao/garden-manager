@@ -1,1 +1,221 @@
-<!DOCTYPE html><html><body>Setup</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garden Manager — Setup</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/alpinejs@3.13.7/dist/cdn.min.js" defer></script>
+</head>
+<body>
+  <div class="wizard" x-data="wizard()" x-init="init()">
+    <!-- Step indicator -->
+    <div class="step-indicator">
+      <template x-for="(s,i) in steps">
+        <div class="step-dot"
+          :class="{ active: currentStep===i+1, done: currentStep>i+1 }">
+        </div>
+      </template>
+    </div>
+
+    <!-- Step 1: Welcome -->
+    <div x-show="currentStep===1">
+      <div class="card">
+        <h1>Welcome to Garden Manager</h1>
+        <p style="color:#9ca3af;margin-bottom:1rem">
+          Let's get your garden set up. This wizard will configure your growing zones,
+          seed inventory, and optional AI integration.
+        </p>
+        <div x-show="exampleDataLoaded"
+             style="background:#1e3a2e;border:1px solid #065f46;border-radius:.5rem;padding:.75rem;margin-bottom:1rem;font-size:.875rem">
+          Scotland (Port of Menteith) example data is preloaded. You can keep it, modify it, or clear it during setup.
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" @click="currentStep=2">Get Started →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: About Your Garden -->
+    <div x-show="currentStep===2">
+      <div class="card">
+        <h2>About Your Garden</h2>
+        <label>Your name</label>
+        <input type="text" x-model="config.owner_name" placeholder="e.g. Leo">
+        <label>Garden / location name</label>
+        <input type="text" x-model="config.location_name" placeholder="e.g. Port of Menteith">
+        <label>Timezone</label>
+        <input type="text" x-model="config.timezone" placeholder="Auto-detected">
+        <label>Units</label>
+        <select x-model="config.units">
+          <option value="metric">Metric (cm, sqm)</option>
+          <option value="imperial">Imperial (in, sqft)</option>
+        </select>
+        <label>Pin your garden location (click map to set coordinates)</label>
+        <div id="map"></div>
+        <div style="display:flex;gap:.5rem">
+          <div style="flex:1"><label>Latitude</label>
+            <input type="number" step="0.0001" x-model="config.latitude" @change="updateMapPin()"></div>
+          <div style="flex:1"><label>Longitude</label>
+            <input type="number" step="0.0001" x-model="config.longitude" @change="updateMapPin()"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" @click="currentStep=1">← Back</button>
+          <button class="btn btn-primary" @click="saveConfigStep()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Zones -->
+    <div x-show="currentStep===3">
+      <div class="card">
+        <h2>Define Your Growing Zones</h2>
+        <p style="color:#9ca3af;font-size:.875rem;margin-bottom:1rem">
+          Add as many zones as you have. Each zone can be a grid (track every cell) or loose (general planting overview).
+        </p>
+        <template x-for="(zone, idx) in zones" :key="idx">
+          <div class="zone-card" x-data="{ open: true }">
+            <div class="zone-card-header">
+              <strong x-text="zone.name || 'New Zone'"></strong>
+              <div style="display:flex;gap:.5rem">
+                <button class="btn btn-secondary" style="padding:.25rem .5rem;font-size:.75rem"
+                  @click="open=!open" x-text="open?'▲':'▼'"></button>
+                <button class="btn btn-danger" style="padding:.25rem .5rem;font-size:.75rem"
+                  @click="zones.splice(idx,1)">✕</button>
+              </div>
+            </div>
+            <div x-show="open">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+                <div><label>Zone name</label>
+                  <input type="text" x-model="zone.name" placeholder="e.g. Germinator 1"></div>
+                <div><label>Type</label>
+                  <select x-model="zone.type">
+                    <option>germinator</option><option>greenhouse</option>
+                    <option>polytunnel</option><option>outdoor</option>
+                    <option>indoor</option><option>other</option>
+                  </select></div>
+              </div>
+              <label>View type</label>
+              <select x-model="zone.view_type">
+                <option value="grid">Grid — track every cell individually</option>
+                <option value="loose">Loose — general planting overview</option>
+              </select>
+              <!-- Grid options -->
+              <div x-show="zone.view_type==='grid'" style="background:#111827;border-radius:.5rem;padding:.75rem;margin-bottom:.75rem">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.5rem">
+                  <div><label>Rows</label><input type="number" x-model.number="zone.grid_rows" min="1"></div>
+                  <div><label>Cols</label><input type="number" x-model.number="zone.grid_cols" min="1"></div>
+                  <div><label>Cell W (cm)</label><input type="number" step="0.1" x-model.number="zone.cell_width_cm"></div>
+                  <div><label>Cell H (cm)</label><input type="number" step="0.1" x-model.number="zone.cell_height_cm"></div>
+                </div>
+                <div x-show="zone.grid_rows && zone.grid_cols">
+                  <label style="margin-bottom:.25rem">Preview</label>
+                  <div class="grid-preview"
+                    :style="`grid-template-columns: repeat(${zone.grid_cols},1fr)`">
+                    <template x-for="n in (zone.grid_rows||0)*(zone.grid_cols||0)">
+                      <div class="grid-cell" style="width:16px;height:16px"></div>
+                    </template>
+                  </div>
+                  <p style="font-size:.75rem;color:#9ca3af;margin-top:.25rem"
+                    x-text="`${zone.grid_rows}×${zone.grid_cols} = ${zone.grid_rows*zone.grid_cols} cells`"></p>
+                </div>
+              </div>
+              <!-- Loose options -->
+              <div x-show="zone.view_type==='loose'">
+                <label>Area (sqm)</label>
+                <input type="number" step="0.1" x-model.number="zone.area_sqm">
+              </div>
+              <!-- Environment toggles -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+                <label class="toggle">
+                  <input type="checkbox" x-model="zone.covered">
+                  <span>Covered</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" x-model="zone.has_auto_watering">
+                  <span>Auto-watering</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" x-model="zone.has_heating">
+                  <span>Heating</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" x-model="zone.has_lighting">
+                  <span>Lighting</span>
+                </label>
+              </div>
+              <div x-show="zone.covered">
+                <label>Cover type</label>
+                <select x-model="zone.cover_type">
+                  <option>glass</option><option>polycarbonate</option>
+                  <option>fleece</option><option>polytunnel</option><option>other</option>
+                </select>
+              </div>
+              <div x-show="zone.has_auto_watering">
+                <label>Watering type</label>
+                <select x-model="zone.watering_type">
+                  <option>drip</option><option>sprinkler</option>
+                  <option>misting</option><option>flood</option>
+                </select>
+              </div>
+              <div x-show="zone.has_heating">
+                <label>Heating type</label>
+                <select x-model="zone.heating_type">
+                  <option>electric mat</option><option>fan heater</option>
+                  <option>underfloor</option><option>radiator</option><option>other</option>
+                </select>
+              </div>
+              <div x-show="zone.has_lighting">
+                <label>Lighting type</label>
+                <select x-model="zone.lighting_type">
+                  <option>LED grow light</option><option>fluorescent</option>
+                  <option>HPS</option><option>natural only</option>
+                </select>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+                <div><label>Orientation</label>
+                  <select x-model="zone.orientation">
+                    <option value="">Unknown</option>
+                    <option>N</option><option>NE</option><option>E</option><option>SE</option>
+                    <option>S</option><option>SW</option><option>W</option><option>NW</option>
+                  </select></div>
+                <div><label>Slope (°)</label>
+                  <input type="number" min="0" max="90" x-model.number="zone.slope_degrees"></div>
+              </div>
+              <label>Soil / growing medium</label>
+              <select x-model="zone.soil_type">
+                <option value="">Unknown</option>
+                <option>raised_bed</option><option>ground</option>
+                <option>hydroponic</option><option>container</option><option>none</option>
+              </select>
+              <label>GPS (overrides garden location for this zone)</label>
+              <div style="display:flex;gap:.5rem">
+                <input type="number" step="0.0001" x-model.number="zone.latitude" placeholder="Latitude">
+                <input type="number" step="0.0001" x-model.number="zone.longitude" placeholder="Longitude">
+              </div>
+              <label>Notes</label>
+              <textarea rows="2" x-model="zone.notes"></textarea>
+            </div>
+          </div>
+        </template>
+        <button class="btn btn-secondary" @click="addZone()" style="width:100%;margin-bottom:1rem">
+          + Add Zone
+        </button>
+        <div class="btn-row">
+          <button class="btn btn-secondary" @click="currentStep=2">← Back</button>
+          <button class="btn btn-primary" @click="currentStep=4">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Steps 4-6 loaded from wizard.js -->
+    <div x-show="currentStep===4" x-html="step4Html"></div>
+    <div x-show="currentStep===5" x-html="step5Html"></div>
+    <div x-show="currentStep===6" x-html="step6Html"></div>
+  </div>
+
+  <script src="wizard.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+:root { --green: #4ade80; --amber: #fbbf24; --red: #f87171; --blue: #60a5fa; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui,sans-serif; background: #111827; color: #f3f4f6; min-height: 100vh; }
+.wizard { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
+.step-indicator { display: flex; gap: .5rem; margin-bottom: 2rem; }
+.step-dot { width: 10px; height: 10px; border-radius: 50%; background: #374151; transition: background .2s; }
+.step-dot.active { background: var(--green); }
+.step-dot.done   { background: #065f46; }
+.card { background: #1f2937; border-radius: .75rem; padding: 1.5rem; margin-bottom: 1rem; }
+h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: .5rem; color: var(--green); }
+h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; }
+label { display: block; font-size: .875rem; color: #9ca3af; margin-bottom: .25rem; }
+input, select, textarea {
+  width: 100%; background: #374151; border: 1px solid #4b5563;
+  color: #f3f4f6; border-radius: .375rem; padding: .5rem .75rem;
+  font-size: .875rem; margin-bottom: .75rem;
+}
+input:focus, select:focus { outline: none; border-color: var(--green); }
+.btn { padding: .625rem 1.25rem; border-radius: .375rem; font-weight: 600; cursor: pointer; border: none; }
+.btn-primary { background: var(--green); color: #111827; }
+.btn-secondary { background: #374151; color: #f3f4f6; }
+.btn-danger { background: #7f1d1d; color: #fca5a5; }
+.btn-row { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1rem; }
+.toggle { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; cursor: pointer; }
+.toggle input[type=checkbox] { width: auto; margin: 0; accent-color: var(--green); }
+.zone-card { border: 1px solid #374151; border-radius: .5rem; padding: 1rem; margin-bottom: 1rem; }
+.zone-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; }
+.grid-preview { display: inline-grid; gap: 2px; margin-top: .5rem; }
+.grid-cell { background: #374151; border-radius: 2px; }
+#map { height: 300px; border-radius: .5rem; margin-bottom: .75rem; }
