@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS zones (
   lighting_type     TEXT,
   soil_type         TEXT,
   -- Display
-  view_type         TEXT DEFAULT 'loose',
+  view_type         TEXT NOT NULL DEFAULT 'loose',
   grid_rows         INTEGER,
   grid_cols         INTEGER,
   cell_width_cm     REAL,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS plantings (
   moved_date       TEXT,
   harvested_date   TEXT,
   failed_date      TEXT,
-  status           TEXT DEFAULT 'sown',
+  status           TEXT NOT NULL DEFAULT 'sown',
   quantity         INTEGER DEFAULT 1,
   notes            TEXT
 );
@@ -77,8 +77,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   zone_id   INTEGER REFERENCES zones(id),
   title     TEXT NOT NULL,
   due_date  TEXT,
-  priority  TEXT DEFAULT 'medium',
-  status    TEXT DEFAULT 'pending',
+  priority  TEXT NOT NULL DEFAULT 'medium',
+  status    TEXT NOT NULL DEFAULT 'pending',
   notes     TEXT
 );
 
