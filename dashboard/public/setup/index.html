@@ -210,10 +210,79 @@
       </div>
     </div>
 
-    <!-- Steps 4-6 loaded from wizard.js -->
-    <div x-show="currentStep===4" x-html="step4Html"></div>
-    <div x-show="currentStep===5" x-html="step5Html"></div>
-    <div x-show="currentStep===6" x-html="step6Html"></div>
+    <!-- Step 4: Seed Inventory -->
+    <div x-show="currentStep===4">
+      <div class="card">
+        <h2>Seed Inventory</h2>
+        <p style="color:#9ca3af;font-size:.875rem;margin-bottom:1rem">
+          Example seeds are preloaded. What would you like to do?
+        </p>
+        <label class="toggle" style="margin-bottom:.5rem">
+          <input type="radio" name="seeds" value="keep" x-model="seedOption"> Keep example seeds
+        </label>
+        <label class="toggle" style="margin-bottom:.5rem">
+          <input type="radio" name="seeds" value="clear" x-model="seedOption"> Clear all — start fresh
+        </label>
+        <label class="toggle" style="margin-bottom:1rem">
+          <input type="radio" name="seeds" value="skip" x-model="seedOption"> Skip — manage later in dashboard
+        </label>
+        <div class="btn-row">
+          <button class="btn btn-secondary" @click="currentStep=3">← Back</button>
+          <button class="btn btn-primary" @click="currentStep=5">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: OpenClaw Integration -->
+    <div x-show="currentStep===5">
+      <div class="card">
+        <h2>OpenClaw Integration <span style="font-size:.75rem;color:#9ca3af;font-weight:400">(optional)</span></h2>
+        <p style="color:#9ca3af;font-size:.875rem;margin-bottom:1rem">
+          OpenClaw is an AI agent that can query and update your garden by chat or WhatsApp.
+          See <code>openclaw/README.md</code> for full details.
+        </p>
+        <label class="toggle" style="margin-bottom:1rem">
+          <input type="checkbox" x-model="openclawEnabled"> I use OpenClaw
+        </label>
+        <div x-show="openclawEnabled" style="background:#111827;border-radius:.5rem;padding:1rem;font-size:.875rem">
+          <p style="margin-bottom:.5rem"><strong>1. Copy the skill:</strong></p>
+          <pre style="background:#1f2937;padding:.5rem;border-radius:.25rem;overflow-x:auto;margin-bottom:.75rem">cp -r openclaw/skills/garden-manager /path/to/openclaw/skills/</pre>
+          <p style="margin-bottom:.5rem"><strong>2. Install cron jobs:</strong></p>
+          <pre style="background:#1f2937;padding:.5rem;border-radius:.25rem;overflow-x:auto">chmod +x openclaw/cron-setup.sh && ./openclaw/cron-setup.sh</pre>
+          <p style="margin-top:.75rem;color:#9ca3af">You can re-run these steps from Settings at any time.</p>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" @click="currentStep=4">← Back</button>
+          <button class="btn btn-primary" @click="currentStep=6">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6: Review & Launch -->
+    <div x-show="currentStep===6">
+      <div class="card">
+        <h2>Review & Launch</h2>
+        <div style="margin-bottom:1rem">
+          <p><strong x-text="config.owner_name || 'Your'"></strong> garden at
+             <strong x-text="config.location_name || 'your location'"></strong></p>
+          <p style="color:#9ca3af;font-size:.875rem" x-text="config.timezone + ' · ' + config.units"></p>
+        </div>
+        <p style="font-weight:600;margin-bottom:.5rem" x-text="'Zones (' + zones.length + ')'"></p>
+        <template x-for="z in zones" :key="z.name">
+          <div style="padding:.5rem;background:#111827;border-radius:.375rem;margin-bottom:.5rem">
+            <strong x-text="z.name"></strong>
+            <span style="color:#9ca3af;font-size:.875rem;margin-left:.5rem" x-text="z.type + ' · ' + z.view_type"></span>
+            <span x-show="z.view_type==='grid'" style="color:#9ca3af;font-size:.75rem;margin-left:.5rem"
+              x-text="z.grid_rows + '×' + z.grid_cols + ' cells'"></span>
+          </div>
+        </template>
+        <p x-show="zones.length===0" style="color:#9ca3af;font-size:.875rem">No zones configured</p>
+        <div class="btn-row" style="margin-top:1.5rem">
+          <button class="btn btn-secondary" @click="currentStep=5">← Back</button>
+          <button class="btn btn-primary" @click="launch()">Launch Garden Manager →</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="wizard.js"></script>
