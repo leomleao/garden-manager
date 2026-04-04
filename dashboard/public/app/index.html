@@ -13,6 +13,7 @@
       <h1>🌱 Garden Manager</h1>
       <span style="font-size:.75rem;color:#9ca3af" x-text="config.location_name || ''"></span>
       <span style="font-size:.75rem;color:#4b5563" x-text="lastRefresh"></span>
+      <span x-show="refreshError" style="color:var(--red);font-size:.75rem" x-text="refreshError"></span>
     </header>
     <nav>
       <button :class="{active:tab==='overview'}" @click="tab='overview'">Overview</button>
@@ -104,9 +105,110 @@
         </template>
       </div>
 
-      <!-- SEEDS, TASKS, CALENDAR, SETTINGS tabs rendered via app.js -->
-      <div x-show="tab==='seeds'"    x-html="seedsTabHtml"></div>
-      <div x-show="tab==='tasks'"    x-html="tasksTabHtml"></div>
+      <!-- SEEDS -->
+      <div x-show="tab==='seeds'">
+        <div class="card">
+          <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center">
+            <h2 style="flex:1">Seed Inventory</h2>
+            <input type="search" placeholder="Search…" style="width:200px" x-model="seedSearch">
+          </div>
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Variety</th><th>Type</th>
+              <th style="text-align:center">Qty</th><th>Supplier</th><th>Sow By</th>
+            </tr></thead>
+            <tbody>
+              <template x-for="s in filteredSeeds" :key="s.id">
+                <tr>
+                  <td x-text="s.name"></td>
+                  <td style="color:#9ca3af" x-text="s.variety||''"></td>
+                  <td><span class="badge badge-sown" x-text="s.type||''"></span></td>
+                  <td style="text-align:center" x-text="s.quantity"></td>
+                  <td style="color:#9ca3af" x-text="s.supplier||''"></td>
+                  <td style="color:#9ca3af" x-text="s.sow_by_year||''"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2>Add Seed</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+            <input placeholder="Name *" x-model="newSeed.name">
+            <input placeholder="Variety" x-model="newSeed.variety">
+            <input placeholder="Type" x-model="newSeed.type">
+            <input placeholder="Quantity" type="number" x-model.number="newSeed.quantity">
+            <input placeholder="Supplier" x-model="newSeed.supplier">
+          </div>
+          <button class="btn btn-primary btn-sm" @click="addSeed()">Add Seed</button>
+        </div>
+      </div>
+
+      <!-- TASKS -->
+      <div x-show="tab==='tasks'">
+        <div class="card">
+          <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center;flex-wrap:wrap">
+            <h2 style="flex:1">Tasks</h2>
+            <select x-model="taskFilter.zone_id" style="width:130px">
+              <option value="">All zones</option>
+              <template x-for="z in zones" :key="z.id">
+                <option :value="z.id" x-text="z.name"></option>
+              </template>
+            </select>
+            <select x-model="taskFilter.status" style="width:110px">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="done">Done</option>
+            </select>
+            <select x-model="taskFilter.priority" style="width:100px">
+              <option value="">All priorities</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <table>
+            <thead><tr><th>Task</th><th>Priority</th><th>Status</th><th>Due</th><th>Zone</th><th></th></tr></thead>
+            <tbody>
+              <template x-for="t in filteredTasks" :key="t.id">
+                <tr :class="isOverdue(t) ? 'overdue' : ''">
+                  <td x-text="t.title"></td>
+                  <td><span class="badge" :class="'badge-'+t.priority" x-text="t.priority"></span></td>
+                  <td><span class="badge" :class="'badge-'+t.status" x-text="t.status"></span></td>
+                  <td style="color:#9ca3af" x-text="t.due_date||''"></td>
+                  <td style="color:#9ca3af" x-text="t.zone_name||'All zones'"></td>
+                  <td>
+                    <button x-show="t.status !== 'done'" class="btn btn-sm"
+                      style="background:#1a3a2e;color:#86efac"
+                      @click="completeTask(t.id)">✓</button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2>Add Task</h2>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+            <input placeholder="Task title *" x-model="newTask.title">
+            <input type="date" x-model="newTask.due_date">
+            <select x-model="newTask.priority">
+              <option value="high">high</option>
+              <option value="medium" selected>medium</option>
+              <option value="low">low</option>
+            </select>
+            <select x-model.number="newTask.zone_id">
+              <option value="">All zones</option>
+              <template x-for="z in zones" :key="z.id">
+                <option :value="z.id" x-text="z.name"></option>
+              </template>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" @click="addTask()">Add Task</button>
+        </div>
+      </div>
+
+      <!-- CALENDAR, SETTINGS tabs rendered via app.js (read-only, no x-model) -->
       <div x-show="tab==='calendar'" x-html="calendarTabHtml"></div>
       <div x-show="tab==='settings'" x-html="settingsTabHtml"></div>
 
