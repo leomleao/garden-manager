@@ -1,4 +1,6 @@
 .env
 dashboard/node_modules/
 data/
+!data/.gitkeep
 *.db
+data/*.db

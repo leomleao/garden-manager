@@ -1,0 +1,35 @@
+services:
+  garden-db-init:
+    image: keinos/sqlite3
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+      - ./db:/db
+    entrypoint: >
+      sh -c "[ -f /data/garden.db ] && echo 'DB exists, skipping init' || sqlite3 /data/garden.db < /db/init-db.sql && echo 'DB initialised'"
+    restart: "no"
+
+  garden-dashboard:
+    build: ./dashboard
+    depends_on:
+      garden-db-init:
+        condition: service_completed_successfully
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    environment:
+      - DB_PATH=/data/garden.db
+      - PORT=${PORT:-8420}
+    # Traefik labels — remove or comment out if not using Traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.garden.rule=Host(`${DOMAIN:-garden.home}`)"
+      - "traefik.http.routers.garden.entrypoints=websecure"
+      - "traefik.http.services.garden.loadbalancer.server.port=8420"
+    # Uncomment the lines below if NOT using Traefik:
+    # ports:
+    #   - "${PORT:-8420}:8420"
+    restart: unless-stopped
+
+networks:
+  default:
+    name: proxy
+    external: true
