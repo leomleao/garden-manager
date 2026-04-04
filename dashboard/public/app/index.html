@@ -1,1 +1,117 @@
-<!DOCTYPE html><html><body>App</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garden Manager</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/alpinejs@3.13.7/dist/cdn.min.js" defer></script>
+</head>
+<body>
+  <div class="layout" x-data="app()" x-init="init()">
+    <header>
+      <h1>🌱 Garden Manager</h1>
+      <span style="font-size:.75rem;color:#9ca3af" x-text="config.location_name || ''"></span>
+      <span style="font-size:.75rem;color:#4b5563" x-text="lastRefresh"></span>
+    </header>
+    <nav>
+      <button :class="{active:tab==='overview'}" @click="tab='overview'">Overview</button>
+      <button :class="{active:tab==='zones'}"    @click="tab='zones'">Zones</button>
+      <button :class="{active:tab==='seeds'}"    @click="tab='seeds'">Seeds</button>
+      <button :class="{active:tab==='tasks'}"    @click="tab='tasks'">Tasks</button>
+      <button :class="{active:tab==='calendar'}" @click="tab='calendar'">Calendar</button>
+      <button :class="{active:tab==='settings'}" @click="tab='settings'">Settings</button>
+    </nav>
+    <main>
+
+      <!-- OVERVIEW -->
+      <div x-show="tab==='overview'">
+        <div class="stats">
+          <div class="stat-card"><div class="value" x-text="summary.zones"></div><div class="label">Zones</div></div>
+          <div class="stat-card"><div class="value" x-text="summary.activePlants"></div><div class="label">Active Plantings</div></div>
+          <div class="stat-card"><div class="value" style="color:var(--red)" x-text="summary.overdueTasks"></div><div class="label">Overdue Tasks</div></div>
+          <div class="stat-card"><div class="value" x-text="summary.seedsInStock"></div><div class="label">Seed Types</div></div>
+        </div>
+        <div class="card" x-show="weather.temp !== null">
+          <div class="weather-widget">
+            <span style="font-size:1.5rem" x-text="weather.icon"></span>
+            <div>
+              <div style="font-weight:600" x-text="(weather.temp ?? '--') + '°C · ' + (weather.desc || '')"></div>
+              <div style="color:#9ca3af;font-size:.75rem" x-text="config.location_name"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Recent Activity</h2>
+          <table>
+            <template x-for="entry in activity">
+              <tr>
+                <td style="color:#9ca3af;font-size:.75rem;width:160px" x-text="entry.timestamp.slice(0,16).replace('T',' ')"></td>
+                <td><span class="badge" :class="'badge-'+entry.action_type" x-text="entry.action_type"></span></td>
+                <td x-text="entry.description"></td>
+              </tr>
+            </template>
+          </table>
+        </div>
+      </div>
+
+      <!-- ZONES -->
+      <div x-show="tab==='zones'">
+        <template x-for="zone in zones" :key="zone.id">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
+              <div>
+                <h2 x-text="zone.name"></h2>
+                <span style="font-size:.75rem;color:#9ca3af"
+                  x-text="zone.type + (zone.covered?' · covered':'') + (zone.has_auto_watering?' · auto-water':'')">
+                </span>
+              </div>
+              <span class="badge" :class="zone.view_type==='grid'?'badge-sown':'badge-germinated'"
+                x-text="zone.view_type"></span>
+            </div>
+            <!-- Grid view -->
+            <div x-show="zone.view_type==='grid'" style="overflow-x:auto">
+              <div class="grid-view" :style="`grid-template-columns:repeat(${zone.grid_cols},1fr)`">
+                <template x-for="cell in zone.cells" :key="cell.id">
+                  <div class="grid-cell"
+                    :class="getCellStatus(cell.id)"
+                    :title="cell.label + ': ' + getCellDesc(cell.id)"
+                    x-text="cell.label">
+                  </div>
+                </template>
+              </div>
+              <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+                <template x-for="s in ['empty','sown','germinated','established','failed']">
+                  <span style="font-size:.75rem;display:flex;align-items:center;gap:.25rem">
+                    <span class="grid-cell" :class="s==='empty'?'':s" style="width:12px;height:12px;display:inline-block"></span>
+                    <span x-text="s" style="color:#9ca3af"></span>
+                  </span>
+                </template>
+              </div>
+            </div>
+            <!-- Loose view -->
+            <div x-show="zone.view_type==='loose'">
+              <template x-for="p in getZonePlantings(zone.id)" :key="p.id">
+                <div style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid #374151">
+                  <span class="badge" :class="'badge-'+p.status" x-text="p.status"></span>
+                  <span x-text="p.seed_name + (p.seed_variety ? ' · '+p.seed_variety : '')"></span>
+                  <span style="color:#9ca3af;font-size:.75rem;margin-left:auto" x-text="p.sown_date"></span>
+                </div>
+              </template>
+              <p x-show="!getZonePlantings(zone.id).length" style="color:#9ca3af;font-size:.875rem">No active plantings</p>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- SEEDS, TASKS, CALENDAR, SETTINGS tabs rendered via app.js -->
+      <div x-show="tab==='seeds'"    x-html="seedsTabHtml"></div>
+      <div x-show="tab==='tasks'"    x-html="tasksTabHtml"></div>
+      <div x-show="tab==='calendar'" x-html="calendarTabHtml"></div>
+      <div x-show="tab==='settings'" x-html="settingsTabHtml"></div>
+
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
