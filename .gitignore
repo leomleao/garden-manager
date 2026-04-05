@@ -4,3 +4,4 @@ data/
 !data/.gitkeep
 *.db
 data/*.db
+.claude/settings.local.json
