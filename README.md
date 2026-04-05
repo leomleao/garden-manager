@@ -17,8 +17,9 @@ task management, and AI integration via [OpenClaw](./openclaw/README.md).
 ```bash
 cp .env.example .env
 # Edit .env — set DATA_DIR, PORT, DOMAIN
-docker compose up
-# Open http://localhost:8420 (or https://garden.home with Traefik)
+docker compose up -d
+# garden-db-init runs once to create the DB then exits — this is normal
+# Open http://localhost:8420 (or your configured PORT)
 ```
 
 On first launch, a setup wizard guides you through configuring your garden.

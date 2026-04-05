@@ -24,7 +24,7 @@ cp -r skills/garden-manager /path/to/openclaw/skills/
 
 **2. Set the DB path** in OpenClaw's environment:
 ```
-GARDEN_DB_PATH=/home/leo/garden/garden.db
+GARDEN_DB_PATH=/path/to/your/garden.db
 ```
 
 **3. Install cron jobs:**

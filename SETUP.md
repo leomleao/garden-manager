@@ -9,12 +9,15 @@ If you don't use Traefik:
 Comment out the `labels:` section and uncomment `ports:`:
 
 ```yaml
-# labels:
-#   - "traefik.enable=true"
-#   ...
+  garden-dashboard:
+    # Comment out the labels section:
+    # labels:
+    #   - "traefik.enable=true"
+    #   ...
 
-ports:
-  - "${PORT:-8420}:8420"
+    # Uncomment the lines below:
+    ports:
+      - "${PORT:-8420}:8420"
 ```
 
 **2. Remove the external network:**

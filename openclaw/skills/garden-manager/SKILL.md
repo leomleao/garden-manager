@@ -1,7 +1,7 @@
 # Skill: Garden Manager
 
 You have access to a SQLite database at the path specified in `GARDEN_DB_PATH`
-(default: `/home/leo/garden/garden.db`). Use the `sqlite3` command to query it.
+(default: `/path/to/garden.db`). Use the `sqlite3` command to query it.
 
 ## Schema Summary
 
@@ -19,8 +19,8 @@ Dates are ISO 8601 (YYYY-MM-DD). Calendar dates are MM-DD.
 ## Querying
 
 ```bash
-sqlite3 $GARDEN_DB_PATH "SELECT * FROM zones;"
-sqlite3 $GARDEN_DB_PATH "
+sqlite3 "$GARDEN_DB_PATH" "SELECT * FROM zones;"
+sqlite3 "$GARDEN_DB_PATH" "
   SELECT z.name, zc.label, s.name as seed, p.status
   FROM plantings p
   JOIN zones z ON p.zone_id=z.id
@@ -36,17 +36,17 @@ Always insert into `activity_log` after making changes:
 
 ```bash
 # Sow a seed into a grid cell
-sqlite3 $GARDEN_DB_PATH "
+sqlite3 "$GARDEN_DB_PATH" "
   INSERT INTO plantings(seed_id,zone_id,cell_id,sown_date,status,quantity)
   VALUES(1, 1, 5, date('now'), 'sown', 1);
   INSERT INTO activity_log(action_type,zone_id,planting_id,description)
   VALUES('sow', 1, last_insert_rowid(), 'Sowed Tomato in A5');"
 
-# Update planting status
-sqlite3 $GARDEN_DB_PATH "
-  UPDATE plantings SET status='germinated', germinated_date=date('now') WHERE id=?;
+# Update planting status (replace 42 with actual planting id, 1 with actual zone_id)
+sqlite3 "$GARDEN_DB_PATH" "
+  UPDATE plantings SET status='germinated', germinated_date=date('now') WHERE id=42;
   INSERT INTO activity_log(action_type,zone_id,planting_id,description)
-  VALUES('germinated', ?, ?, 'Tomato germinated in A5');"
+  VALUES('germinated', 1, 42, 'Tomato germinated in A5');"
 ```
 
 ## WhatsApp-Friendly Summary Format
