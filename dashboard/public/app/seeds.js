@@ -17,7 +17,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     get filteredSeeds() {
-      let list = this.$root.seeds;
+      let list = this.seeds;
       if (this.typeFilter) list = list.filter(s => s.type === this.typeFilter);
       if (this.search) {
         const q = this.search.toLowerCase();
@@ -31,7 +31,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     badgeClass(type) {
-      return { herb: 'badge-herb', vegetable: 'badge-vegetable', flower: 'badge-flower' }[type] || 'badge-sown';
+      return { herb: 'badge-herb', vegetable: 'badge-vegetable', flower: 'badge-flower' }[type] || '';
     },
 
     openAdd() {
@@ -52,7 +52,8 @@ document.addEventListener('alpine:init', () => {
 
     openEdit(seed) {
       this.editingId = seed.id;
-      this.form = { ...seed };
+      const { name, variety, type, quantity, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end } = seed;
+      this.form = { name, variety, type, quantity, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end };
       this.showModal = true;
     },
 
@@ -60,11 +61,16 @@ document.addEventListener('alpine:init', () => {
 
     async save() {
       if (!this.form.name) return;
-      const url = this.editingId ? `/api/seeds/${this.editingId}` : '/api/seeds';
-      const method = this.editingId ? 'PATCH' : 'POST';
-      await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(this.form) });
-      this.showModal = false;
-      await this.$root.refresh();
+      try {
+        const url = this.editingId ? `/api/seeds/${this.editingId}` : '/api/seeds';
+        const method = this.editingId ? 'PATCH' : 'POST';
+        const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(this.form) });
+        if (!r.ok) throw new Error(await r.text());
+        this.showModal = false;
+        await this.refresh();
+      } catch (e) {
+        console.error('Save seed failed:', e);
+      }
     }
   }));
 });

@@ -171,7 +171,7 @@
         </div>
 
         <!-- Add/Edit Modal -->
-        <div class="modal-overlay" x-show="showModal" x-cloak @click.self="closeModal()">
+        <div class="modal-overlay" x-show="showModal" @keydown.escape.window="closeModal()" @click.self="closeModal()">
           <div class="modal-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
               <h2 x-text="editingId ? 'Edit Seed' : 'Add Seed'"></h2>
