@@ -46,18 +46,33 @@ CREATE TABLE IF NOT EXISTS zone_cells (
 );
 
 CREATE TABLE IF NOT EXISTS seeds (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  name          TEXT NOT NULL,
-  variety       TEXT,
-  type          TEXT,
-  quantity      INTEGER DEFAULT 0,
-  supplier      TEXT,
-  purchase_year INTEGER,
-  sow_by_year   INTEGER,
-  notes         TEXT
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  name                  TEXT NOT NULL,
+  variety               TEXT,
+  type                  TEXT,
+  quantity              INTEGER DEFAULT 0,
+  supplier              TEXT,
+  purchase_year         INTEGER,
+  sow_by_year           INTEGER,
+  notes                 TEXT,
+  purchase_link         TEXT,
+  days_to_germinate     INTEGER,
+  optimum_soil_temp     TEXT,
+  optimum_soil_type     TEXT,
+  plant_height          TEXT,
+  light_requirements    TEXT,
+  growing_instructions  TEXT,
+  sow_indoors_start     TEXT,
+  sow_indoors_end       TEXT,
+  sow_outdoors_start    TEXT,
+  sow_outdoors_end      TEXT,
+  plant_out_start       TEXT,
+  plant_out_end         TEXT,
+  harvest_start         TEXT,
+  harvest_end           TEXT
 );
 
-CREATE TABLE IF NOT EXISTS plantings (
+CREATE TABLE IF NOT EXISTS plant_lifecycle (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
   seed_id          INTEGER REFERENCES seeds(id),
   zone_id          INTEGER NOT NULL REFERENCES zones(id),
@@ -82,31 +97,19 @@ CREATE TABLE IF NOT EXISTS tasks (
   notes     TEXT
 );
 
-CREATE TABLE IF NOT EXISTS growing_calendar (
-  id                   INTEGER PRIMARY KEY AUTOINCREMENT,
-  crop_name            TEXT NOT NULL,
-  sow_indoors_start    TEXT,
-  sow_indoors_end      TEXT,
-  sow_outdoors_start   TEXT,
-  sow_outdoors_end     TEXT,
-  harvest_start        TEXT,
-  harvest_end          TEXT,
-  notes                TEXT
-);
-
 CREATE TABLE IF NOT EXISTS activity_log (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   timestamp    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
   action_type  TEXT,
   zone_id      INTEGER REFERENCES zones(id),
-  planting_id  INTEGER REFERENCES plantings(id),
+  plant_lifecycle_id  INTEGER REFERENCES plant_lifecycle(id),
   description  TEXT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_plantings_zone   ON plantings(zone_id, status);
-CREATE INDEX IF NOT EXISTS idx_plantings_cell   ON plantings(cell_id) WHERE cell_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_tasks_due        ON tasks(due_date, status);
-CREATE INDEX IF NOT EXISTS idx_activity_ts      ON activity_log(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_plant_lifecycle_zone ON plant_lifecycle(zone_id, status);
+CREATE INDEX IF NOT EXISTS idx_plant_lifecycle_cell ON plant_lifecycle(cell_id) WHERE cell_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tasks_due            ON tasks(due_date, status);
+CREATE INDEX IF NOT EXISTS idx_activity_ts          ON activity_log(timestamp DESC);
 
 -- Example data (Scotland / Port of Menteith) — replace via Settings after setup
 INSERT OR IGNORE INTO app_config(key, value) VALUES ('example_data_loaded', '1');
@@ -118,31 +121,13 @@ VALUES
   ('Polytunnel','polytunnel',56.1667,-4.2833,1,'polytunnel','grid',5,4,25,25,3),
   ('Outdoor Veg Plot','outdoor',56.1667,-4.2833,0,NULL,'loose',NULL,NULL,NULL,NULL,4);
 
-INSERT INTO seeds(name,variety,type,quantity,supplier,purchase_year)
+INSERT INTO seeds(name,variety,type,quantity,supplier,purchase_year,sow_indoors_start,sow_indoors_end,sow_outdoors_start,sow_outdoors_end,plant_out_start,plant_out_end,harvest_start,harvest_end)
 VALUES
-  ('Tomato','Gardeners Delight','vegetable',30,'Thompson & Morgan',2024),
-  ('Courgette','Black Beauty','vegetable',15,'RHS',2024),
-  ('Lettuce','Little Gem','salad',50,'Suttons',2024),
-  ('Basil','Sweet Genovese','herb',20,'Jekka''s',2024),
-  ('Kale','Cavolo Nero','vegetable',25,'Thompson & Morgan',2024),
-  ('Beetroot','Boltardy','vegetable',40,'Suttons',2024),
-  ('Peas','Kelvedon Wonder','vegetable',60,'Thompson & Morgan',2024),
-  ('Chilli','Apache','vegetable',10,'Nicky''s',2024);
-
-INSERT INTO growing_calendar(crop_name,sow_indoors_start,sow_indoors_end,sow_outdoors_start,sow_outdoors_end,harvest_start,harvest_end,notes)
-VALUES
-  ('Tomato','02-01','03-31',NULL,NULL,'07-01','10-31','Start indoors, transplant after last frost'),
-  ('Courgette','04-01','05-15','05-15','06-01','07-01','09-30','Direct sow outdoors after frosts'),
-  ('Lettuce','02-01','08-31','03-15','09-01','05-01','11-30','Succession sow every 2-3 weeks'),
-  ('Basil','03-01','05-31',NULL,NULL,'06-01','09-30','Needs warmth - ideal for germinator'),
-  ('Kale','04-01','07-31','04-15','07-31','10-01','03-31','Hardy, survives Scottish winter'),
-  ('Beetroot',NULL,NULL,'03-15','07-31','06-01','10-31','Direct sow only'),
-  ('Peas',NULL,NULL,'02-15','06-30','06-01','09-30','Direct sow, can start early under cover'),
-  ('Chilli','01-15','03-31',NULL,NULL,'08-01','10-31','Long season - start very early indoors'),
-  ('Cucumber','03-01','04-30',NULL,NULL,'07-01','09-30','Greenhouse or polytunnel only in Scotland'),
-  ('Runner Bean',NULL,NULL,'05-01','06-15','07-15','10-31','Frost tender - sow after last frost'),
-  ('Carrot',NULL,NULL,'03-01','06-30','06-15','10-31','Direct sow, thin to 5cm'),
-  ('Onion','01-15','02-28',NULL,NULL,'07-01','09-30','Start from seed indoors or use sets'),
-  ('Spinach',NULL,NULL,'02-15','09-01','04-01','11-30','Bolt-prone in heat, ideal for Scotland'),
-  ('Parsley','02-01','06-30','04-01','06-30','06-01','11-30','Slow to germinate'),
-  ('Coriander',NULL,NULL,'04-01','08-31','06-01','10-31','Bolt-prone, succession sow monthly');
+  ('Tomato',   'Gardeners Delight','vegetable',30,'Thompson & Morgan',2024, '02-01','03-31',NULL,    NULL,    '05-15','06-15','07-01','10-31'),
+  ('Courgette','Black Beauty',      'vegetable',15,'RHS',              2024, '04-01','05-15','05-15','06-01', '06-01','06-15','07-01','09-30'),
+  ('Lettuce',  'Little Gem',        'vegetable',50,'Suttons',          2024, '02-01','08-31','03-15','09-01', NULL,   NULL,   '05-01','11-30'),
+  ('Basil',    'Sweet Genovese',    'herb',      20,'Jekka''s',         2024, '03-01','05-31',NULL,    NULL,    '06-01','06-15','06-01','09-30'),
+  ('Kale',     'Cavolo Nero',       'vegetable', 25,'Thompson & Morgan',2024, '04-01','07-31','04-15','07-31', NULL,   NULL,   '10-01','03-31'),
+  ('Beetroot', 'Boltardy',          'vegetable', 40,'Suttons',          2024, NULL,   NULL,   '03-15','07-31', NULL,   NULL,   '06-01','10-31'),
+  ('Peas',     'Kelvedon Wonder',   'vegetable', 60,'Thompson & Morgan',2024, NULL,   NULL,   '02-15','06-30', NULL,   NULL,   '06-01','09-30'),
+  ('Chilli',   'Apache',            'vegetable', 10,'Nicky''s',         2024, '01-15','03-31',NULL,    NULL,    '05-15','06-01','08-01','10-31');
