@@ -14,6 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+  <script src="seeds.js" defer></script>
   <script src="https://unpkg.com/alpinejs@3.13.7/dist/cdn.min.js" defer></script>
 </head>
 <body>
@@ -135,41 +137,102 @@
       </div>
 
       <!-- SEEDS -->
-      <div x-show="tab==='seeds'">
+      <div x-show="tab==='seeds'" x-data="seedsTab()">
         <div class="card">
-          <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center">
+          <div style="display:flex;gap:.75rem;margin-bottom:.75rem;align-items:center;flex-wrap:wrap">
             <h2 style="flex:1">Seed Inventory</h2>
-            <input type="search" placeholder="Search…" style="width:200px" x-model="seedSearch">
+            <input type="search" placeholder="Search…" style="width:160px" x-model="search">
+            <select style="width:130px" x-model="typeFilter">
+              <option value="">All types</option>
+              <option value="herb">🌿 Herb</option>
+              <option value="vegetable">🥕 Vegetable</option>
+              <option value="flower">🌸 Flower</option>
+            </select>
+            <button class="btn btn-primary btn-sm" @click="openAdd()">+ Add Seed</button>
           </div>
           <table>
             <thead><tr>
-              <th>Name</th><th>Variety</th><th>Type</th>
-              <th style="text-align:center">Qty</th><th>Supplier</th><th>Sow By</th>
+              <th style="width:90px">Type</th><th>Name</th><th>Variety</th>
+              <th style="text-align:center;width:60px">Qty</th><th>Supplier</th><th></th>
             </tr></thead>
             <tbody>
               <template x-for="s in filteredSeeds" :key="s.id">
                 <tr>
+                  <td><span class="badge" :class="badgeClass(s.type)" x-text="typeEmoji(s.type) + ' ' + (s.type||'')"></span></td>
                   <td x-text="s.name"></td>
                   <td class="text-muted" x-text="s.variety||''"></td>
-                  <td><span class="badge badge-sown" x-text="s.type||''"></span></td>
                   <td style="text-align:center" x-text="s.quantity"></td>
                   <td class="text-muted" x-text="s.supplier||''"></td>
-                  <td class="text-muted" x-text="s.sow_by_year||''"></td>
+                  <td><button class="btn btn-secondary btn-sm" @click="openEdit(s)">Edit</button></td>
                 </tr>
               </template>
             </tbody>
           </table>
         </div>
-        <div class="card">
-          <h2>Add Seed</h2>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.5rem">
-            <input placeholder="Name *" x-model="newSeed.name">
-            <input placeholder="Variety" x-model="newSeed.variety">
-            <input placeholder="Type" x-model="newSeed.type">
-            <input placeholder="Quantity" type="number" x-model.number="newSeed.quantity">
-            <input placeholder="Supplier" x-model="newSeed.supplier">
+
+        <!-- Add/Edit Modal -->
+        <div class="modal-overlay" x-show="showModal" x-cloak @click.self="closeModal()">
+          <div class="modal-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+              <h2 x-text="editingId ? 'Edit Seed' : 'Add Seed'"></h2>
+              <button class="btn btn-secondary btn-sm" @click="closeModal()">✕</button>
+            </div>
+
+            <!-- Section 1: Basic -->
+            <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Basic</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+              <input placeholder="Name *" x-model="form.name" style="grid-column:1/-1">
+              <input placeholder="Variety" x-model="form.variety">
+              <select x-model="form.type">
+                <option value="">Type…</option>
+                <option value="herb">🌿 Herb</option>
+                <option value="vegetable">🥕 Vegetable</option>
+                <option value="flower">🌸 Flower</option>
+              </select>
+              <input placeholder="Quantity" type="number" x-model.number="form.quantity">
+              <input placeholder="Supplier" x-model="form.supplier">
+              <input placeholder="Purchase year" type="number" x-model.number="form.purchase_year">
+              <input placeholder="Sow by year" type="number" x-model.number="form.sow_by_year">
+              <input placeholder="Purchase link (URL)" x-model="form.purchase_link" style="grid-column:1/-1">
+            </div>
+
+            <!-- Section 2: Growing info -->
+            <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Growing Info</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+              <input placeholder="Days to germinate" type="number" x-model.number="form.days_to_germinate">
+              <input placeholder="Optimum soil temp (e.g. 18-22°C)" x-model="form.optimum_soil_temp">
+              <input placeholder="Soil type (e.g. loamy)" x-model="form.optimum_soil_type">
+              <input placeholder="Plant height (e.g. 60cm)" x-model="form.plant_height">
+              <input placeholder="Light requirements (e.g. full sun)" x-model="form.light_requirements">
+              <textarea placeholder="Growing instructions…" x-model="form.growing_instructions" rows="3" style="grid-column:1/-1;resize:vertical"></textarea>
+            </div>
+
+            <!-- Section 3: Sowing windows (MM-DD pairs) -->
+            <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Sowing Windows (MM-DD)</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.5rem;margin-bottom:1.25rem">
+              <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">🌸 Sow Indoors</p>
+                <input placeholder="Start MM-DD" x-model="form.sow_indoors_start">
+                <input placeholder="End MM-DD" x-model="form.sow_indoors_end" style="margin-top:.25rem">
+              </div>
+              <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">🔵 Sow Outdoors</p>
+                <input placeholder="Start MM-DD" x-model="form.sow_outdoors_start">
+                <input placeholder="End MM-DD" x-model="form.sow_outdoors_end" style="margin-top:.25rem">
+              </div>
+              <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">🟢 Plant Out</p>
+                <input placeholder="Start MM-DD" x-model="form.plant_out_start">
+                <input placeholder="End MM-DD" x-model="form.plant_out_end" style="margin-top:.25rem">
+              </div>
+              <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">🟡 Harvest</p>
+                <input placeholder="Start MM-DD" x-model="form.harvest_start">
+                <input placeholder="End MM-DD" x-model="form.harvest_end" style="margin-top:.25rem">
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:.5rem">
+              <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
+              <button class="btn btn-primary" @click="save()">Save</button>
+            </div>
           </div>
-          <button class="btn btn-primary btn-sm" @click="addSeed()">Add Seed</button>
         </div>
       </div>
 
@@ -242,6 +305,5 @@
 
     </main>
   </div>
-  <script src="app.js"></script>
 </body>
 </html>

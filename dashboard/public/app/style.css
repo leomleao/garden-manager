@@ -637,6 +637,9 @@ select {
   }
 }
 
+/* ── Alpine cloak ─────────────────────────────────────────────────── */
+[x-cloak] { display: none !important; }
+
 /* ── Modal ────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
