@@ -64,6 +64,7 @@ function app() {
 
         this.fetchWeather();
       } catch(e) {
+        console.error('refresh failed:', e);
         this.refreshError = 'Refresh failed';
       }
     },
