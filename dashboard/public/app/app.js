@@ -5,6 +5,7 @@ function esc(s) {
 function app() {
   return {
     tab: 'overview',
+    darkMode: true,
     config: {},
     summary: { zones: 0, activePlants: 0, overdueTasks: 0, seedsInStock: 0 },
     zones: [],
@@ -22,8 +23,18 @@ function app() {
     newTask: { title:'', due_date:'', priority:'medium', zone_id:'' },
 
     async init() {
+      const saved = localStorage.getItem('garden-theme') || 'dark';
+      this.darkMode = saved === 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
       await this.refresh();
       setInterval(() => this.refresh(), 60000);
+    },
+
+    toggleTheme() {
+      this.darkMode = !this.darkMode;
+      const theme = this.darkMode ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('garden-theme', theme);
     },
 
     async refresh() {
@@ -148,13 +159,13 @@ function app() {
       const rows = this.calendar.map(c => `
         <tr>
           <td>${esc(c.crop_name)}</td>
-          <td style="color:#9ca3af">${esc(c.sow_indoors_start||'')}${c.sow_indoors_end?' – '+esc(c.sow_indoors_end):''}</td>
-          <td style="color:#9ca3af">${esc(c.sow_outdoors_start||'')}${c.sow_outdoors_end?' – '+esc(c.sow_outdoors_end):''}</td>
+          <td class="text-muted">${esc(c.sow_indoors_start||'')}${c.sow_indoors_end?' – '+esc(c.sow_indoors_end):''}</td>
+          <td class="text-muted">${esc(c.sow_outdoors_start||'')}${c.sow_outdoors_end?' – '+esc(c.sow_outdoors_end):''}</td>
           <td style="color:var(--green)">${esc(c.harvest_start||'')}${c.harvest_end?' – '+esc(c.harvest_end):''}</td>
-          <td style="color:#9ca3af;font-size:.75rem">${esc(c.notes||'')}</td>
+          <td class="text-muted" style="font-size:.75rem">${esc(c.notes||'')}</td>
         </tr>`).join('');
       const nowRows = relevant.map(c => `
-        <div style="padding:.375rem 0;border-bottom:1px solid #374151">
+        <div style="padding:.375rem 0;border-bottom:1px solid var(--border)">
           <strong>${esc(c.crop_name)}</strong>
           ${c.sow_indoors_start && c.sow_indoors_start<=mm ? '<span class="badge badge-sown" style="margin-left:.5rem">Sow indoors</span>' : ''}
           ${c.sow_outdoors_start && c.sow_outdoors_start<=mm ? '<span class="badge badge-germinated" style="margin-left:.5rem">Sow outdoors</span>' : ''}
@@ -162,7 +173,7 @@ function app() {
       return `
         <div class="card">
           <h2>Sow Now</h2>
-          ${nowRows || '<p style="color:#9ca3af">Nothing to sow right now.</p>'}
+          ${nowRows || '<p class="text-muted">Nothing to sow right now.</p>'}
         </div>
         <div class="card">
           <h2>Full Calendar</h2>
@@ -179,13 +190,13 @@ function app() {
         <div class="card" style="margin-bottom:.5rem">
           <div style="display:flex;justify-content:space-between">
             <strong>${esc(z.name)}</strong>
-            <span style="color:#9ca3af;font-size:.75rem">${esc(z.type)} · ${esc(z.view_type)}</span>
+            <span class="text-muted" style="font-size:.75rem">${esc(z.type)} · ${esc(z.view_type)}</span>
           </div>
         </div>`).join('');
       return `
         <div class="card">
           <h2>About</h2>
-          <p style="color:#9ca3af;font-size:.875rem">
+          <p class="text-muted" style="font-size:.875rem">
             Garden: <strong>${esc(this.config.location_name||'–')}</strong> ·
             Owner: <strong>${esc(this.config.owner_name||'–')}</strong> ·
             Timezone: <strong>${esc(this.config.timezone||'–')}</strong>
@@ -194,13 +205,13 @@ function app() {
         <div class="card">
           <h2>Zones</h2>
           ${zoneCards}
-          <p style="color:#9ca3af;font-size:.75rem;margin-top:.5rem">
+          <p class="text-muted" style="font-size:.75rem;margin-top:.5rem">
             To add or edit zones, re-run setup: clear <code>setup_complete</code> from app_config and restart.
           </p>
         </div>
         <div class="card">
           <h2>OpenClaw</h2>
-          <p style="color:#9ca3af;font-size:.875rem;margin-bottom:.75rem">
+          <p class="text-muted" style="font-size:.875rem;margin-bottom:.75rem">
             ${this.config.openclaw_enabled==='1' ? '✓ Enabled' : 'Not configured'}
           </p>
           <p style="font-size:.875rem">Run <code>./openclaw/cron-setup.sh</code> from the repo root to install cron jobs.</p>

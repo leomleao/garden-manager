@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Garden Manager</title>
+  <!-- Prevent FOUC: apply saved theme before paint -->
+  <script>(function(){var t=localStorage.getItem('garden-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/alpinejs@3.13.7/dist/cdn.min.js" defer></script>
 </head>
@@ -11,9 +15,14 @@
   <div class="layout" x-data="app()" x-init="init()">
     <header>
       <h1>🌱 Garden Manager</h1>
-      <span style="font-size:.75rem;color:#9ca3af" x-text="config.location_name || ''"></span>
-      <span style="font-size:.75rem;color:#4b5563" x-text="lastRefresh"></span>
-      <span x-show="refreshError" style="color:var(--red);font-size:.75rem" x-text="refreshError"></span>
+      <span class="header-location" x-text="config.location_name || ''"></span>
+      <span class="header-time" x-text="lastRefresh"></span>
+      <span x-show="refreshError" class="header-error" x-text="refreshError"></span>
+      <button class="theme-toggle" @click="toggleTheme()"
+        :title="darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+        :aria-label="darkMode ? 'Switch to light mode' : 'Switch to dark mode'">
+        <span x-text="darkMode ? '☀' : '🌙'"></span>
+      </button>
     </header>
     <nav>
       <button :class="{active:tab==='overview'}" @click="tab='overview'">Overview</button>
@@ -38,7 +47,7 @@
             <span style="font-size:1.5rem" x-text="weather.icon"></span>
             <div>
               <div style="font-weight:600" x-text="(weather.temp ?? '--') + '°C · ' + (weather.desc || '')"></div>
-              <div style="color:#9ca3af;font-size:.75rem" x-text="config.location_name"></div>
+              <div class="text-muted" style="font-size:.75rem" x-text="config.location_name"></div>
             </div>
           </div>
         </div>
@@ -47,7 +56,7 @@
           <table>
             <template x-for="entry in activity">
               <tr>
-                <td style="color:#9ca3af;font-size:.75rem;width:160px" x-text="entry.timestamp.slice(0,16).replace('T',' ')"></td>
+                <td class="text-muted" style="font-size:.75rem;width:160px" x-text="entry.timestamp.slice(0,16).replace('T',' ')"></td>
                 <td><span class="badge" :class="'badge-'+entry.action_type" x-text="entry.action_type"></span></td>
                 <td x-text="entry.description"></td>
               </tr>
@@ -63,7 +72,7 @@
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
               <div>
                 <h2 x-text="zone.name"></h2>
-                <span style="font-size:.75rem;color:#9ca3af"
+                <span class="text-muted" style="font-size:.75rem"
                   x-text="zone.type + (zone.covered?' · covered':'') + (zone.has_auto_watering?' · auto-water':'')">
                 </span>
               </div>
@@ -85,7 +94,7 @@
                 <template x-for="s in ['empty','sown','germinated','established','failed']">
                   <span style="font-size:.75rem;display:flex;align-items:center;gap:.25rem">
                     <span class="grid-cell" :class="s==='empty'?'':s" style="width:12px;height:12px;display:inline-block"></span>
-                    <span x-text="s" style="color:#9ca3af"></span>
+                    <span x-text="s" class="text-muted"></span>
                   </span>
                 </template>
               </div>
@@ -93,13 +102,13 @@
             <!-- Loose view -->
             <div x-show="zone.view_type==='loose'">
               <template x-for="p in getZonePlantings(zone.id)" :key="p.id">
-                <div style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid #374151">
+                <div style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border)">
                   <span class="badge" :class="'badge-'+p.status" x-text="p.status"></span>
                   <span x-text="p.seed_name + (p.seed_variety ? ' · '+p.seed_variety : '')"></span>
-                  <span style="color:#9ca3af;font-size:.75rem;margin-left:auto" x-text="p.sown_date"></span>
+                  <span class="text-muted" style="font-size:.75rem;margin-left:auto" x-text="p.sown_date"></span>
                 </div>
               </template>
-              <p x-show="!getZonePlantings(zone.id).length" style="color:#9ca3af;font-size:.875rem">No active plantings</p>
+              <p x-show="!getZonePlantings(zone.id).length" class="text-muted" style="font-size:.875rem">No active plantings</p>
             </div>
           </div>
         </template>
@@ -121,11 +130,11 @@
               <template x-for="s in filteredSeeds" :key="s.id">
                 <tr>
                   <td x-text="s.name"></td>
-                  <td style="color:#9ca3af" x-text="s.variety||''"></td>
+                  <td class="text-muted" x-text="s.variety||''"></td>
                   <td><span class="badge badge-sown" x-text="s.type||''"></span></td>
                   <td style="text-align:center" x-text="s.quantity"></td>
-                  <td style="color:#9ca3af" x-text="s.supplier||''"></td>
-                  <td style="color:#9ca3af" x-text="s.sow_by_year||''"></td>
+                  <td class="text-muted" x-text="s.supplier||''"></td>
+                  <td class="text-muted" x-text="s.sow_by_year||''"></td>
                 </tr>
               </template>
             </tbody>
@@ -175,11 +184,10 @@
                   <td x-text="t.title"></td>
                   <td><span class="badge" :class="'badge-'+t.priority" x-text="t.priority"></span></td>
                   <td><span class="badge" :class="'badge-'+t.status" x-text="t.status"></span></td>
-                  <td style="color:#9ca3af" x-text="t.due_date||''"></td>
-                  <td style="color:#9ca3af" x-text="t.zone_name||'All zones'"></td>
+                  <td class="text-muted" x-text="t.due_date||''"></td>
+                  <td class="text-muted" x-text="t.zone_name||'All zones'"></td>
                   <td>
-                    <button x-show="t.status !== 'done'" class="btn btn-sm"
-                      style="background:#1a3a2e;color:#86efac"
+                    <button x-show="t.status !== 'done'" class="btn btn-sm btn-complete"
                       @click="completeTask(t.id)">✓</button>
                   </td>
                 </tr>
@@ -208,7 +216,7 @@
         </div>
       </div>
 
-      <!-- CALENDAR, SETTINGS tabs rendered via app.js (read-only, no x-model) -->
+      <!-- CALENDAR, SETTINGS tabs rendered via app.js -->
       <div x-show="tab==='calendar'" x-html="calendarTabHtml"></div>
       <div x-show="tab==='settings'" x-html="settingsTabHtml"></div>
 
