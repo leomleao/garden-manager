@@ -61,7 +61,7 @@ router.post('/zone', (req, res) => {
   res.status(201).json({ id: zoneId });
 });
 
-// DELETE /api/setup/example-data — clears example zones/seeds/calendar
+// DELETE /api/setup/example-data — clears example zones/seeds/plantings
 router.delete('/example-data', (req, res) => {
   db.exec(`
     DELETE FROM activity_log;

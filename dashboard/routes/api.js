@@ -11,7 +11,13 @@ router.get('/config', (req, res) => {
 
 router.patch('/config', (req, res) => {
   const { key, value } = req.body;
-  if (!key) return res.status(400).json({ error: 'key required' });
+  const ALLOWED_KEYS = [
+    'owner_name', 'location_name', 'timezone', 'units',
+    'latitude', 'longitude', 'openclaw_enabled',
+    'default_soil_type', 'default_watering_type',
+    'spring_frost_date', 'autumn_frost_date', 'growing_season_notes'
+  ];
+  if (!key || !ALLOWED_KEYS.includes(key)) return res.status(400).json({ error: 'invalid key' });
   db.prepare('INSERT OR REPLACE INTO app_config(key,value) VALUES(?,?)').run(key, String(value ?? ''));
   res.json({ ok: true });
 });
@@ -112,7 +118,7 @@ router.post('/plant-lifecycle', (req, res) => {
   ).run(seed_id, zone_id, cell_id, sown_date || new Date().toISOString().slice(0,10), 'sown', quantity, notes);
   // Log
   db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES('sow',?,?,?)")
-    .run(zone_id, info.lastInsertRowid, `Sowed plant_lifecycle #${info.lastInsertRowid}`);
+    .run(zone_id, info.lastInsertRowid, `Sowed plant #${info.lastInsertRowid}`);
   res.status(201).json({ id: info.lastInsertRowid });
 });
 

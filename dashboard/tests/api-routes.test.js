@@ -63,16 +63,24 @@ test('POST /api/tasks creates a task', async () => {
   expect(res.body.id).toBeGreaterThan(0);
 });
 
-test('GET /api/plantings returns array', async () => {
-  const res = await request(app).get('/api/plantings');
+test('GET /api/plant-lifecycle returns array', async () => {
+  const res = await request(app).get('/api/plant-lifecycle');
   expect(res.status).toBe(200);
   expect(Array.isArray(res.body)).toBe(true);
 });
 
-test('GET /api/calendar returns array', async () => {
-  const res = await request(app).get('/api/calendar');
+test('GET /api/seeds returns full seed fields', async () => {
+  // Seed a record first so the response is non-empty
+  await request(app)
+    .post('/api/seeds')
+    .send({ name: 'Tomato', variety: 'Roma', type: 'vegetable', quantity: 10 });
+  const res = await request(app).get('/api/seeds');
   expect(res.status).toBe(200);
   expect(Array.isArray(res.body)).toBe(true);
+  expect(res.body.length).toBeGreaterThan(0);
+  const seed = res.body[0];
+  expect(seed).toHaveProperty('sow_indoors_start');
+  expect(seed.sow_indoors_start === null || typeof seed.sow_indoors_start === 'string').toBe(true);
 });
 
 test('GET /api/activity returns array', async () => {
