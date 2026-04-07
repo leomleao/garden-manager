@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
   <script src="seeds.js" defer></script>
+  <script src="calendar.js" defer></script>
   <script src="https://unpkg.com/alpinejs@3.13.7/dist/cdn.min.js" defer></script>
 </head>
 <body>
@@ -299,8 +300,92 @@
         </div>
       </div>
 
-      <!-- CALENDAR, SETTINGS tabs rendered via app.js -->
-      <div x-show="tab==='calendar'" x-html="calendarTabHtml"></div>
+      <!-- CALENDAR -->
+      <div x-show="tab==='calendar'" x-data="calendarTab()">
+
+        <!-- Sow Now sections -->
+        <div class="card">
+          <h2>🌸 Sow Indoors Now</h2>
+          <template x-if="sowIndoorsNow.length === 0">
+            <p class="text-muted" style="font-size:.875rem">Nothing to sow indoors right now.</p>
+          </template>
+          <template x-for="s in sowIndoorsNow" :key="s.id">
+            <div style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border)">
+              <span x-text="typeEmoji(s.type)" style="font-size:1.1rem"></span>
+              <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
+            </div>
+          </template>
+        </div>
+
+        <div class="card">
+          <h2>🔵 Sow Outdoors Now</h2>
+          <template x-if="sowOutdoorsNow.length === 0">
+            <p class="text-muted" style="font-size:.875rem">Nothing to sow outdoors right now.</p>
+          </template>
+          <template x-for="s in sowOutdoorsNow" :key="s.id">
+            <div style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border)">
+              <span x-text="typeEmoji(s.type)" style="font-size:1.1rem"></span>
+              <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
+            </div>
+          </template>
+        </div>
+
+        <!-- Yearly Calendar Grid -->
+        <div class="card" style="overflow-x:auto">
+          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+            <button class="btn btn-secondary btn-sm" @click="prevYear()">←</button>
+            <h2 x-text="calYear"></h2>
+            <button class="btn btn-secondary btn-sm" @click="nextYear()">→</button>
+          </div>
+
+          <div class="cal-grid">
+            <!-- Header row: empty seed name cell + 12 month headers -->
+            <div class="cal-cell cal-header"></div>
+            <template x-for="m in ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']">
+              <div class="cal-cell cal-header" x-text="m"></div>
+            </template>
+
+            <!-- One row per seed -->
+            <template x-for="seed in calendarSeeds" :key="seed.id">
+              <!-- Seed name cell with tooltip -->
+              <div class="cal-cell cal-seed-name" style="position:relative"
+                   @mouseenter="hoveredSeed = seed.id"
+                   @mouseleave="hoveredSeed = null">
+                <span x-text="typeEmoji(seed.type) + ' ' + seed.name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;display:block"></span>
+                <!-- Tooltip -->
+                <div class="cal-tooltip" x-show="hoveredSeed === seed.id">
+                  <div style="font-weight:600;margin-bottom:.25rem" x-text="seed.name"></div>
+                  <div style="color:var(--text-3);font-size:.7rem" x-text="tooltipText(seed)"></div>
+                </div>
+              </div>
+              <!-- 12 month cells -->
+              <template x-for="month in [1,2,3,4,5,6,7,8,9,10,11,12]" :key="month">
+                <div class="cal-cell" style="display:flex;flex-direction:column;justify-content:center;padding:2px">
+                  <template x-for="band in cellBands(seed, month)" :key="band">
+                    <div :class="'cal-band ' + band"></div>
+                  </template>
+                </div>
+              </template>
+            </template>
+          </div>
+
+          <!-- Legend -->
+          <div style="display:flex;gap:1rem;margin-top:.75rem;flex-wrap:wrap">
+            <span style="display:flex;align-items:center;gap:.375rem;font-size:.75rem">
+              <span style="width:20px;height:6px;border-radius:2px;background:var(--pink);display:inline-block"></span>Sow Indoors
+            </span>
+            <span style="display:flex;align-items:center;gap:.375rem;font-size:.75rem">
+              <span style="width:20px;height:6px;border-radius:2px;background:var(--blue);display:inline-block"></span>Sow Outdoors
+            </span>
+            <span style="display:flex;align-items:center;gap:.375rem;font-size:.75rem">
+              <span style="width:20px;height:6px;border-radius:2px;background:var(--green);display:inline-block"></span>Plant Out
+            </span>
+            <span style="display:flex;align-items:center;gap:.375rem;font-size:.75rem">
+              <span style="width:20px;height:6px;border-radius:2px;background:var(--yellow-ochre);display:inline-block"></span>Harvest
+            </span>
+          </div>
+        </div>
+      </div>
       <div x-show="tab==='settings'" x-html="settingsTabHtml"></div>
 
     </main>
