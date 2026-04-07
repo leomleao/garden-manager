@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Garden Manager — Setup</title>
+  <!-- Prevent FOUC: apply saved theme before paint -->
+  <script>(function(){var t=localStorage.getItem('garden-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -11,25 +13,47 @@
 </head>
 <body>
   <div class="wizard" x-data="wizard()" x-init="init()">
-    <!-- Step indicator -->
-    <div class="step-indicator">
-      <template x-for="(s,i) in steps">
-        <div class="step-dot"
-          :class="{ active: currentStep===i+1, done: currentStep>i+1 }">
-        </div>
-      </template>
+
+    <!-- Header: title + step dots + theme toggle -->
+    <div class="wizard-header">
+      <span class="wizard-title">Garden Manager</span>
+      <div class="step-indicator">
+        <template x-for="(s,i) in steps">
+          <div class="step-dot"
+            :class="{ active: currentStep===i+1, done: currentStep>i+1 }">
+          </div>
+        </template>
+      </div>
+      <button class="theme-toggle" id="themeToggle"
+        title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
+        <!-- Sun icon (shown in dark mode) -->
+        <svg id="iconSun" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.5"/>
+          <line x1="12" y1="2" x2="12" y2="4.5"/>
+          <line x1="12" y1="19.5" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="4.5" y2="12"/>
+          <line x1="19.5" y1="12" x2="22" y2="12"/>
+          <line x1="4.93" y1="4.93" x2="6.64" y2="6.64"/>
+          <line x1="17.36" y1="17.36" x2="19.07" y2="19.07"/>
+          <line x1="4.93" y1="19.07" x2="6.64" y2="17.36"/>
+          <line x1="17.36" y1="6.64" x2="19.07" y2="4.93"/>
+        </svg>
+        <!-- Moon icon (shown in light mode) -->
+        <svg id="iconMoon" viewBox="0 0 24 24" aria-hidden="true" style="display:none">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Step 1: Welcome -->
     <div x-show="currentStep===1">
       <div class="card">
         <h1>Welcome to Garden Manager</h1>
-        <p style="color:#9ca3af;margin-bottom:1rem">
+        <p>
           Let's get your garden set up. This wizard will configure your growing zones,
           seed inventory, and optional AI integration.
         </p>
-        <div x-show="exampleDataLoaded"
-             style="background:#1e3a2e;border:1px solid #065f46;border-radius:.5rem;padding:.75rem;margin-bottom:1rem;font-size:.875rem">
+        <div x-show="exampleDataLoaded" class="info-banner">
           Scotland (Port of Menteith) example data is preloaded. You can keep it, modify it, or clear it during setup.
         </div>
         <div class="btn-row">
@@ -72,7 +96,7 @@
     <div x-show="currentStep===3">
       <div class="card">
         <h2>Define Your Growing Zones</h2>
-        <p style="color:#9ca3af;font-size:.875rem;margin-bottom:1rem">
+        <p>
           Add as many zones as you have. Each zone can be a grid (track every cell) or loose (general planting overview).
         </p>
         <template x-for="(zone, idx) in zones" :key="idx">
@@ -103,7 +127,7 @@
                 <option value="loose">Loose — general planting overview</option>
               </select>
               <!-- Grid options -->
-              <div x-show="zone.view_type==='grid'" style="background:#111827;border-radius:.5rem;padding:.75rem;margin-bottom:.75rem">
+              <div x-show="zone.view_type==='grid'" class="zone-grid-panel">
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.5rem">
                   <div><label>Rows</label><input type="number" x-model.number="zone.grid_rows" min="1"></div>
                   <div><label>Cols</label><input type="number" x-model.number="zone.grid_cols" min="1"></div>
@@ -118,7 +142,7 @@
                       <div class="grid-cell" style="width:16px;height:16px"></div>
                     </template>
                   </div>
-                  <p style="font-size:.75rem;color:#9ca3af;margin-top:.25rem"
+                  <p style="font-size:.75rem;color:var(--text-3);margin-top:.25rem"
                     x-text="`${zone.grid_rows}×${zone.grid_cols} = ${zone.grid_rows*zone.grid_cols} cells`"></p>
                 </div>
               </div>
@@ -214,9 +238,7 @@
     <div x-show="currentStep===4">
       <div class="card">
         <h2>Seed Inventory</h2>
-        <p style="color:#9ca3af;font-size:.875rem;margin-bottom:1rem">
-          Example seeds are preloaded. What would you like to do?
-        </p>
+        <p>Example seeds are preloaded. What would you like to do?</p>
         <label class="toggle" style="margin-bottom:.5rem">
           <input type="radio" name="seeds" value="keep" x-model="seedOption"> Keep example seeds
         </label>
@@ -236,20 +258,20 @@
     <!-- Step 5: OpenClaw Integration -->
     <div x-show="currentStep===5">
       <div class="card">
-        <h2>OpenClaw Integration <span style="font-size:.75rem;color:#9ca3af;font-weight:400">(optional)</span></h2>
-        <p style="color:#9ca3af;font-size:.875rem;margin-bottom:1rem">
+        <h2>OpenClaw Integration <span style="font-size:.75rem;color:var(--text-3);font-weight:400">(optional)</span></h2>
+        <p>
           OpenClaw is an AI agent that can query and update your garden by chat or WhatsApp.
           See <code>openclaw/README.md</code> for full details.
         </p>
         <label class="toggle" style="margin-bottom:1rem">
           <input type="checkbox" x-model="openclawEnabled"> I use OpenClaw
         </label>
-        <div x-show="openclawEnabled" style="background:#111827;border-radius:.5rem;padding:1rem;font-size:.875rem">
+        <div x-show="openclawEnabled" class="zone-grid-panel">
           <p style="margin-bottom:.5rem"><strong>1. Copy the skill:</strong></p>
-          <pre style="background:#1f2937;padding:.5rem;border-radius:.25rem;overflow-x:auto;margin-bottom:.75rem">cp -r openclaw/skills/garden-manager /path/to/openclaw/skills/</pre>
+          <pre>cp -r openclaw/skills/garden-manager /path/to/openclaw/skills/</pre>
           <p style="margin-bottom:.5rem"><strong>2. Install cron jobs:</strong></p>
-          <pre style="background:#1f2937;padding:.5rem;border-radius:.25rem;overflow-x:auto">chmod +x openclaw/cron-setup.sh && ./openclaw/cron-setup.sh</pre>
-          <p style="margin-top:.75rem;color:#9ca3af">You can re-run these steps from Settings at any time.</p>
+          <pre>chmod +x openclaw/cron-setup.sh && ./openclaw/cron-setup.sh</pre>
+          <p style="margin-top:.75rem;color:var(--text-3);font-size:.8rem">You can re-run these steps from Settings at any time.</p>
         </div>
         <div class="btn-row">
           <button class="btn btn-secondary" @click="currentStep=4">← Back</button>
@@ -265,18 +287,18 @@
         <div style="margin-bottom:1rem">
           <p><strong x-text="config.owner_name || 'Your'"></strong> garden at
              <strong x-text="config.location_name || 'your location'"></strong></p>
-          <p style="color:#9ca3af;font-size:.875rem" x-text="config.timezone + ' · ' + config.units"></p>
+          <p style="font-size:.875rem;color:var(--text-3)" x-text="config.timezone + ' · ' + config.units"></p>
         </div>
         <p style="font-weight:600;margin-bottom:.5rem" x-text="'Zones (' + zones.length + ')'"></p>
         <template x-for="z in zones" :key="z.name">
-          <div style="padding:.5rem;background:#111827;border-radius:.375rem;margin-bottom:.5rem">
+          <div class="review-zone">
             <strong x-text="z.name"></strong>
-            <span style="color:#9ca3af;font-size:.875rem;margin-left:.5rem" x-text="z.type + ' · ' + z.view_type"></span>
-            <span x-show="z.view_type==='grid'" style="color:#9ca3af;font-size:.75rem;margin-left:.5rem"
+            <span style="color:var(--text-3);font-size:.875rem;margin-left:.5rem" x-text="z.type + ' · ' + z.view_type"></span>
+            <span x-show="z.view_type==='grid'" style="color:var(--text-3);font-size:.75rem;margin-left:.5rem"
               x-text="z.grid_rows + '×' + z.grid_cols + ' cells'"></span>
           </div>
         </template>
-        <p x-show="zones.length===0" style="color:#9ca3af;font-size:.875rem">No zones configured</p>
+        <p x-show="zones.length===0" style="color:var(--text-3);font-size:.875rem">No zones configured</p>
         <div class="btn-row" style="margin-top:1.5rem">
           <button class="btn btn-secondary" @click="currentStep=5">← Back</button>
           <button class="btn btn-primary" @click="launch()">Launch Garden Manager →</button>
@@ -284,6 +306,30 @@
       </div>
     </div>
   </div>
+
+  <!-- Theme toggle logic (no Alpine dependency) -->
+  <script>
+    (function() {
+      var btn = document.getElementById('themeToggle');
+      var sun = document.getElementById('iconSun');
+      var moon = document.getElementById('iconMoon');
+
+      function applyTheme(t) {
+        document.documentElement.setAttribute('data-theme', t);
+        localStorage.setItem('garden-theme', t);
+        if (t === 'dark') { sun.style.display=''; moon.style.display='none'; }
+        else              { sun.style.display='none'; moon.style.display=''; }
+      }
+
+      // Sync icon to current theme on load
+      applyTheme(localStorage.getItem('garden-theme') || 'dark');
+
+      btn.addEventListener('click', function() {
+        var current = document.documentElement.getAttribute('data-theme');
+        applyTheme(current === 'dark' ? 'light' : 'dark');
+      });
+    })();
+  </script>
 
   <script src="wizard.js"></script>
 </body>
