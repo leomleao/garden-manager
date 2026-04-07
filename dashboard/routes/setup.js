@@ -65,11 +65,10 @@ router.post('/zone', (req, res) => {
 router.delete('/example-data', (req, res) => {
   db.exec(`
     DELETE FROM activity_log;
-    DELETE FROM plantings;
+    DELETE FROM plant_lifecycle;
     DELETE FROM zone_cells;
     DELETE FROM zones;
     DELETE FROM seeds;
-    DELETE FROM growing_calendar;
     DELETE FROM app_config WHERE key='example_data_loaded';
   `);
   res.json({ ok: true });
