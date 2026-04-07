@@ -4,6 +4,7 @@ function esc(s) {
 
 function app() {
   return {
+    // Shared state
     tab: 'overview',
     darkMode: true,
     config: {},
@@ -12,14 +13,11 @@ function app() {
     plantings: [],
     seeds: [],
     tasks: [],
-    calendar: [],
     activity: [],
     weather: { temp: null, desc: '', icon: '' },
     lastRefresh: '',
     refreshError: null,
-    seedSearch: '',
     taskFilter: { zone_id: '', status: 'pending', priority: '' },
-    newSeed: { name:'', variety:'', type:'', quantity:0, supplier:'' },
     newTask: { title:'', due_date:'', priority:'medium', zone_id:'' },
 
     async init() {
@@ -39,14 +37,13 @@ function app() {
 
     async refresh() {
       try {
-        const [cfg, sum, zones, plantings, seeds, tasks, cal, act] = await Promise.all([
+        const [cfg, sum, zones, plantings, seeds, tasks, act] = await Promise.all([
           fetch('/api/config').then(r=>r.json()),
           fetch('/api/summary').then(r=>r.json()),
           fetch('/api/zones').then(r=>r.json()),
-          fetch('/api/plantings').then(r=>r.json()),
+          fetch('/api/plant-lifecycle').then(r=>r.json()),
           fetch('/api/seeds').then(r=>r.json()),
           fetch('/api/tasks').then(r=>r.json()),
-          fetch('/api/calendar').then(r=>r.json()),
           fetch('/api/activity').then(r=>r.json()),
         ]);
         this.config = cfg;
@@ -54,7 +51,6 @@ function app() {
         this.plantings = plantings;
         this.seeds = seeds;
         this.tasks = tasks;
-        this.calendar = cal;
         this.activity = act;
         this.lastRefresh = new Date().toLocaleTimeString();
         this.refreshError = null;
@@ -92,36 +88,7 @@ function app() {
       } catch(e) { /* weather is optional */ }
     },
 
-    // Grid helpers
-    getCellStatus(cellId) {
-      const p = this.plantings.find(p => p.cell_id === cellId && !['harvested','failed'].includes(p.status));
-      return p ? p.status : 'empty';
-    },
-    getCellDesc(cellId) {
-      const p = this.plantings.find(p => p.cell_id === cellId && !['harvested','failed'].includes(p.status));
-      return p ? `${p.seed_name} (${p.status})` : 'Empty';
-    },
-    getZonePlantings(zoneId) {
-      return this.plantings.filter(p => p.zone_id === zoneId && !['harvested','failed'].includes(p.status));
-    },
-
-    // Seeds tab
-    get filteredSeeds() {
-      if (!this.seedSearch) return this.seeds;
-      const q = this.seedSearch.toLowerCase();
-      return this.seeds.filter(s => s.name.toLowerCase().includes(q) || (s.variety||'').toLowerCase().includes(q));
-    },
-    async addSeed() {
-      if (!this.newSeed.name) return;
-      await fetch('/api/seeds', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.newSeed)
-      });
-      this.newSeed = { name:'', variety:'', type:'', quantity:0, supplier:'' };
-      await this.refresh();
-    },
-
-    // Tasks tab
+    // Task management
     get filteredTasks() {
       return this.tasks.filter(t => {
         if (this.taskFilter.zone_id && t.zone_id !== parseInt(this.taskFilter.zone_id)) return false;
@@ -130,92 +97,34 @@ function app() {
         return true;
       });
     },
-    isOverdue(t) { return t.status === 'pending' && t.due_date && t.due_date < new Date().toISOString().slice(0,10); },
+
+    isOverdue(t) {
+      return t.status === 'pending' && t.due_date && t.due_date < new Date().toISOString().slice(0,10);
+    },
+
     async addTask() {
       if (!this.newTask.title) return;
       await fetch('/api/tasks', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.newTask)
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...this.newTask, zone_id: this.newTask.zone_id || null })
       });
       this.newTask = { title:'', due_date:'', priority:'medium', zone_id:'' };
       await this.refresh();
     },
+
     async completeTask(id) {
       await fetch(`/api/tasks/${id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'done' })
       });
       await this.refresh();
     },
 
-    // Calendar tab
-    get calendarTabHtml() {
-      const today = new Date();
-      const mm = String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-      const relevant = this.calendar.filter(c =>
-        (c.sow_indoors_start && c.sow_indoors_start <= mm && mm <= (c.sow_indoors_end||'12-31')) ||
-        (c.sow_outdoors_start && c.sow_outdoors_start <= mm && mm <= (c.sow_outdoors_end||'12-31'))
-      );
-      const rows = this.calendar.map(c => `
-        <tr>
-          <td>${esc(c.crop_name)}</td>
-          <td class="text-muted">${esc(c.sow_indoors_start||'')}${c.sow_indoors_end?' – '+esc(c.sow_indoors_end):''}</td>
-          <td class="text-muted">${esc(c.sow_outdoors_start||'')}${c.sow_outdoors_end?' – '+esc(c.sow_outdoors_end):''}</td>
-          <td style="color:var(--green)">${esc(c.harvest_start||'')}${c.harvest_end?' – '+esc(c.harvest_end):''}</td>
-          <td class="text-muted" style="font-size:.75rem">${esc(c.notes||'')}</td>
-        </tr>`).join('');
-      const nowRows = relevant.map(c => `
-        <div style="padding:.375rem 0;border-bottom:1px solid var(--border)">
-          <strong>${esc(c.crop_name)}</strong>
-          ${c.sow_indoors_start && c.sow_indoors_start<=mm ? '<span class="badge badge-sown" style="margin-left:.5rem">Sow indoors</span>' : ''}
-          ${c.sow_outdoors_start && c.sow_outdoors_start<=mm ? '<span class="badge badge-germinated" style="margin-left:.5rem">Sow outdoors</span>' : ''}
-        </div>`).join('');
-      return `
-        <div class="card">
-          <h2>Sow Now</h2>
-          ${nowRows || '<p class="text-muted">Nothing to sow right now.</p>'}
-        </div>
-        <div class="card">
-          <h2>Full Calendar</h2>
-          <table>
-            <thead><tr><th>Crop</th><th>Sow Indoors</th><th>Sow Outdoors</th><th>Harvest</th><th>Notes</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>`;
-    },
-
-    // Settings tab
-    get settingsTabHtml() {
-      const zoneCards = this.zones.map(z => `
-        <div class="card" style="margin-bottom:.5rem">
-          <div style="display:flex;justify-content:space-between">
-            <strong>${esc(z.name)}</strong>
-            <span class="text-muted" style="font-size:.75rem">${esc(z.type)} · ${esc(z.view_type)}</span>
-          </div>
-        </div>`).join('');
-      return `
-        <div class="card">
-          <h2>About</h2>
-          <p class="text-muted" style="font-size:.875rem">
-            Garden: <strong>${esc(this.config.location_name||'–')}</strong> ·
-            Owner: <strong>${esc(this.config.owner_name||'–')}</strong> ·
-            Timezone: <strong>${esc(this.config.timezone||'–')}</strong>
-          </p>
-        </div>
-        <div class="card">
-          <h2>Zones</h2>
-          ${zoneCards}
-          <p class="text-muted" style="font-size:.75rem;margin-top:.5rem">
-            To add or edit zones, re-run setup: clear <code>setup_complete</code> from app_config and restart.
-          </p>
-        </div>
-        <div class="card">
-          <h2>OpenClaw</h2>
-          <p class="text-muted" style="font-size:.875rem;margin-bottom:.75rem">
-            ${this.config.openclaw_enabled==='1' ? '✓ Enabled' : 'Not configured'}
-          </p>
-          <p style="font-size:.875rem">Run <code>./openclaw/cron-setup.sh</code> from the repo root to install cron jobs.</p>
-        </div>`;
+    // Tab navigation
+    goToTab(name) {
+      this.tab = name;
     }
   };
 }
