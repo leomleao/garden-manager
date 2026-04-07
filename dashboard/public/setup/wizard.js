@@ -31,9 +31,11 @@ function wizard() {
     initMap() {
       const lat = parseFloat(this.config.latitude) || 54.5;
       const lng = parseFloat(this.config.longitude) || -3.5;
-      this.map = L.map('map').setView([lat, lng], 6);
+      this.map = L.map('map', { preferCanvas: true }).setView([lat, lng], 6);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+        attribution: '© OpenStreetMap contributors',
+        updateWhenIdle: true,
+        updateWhenZooming: false
       }).addTo(this.map);
       if (this.config.latitude) {
         this.marker = L.marker([lat, lng]).addTo(this.map);

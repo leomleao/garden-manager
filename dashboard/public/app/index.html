@@ -62,10 +62,10 @@
       <!-- OVERVIEW -->
       <div x-show="tab==='overview'">
         <div class="stats">
-          <div class="stat-card"><div class="value" x-text="summary.zones"></div><div class="label">Zones</div></div>
-          <div class="stat-card"><div class="value" x-text="summary.activePlants"></div><div class="label">Active Plantings</div></div>
-          <div class="stat-card"><div class="value" style="color:var(--red)" x-text="summary.overdueTasks"></div><div class="label">Overdue Tasks</div></div>
-          <div class="stat-card"><div class="value" x-text="summary.seedsInStock"></div><div class="label">Seed Types</div></div>
+          <div class="stat-card" @click="goToTab('zones')"><div class="value" x-text="summary.zones"></div><div class="label">Zones</div></div>
+          <div class="stat-card" @click="goToTab('zones')"><div class="value" x-text="summary.activePlants"></div><div class="label">Active Plantings</div></div>
+          <div class="stat-card" @click="goToTab('tasks')"><div class="value" style="color:var(--red)" x-text="summary.overdueTasks"></div><div class="label">Overdue Tasks</div></div>
+          <div class="stat-card" @click="goToTab('seeds')"><div class="value" x-text="summary.seedsInStock"></div><div class="label">Seeds</div></div>
         </div>
         <div class="card" x-show="weather.temp !== null">
           <div class="weather-widget">
