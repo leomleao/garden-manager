@@ -34,6 +34,8 @@
   --blue:         #38bdf8;
   --blue-dim:     #0c2a40;
   --purple:       #c084fc;
+  --pink:         #f472b6;
+  --yellow-ochre: #ca8a04;
 
   --glow-green:   0 0 20px color-mix(in srgb, var(--green) 28%, transparent);
   --glow-amber:   0 0 16px color-mix(in srgb, var(--amber) 28%, transparent);
@@ -66,6 +68,8 @@
   --blue:         #0284c7;
   --blue-dim:     #dbeafe;
   --purple:       #7c3aed;
+  --pink:         #db2777;
+  --yellow-ochre: #ca8a04;
 
   --glow-green:   0 0 14px color-mix(in srgb, var(--green) 22%, transparent);
   --glow-amber:   0 0 12px color-mix(in srgb, var(--amber) 20%, transparent);
@@ -269,7 +273,7 @@ main {
   /* Bold accent top border — the motivating punch */
   border-top: 3px solid var(--green);
   transition: background .35s, border-color .35s, transform .18s, box-shadow .18s;
-  cursor: default;
+  cursor: pointer;
 }
 
 .stat-card:hover {
@@ -333,6 +337,9 @@ main {
 [data-theme="dark"] .badge-low         { background: var(--blue-dim);    color: #7dd3fc; }
 [data-theme="dark"] .badge-watered     { background: var(--blue-dim);    color: var(--blue); }
 [data-theme="dark"] .badge-fertilised  { background: #1a1040;            color: var(--purple); }
+[data-theme="dark"] .badge-herb        { background: #0b2510;            color: var(--green); }
+[data-theme="dark"] .badge-vegetable   { background: var(--amber-dim);   color: var(--amber); }
+[data-theme="dark"] .badge-flower      { background: #5d1344;            color: var(--pink); }
 
 /* Light badges */
 [data-theme="light"] .badge-sown        { background: var(--blue-dim);   color: #1e40af; }
@@ -347,6 +354,9 @@ main {
 [data-theme="light"] .badge-low         { background: var(--blue-dim);   color: #1e40af; }
 [data-theme="light"] .badge-watered     { background: var(--blue-dim);   color: #1e40af; }
 [data-theme="light"] .badge-fertilised  { background: #ede9fe;           color: #5b21b6; }
+[data-theme="light"] .badge-herb        { background: var(--green-dim);  color: #166534; }
+[data-theme="light"] .badge-vegetable   { background: var(--amber-dim);  color: #854d0e; }
+[data-theme="light"] .badge-flower      { background: #fbcfe8;           color: #be185d; }
 
 /* ── Grid view ────────────────────────────────────────────────────── */
 .grid-view { display: inline-grid; gap: 3px; }
@@ -543,6 +553,128 @@ select {
 }
 
 .cal-day.has-event { border-color: var(--amber); }
+
+/* ── Yearly Sowing Calendar ───────────────────────────────────────── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: 140px repeat(12, 1fr);
+  gap: 2px;
+  width: 100%;
+}
+
+.cal-cell {
+  min-height: 28px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+.cal-seed-name {
+  font-size: .75rem;
+  padding: .25rem .5rem;
+  display: flex;
+  align-items: center;
+  color: var(--text-2);
+  cursor: default;
+}
+
+.cal-header {
+  font-size: .6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-3);
+  text-align: center;
+  padding: .25rem 0;
+}
+
+.cal-band-indoor {
+  height: 6px;
+  border-radius: 2px;
+  width: 100%;
+  margin-bottom: 1px;
+  background: var(--pink);
+}
+
+.cal-band-outdoor {
+  height: 6px;
+  border-radius: 2px;
+  width: 100%;
+  margin-bottom: 1px;
+  background: var(--blue);
+}
+
+.cal-band-plantout {
+  height: 6px;
+  border-radius: 2px;
+  width: 100%;
+  margin-bottom: 1px;
+  background: var(--green);
+}
+
+.cal-band-harvest {
+  height: 6px;
+  border-radius: 2px;
+  width: 100%;
+  margin-bottom: 1px;
+  background: var(--yellow-ochre);
+}
+
+.cal-tooltip {
+  position: absolute;
+  z-index: 50;
+  left: 100%;
+  top: 0;
+  min-width: 200px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: .75rem;
+  padding: .75rem;
+  font-size: .75rem;
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+
+.cell-selected {
+  border-color: var(--pink) !important;
+  box-shadow: 0 0 0 2px var(--pink);
+  animation: pulse-select .7s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-select {
+  from {
+    box-shadow: 0 0 0 2px var(--pink);
+  }
+  to {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--pink) 50%, transparent);
+  }
+}
+
+/* ── Modal ────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+}
 
 /* ── Scrollbars ───────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
