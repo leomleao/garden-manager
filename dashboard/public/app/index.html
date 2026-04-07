@@ -17,6 +17,7 @@
   <script src="app.js" defer></script>
   <script src="seeds.js" defer></script>
   <script src="calendar.js" defer></script>
+  <script src="zones.js" defer></script>
   <script src="https://unpkg.com/alpinejs@3.13.7/dist/cdn.min.js" defer></script>
 </head>
 <body>
@@ -89,9 +90,10 @@
       </div>
 
       <!-- ZONES -->
-      <div x-show="tab==='zones'">
+      <div x-show="tab==='zones'" x-data="zonesTab()">
         <template x-for="zone in zones" :key="zone.id">
           <div class="card">
+            <!-- Zone header -->
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
               <div>
                 <h2 x-text="zone.name"></h2>
@@ -99,42 +101,168 @@
                   x-text="zone.type + (zone.covered?' · covered':'') + (zone.has_auto_watering?' · auto-water':'')">
                 </span>
               </div>
-              <span class="badge" :class="zone.view_type==='grid'?'badge-sown':'badge-germinated'"
-                x-text="zone.view_type"></span>
+              <div style="display:flex;gap:.5rem;align-items:center">
+                <span class="badge" :class="zone.view_type==='grid'?'badge-sown':'badge-germinated'" x-text="zone.view_type"></span>
+                <button class="btn btn-secondary btn-sm" @click="openZoneSettings(zone)" title="Zone settings">⚙️</button>
+              </div>
             </div>
+
             <!-- Grid view -->
-            <div x-show="zone.view_type==='grid'" style="overflow-x:auto">
-              <div class="grid-view" :style="`grid-template-columns:repeat(${zone.grid_cols},1fr)`">
-                <template x-for="cell in zone.cells" :key="cell.id">
-                  <div class="grid-cell"
-                    :class="getCellStatus(cell.id)"
-                    :title="cell.label + ': ' + getCellDesc(cell.id)"
-                    x-text="cell.label">
-                  </div>
-                </template>
+            <div x-show="zone.view_type==='grid'">
+              <!-- Active Seed picker -->
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;font-size:.75rem;color:var(--text-2)">
+                <span>Active seed:</span>
+                <select style="width:160px;font-size:.75rem" x-model.number="activeSeedId[zone.id]">
+                  <option value="">— none —</option>
+                  <template x-for="s in seeds" :key="s.id">
+                    <option :value="s.id" x-text="s.name + (s.variety ? ' · '+s.variety : '')"></option>
+                  </template>
+                </select>
               </div>
-              <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
-                <template x-for="s in ['empty','sown','germinated','established','failed']">
-                  <span style="font-size:.75rem;display:flex;align-items:center;gap:.25rem">
-                    <span class="grid-cell" :class="s==='empty'?'':s" style="width:12px;height:12px;display:inline-block"></span>
-                    <span x-text="s" class="text-muted"></span>
-                  </span>
-                </template>
+
+              <div style="overflow-x:auto">
+                <div class="grid-view" :style="`grid-template-columns:repeat(${zone.grid_cols},1fr)`"
+                     @mouseup.window="dragEnd()">
+                  <template x-for="cell in zone.cells" :key="cell.id">
+                    <div class="grid-cell"
+                      :class="[getCellStatus(cell.id), isDragSelected(cell.id) ? 'cell-selected' : '']"
+                      :title="cell.label + ': ' + getCellDesc(cell.id)"
+                      x-text="cell.label"
+                      @mousedown.prevent="dragStart(cell.id, zone.id)"
+                      @mouseenter="dragEnter(cell.id); showMenu(cell.id)"
+                      @mouseleave="hideMenu()"
+                      @click="openCellDetail(cell.id)"
+                      style="position:relative">
+                      <!-- Hover menu -->
+                      <div x-show="menuCellId === cell.id"
+                           @mouseenter="keepMenu()"
+                           @mouseleave="hideMenu()"
+                           style="position:absolute;bottom:100%;left:50%;transform:translateX(-50%);z-index:40;display:flex;gap:3px;background:var(--bg-surface);border:1px solid var(--border);border-radius:.5rem;padding:3px;box-shadow:var(--shadow)">
+                        <button @click.stop="openSeedPicker(cell.id, zone.id)" title="Sow"
+                          style="width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:.25rem;display:flex;align-items:center;justify-content:center">
+                          <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Seedling/Color/seedling_color.svg" width="18" height="18" alt="Sow">
+                        </button>
+                        <button @click.stop="markOk(cell.id)" title="OK"
+                          x-show="getCellStatus(cell.id) !== 'empty'"
+                          style="width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:.25rem;display:flex;align-items:center;justify-content:center">
+                          <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Ok%20hand/Light/Color/ok_hand_color_light.svg" width="18" height="18" alt="OK">
+                        </button>
+                        <button @click.stop="markDead(cell.id)" title="Dead"
+                          x-show="getCellStatus(cell.id) !== 'empty'"
+                          style="width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:.25rem;display:flex;align-items:center;justify-content:center">
+                          <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Skull%20and%20crossbones/Color/skull_and_crossbones_color.svg" width="18" height="18" alt="Dead">
+                        </button>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+                <!-- Legend -->
+                <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+                  <template x-for="s in ['empty','sown','germinated','established','failed']" :key="s">
+                    <span style="font-size:.75rem;display:flex;align-items:center;gap:.25rem">
+                      <span class="grid-cell" :class="s==='empty'?'':s" style="width:12px;height:12px;display:inline-block"></span>
+                      <span x-text="s" class="text-muted"></span>
+                    </span>
+                  </template>
+                </div>
               </div>
             </div>
+
             <!-- Loose view -->
             <div x-show="zone.view_type==='loose'">
               <template x-for="p in getZonePlantings(zone.id)" :key="p.id">
                 <div style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border)">
                   <span class="badge" :class="'badge-'+p.status" x-text="p.status"></span>
                   <span x-text="p.seed_name + (p.seed_variety ? ' · '+p.seed_variety : '')"></span>
-                  <span class="text-muted" style="font-size:.75rem;margin-left:auto" x-text="p.sown_date"></span>
+                  <span class="text-muted" style="font-size:.75rem" x-text="p.sown_date"></span>
+                  <span style="margin-left:auto;display:flex;gap:.25rem">
+                    <button @click="markLoosePlantingOk(p.id)" class="btn btn-secondary btn-sm" title="OK">
+                      <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Ok%20hand/Light/Color/ok_hand_color_light.svg" width="14" height="14" alt="OK">
+                    </button>
+                    <button @click="markLoosePlantingDead(p.id)" class="btn btn-secondary btn-sm" title="Dead">
+                      <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Skull%20and%20crossbones/Color/skull_and_crossbones_color.svg" width="14" height="14" alt="Dead">
+                    </button>
+                  </span>
                 </div>
               </template>
               <p x-show="!getZonePlantings(zone.id).length" class="text-muted" style="font-size:.875rem">No active plantings</p>
+              <button class="btn btn-primary btn-sm" style="margin-top:.75rem" @click="openSeedPicker(null, zone.id)">🌱 Sow</button>
             </div>
           </div>
         </template>
+
+        <!-- Seed Picker Modal -->
+        <div class="modal-overlay" x-show="showSeedPicker" @click.self="closeSeedPicker()" @keydown.escape.window="closeSeedPicker()">
+          <div class="modal-card" style="max-width:420px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <h2>Choose a seed</h2>
+              <button class="btn btn-secondary btn-sm" @click="closeSeedPicker()" aria-label="Close">✕</button>
+            </div>
+            <template x-for="s in seeds" :key="s.id">
+              <div @click="sowSeed(s.id)"
+                style="padding:.5rem .625rem;border-radius:.5rem;cursor:pointer;display:flex;align-items:center;gap:.5rem"
+                :style="{'background': 'var(--bg-elevated)','margin-bottom':'3px'}"
+                @mouseenter="$el.style.borderColor='var(--green)'"
+                @mouseleave="$el.style.borderColor=''">
+                <span class="badge" x-text="s.type||'?'"></span>
+                <span x-text="s.name + (s.variety ? ' · '+s.variety : '')"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Cell Detail Modal -->
+        <div class="modal-overlay" x-show="showCellDetail" @click.self="closeCellDetail()" @keydown.escape.window="closeCellDetail()">
+          <div class="modal-card" style="max-width:420px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <h2>Planting Detail</h2>
+              <button class="btn btn-secondary btn-sm" @click="closeCellDetail()" aria-label="Close">✕</button>
+            </div>
+            <template x-if="detailPlanting">
+              <div>
+                <p class="text-muted" style="font-size:.875rem;margin-bottom:.75rem"
+                  x-text="(detailPlanting.seed_name||'Unknown') + (detailPlanting.seed_variety ? ' · '+detailPlanting.seed_variety : '')"></p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+                  <div><label style="font-size:.75rem;color:var(--text-3)">Sown</label><input type="date" x-model="detailForm.sown_date"></div>
+                  <div><label style="font-size:.75rem;color:var(--text-3)">Germinated</label><input type="date" x-model="detailForm.germinated_date"></div>
+                  <div><label style="font-size:.75rem;color:var(--text-3)">Moved</label><input type="date" x-model="detailForm.moved_date"></div>
+                  <div><label style="font-size:.75rem;color:var(--text-3)">Harvested</label><input type="date" x-model="detailForm.harvested_date"></div>
+                  <div><label style="font-size:.75rem;color:var(--text-3)">Failed</label><input type="date" x-model="detailForm.failed_date"></div>
+                  <div><label style="font-size:.75rem;color:var(--text-3)">Quantity</label><input type="number" x-model.number="detailForm.quantity"></div>
+                </div>
+                <textarea placeholder="Notes…" x-model="detailForm.notes" rows="2" style="width:100%;margin-bottom:.75rem;resize:vertical"></textarea>
+                <div style="display:flex;justify-content:flex-end;gap:.5rem">
+                  <button class="btn btn-secondary" @click="closeCellDetail()">Cancel</button>
+                  <button class="btn btn-primary" @click="saveCellDetail()">Save</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Zone Settings Modal -->
+        <div class="modal-overlay" x-show="showZoneModal" @click.self="closeZoneModal()" @keydown.escape.window="closeZoneModal()">
+          <div class="modal-card" style="max-width:460px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <h2 x-text="'Edit: ' + (editingZone?.name || '')"></h2>
+              <button class="btn btn-secondary btn-sm" @click="closeZoneModal()" aria-label="Close">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">
+              <input placeholder="Zone name" x-model="zoneForm.name" style="grid-column:1/-1">
+              <input placeholder="Soil type" x-model="zoneForm.soil_type">
+              <input placeholder="Watering type" x-model="zoneForm.watering_type">
+              <input placeholder="Heating type" x-model="zoneForm.heating_type">
+              <input placeholder="Lighting type" x-model="zoneForm.lighting_type">
+              <input placeholder="Grid rows" type="number" x-model.number="zoneForm.grid_rows">
+              <input placeholder="Grid cols" type="number" x-model.number="zoneForm.grid_cols">
+              <textarea placeholder="Notes…" x-model="zoneForm.notes" rows="2" style="grid-column:1/-1;resize:vertical"></textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:.5rem">
+              <button class="btn btn-secondary" @click="closeZoneModal()">Cancel</button>
+              <button class="btn btn-primary" @click="saveZoneSettings()">Save</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- SEEDS -->
