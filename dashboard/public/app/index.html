@@ -18,6 +18,7 @@
   <script src="seeds.js" defer></script>
   <script src="calendar.js" defer></script>
   <script src="zones.js" defer></script>
+  <script src="settings.js" defer></script>
   <script src="https://unpkg.com/alpinejs@3.13.7/dist/cdn.min.js" defer></script>
 </head>
 <body>
@@ -513,7 +514,113 @@
           </div>
         </div>
       </div>
-      <div x-show="tab==='settings'" x-html="settingsTabHtml"></div>
+      <!-- SETTINGS -->
+      <div x-show="tab==='settings'" x-data="settingsTab()">
+
+        <!-- Garden / About section -->
+        <div class="card">
+          <h2>Garden</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.75rem">
+            <div>
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Owner Name</label>
+              <input type="text" :value="config.owner_name||''" @blur="saveConfig('owner_name', $event.target.value)" placeholder="Your name">
+            </div>
+            <div>
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Garden Name</label>
+              <input type="text" :value="config.location_name||''" @blur="saveConfig('location_name', $event.target.value)" placeholder="My Garden">
+            </div>
+            <div>
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Timezone</label>
+              <select :value="config.timezone||'UTC'" @change="saveConfig('timezone', $event.target.value)">
+                <template x-for="tz in timezoneOptions" :key="tz">
+                  <option :value="tz" :selected="config.timezone === tz" x-text="tz"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Units</label>
+              <select :value="config.units||'metric'" @change="saveConfig('units', $event.target.value)">
+                <option value="metric" :selected="config.units==='metric'||!config.units">Metric</option>
+                <option value="imperial" :selected="config.units==='imperial'">Imperial</option>
+              </select>
+            </div>
+            <div style="grid-column:1/-1">
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Location</label>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <span class="text-muted" style="font-size:.875rem"
+                  x-text="config.latitude ? config.latitude + ', ' + config.longitude : 'Not set'"></span>
+                <button class="btn btn-secondary btn-sm" @click="openMapModal()">Change Location</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zone Configuration section -->
+        <div class="card">
+          <h2>Zone Configuration</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.75rem">
+            <div>
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Default Soil Type</label>
+              <input type="text" :value="config.default_soil_type||''" @blur="saveConfig('default_soil_type', $event.target.value)" placeholder="e.g. loamy">
+            </div>
+            <div>
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Default Watering Type</label>
+              <input type="text" :value="config.default_watering_type||''" @blur="saveConfig('default_watering_type', $event.target.value)" placeholder="e.g. drip">
+            </div>
+            <div>
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Last Spring Frost (MM-DD)</label>
+              <input type="text" :value="config.spring_frost_date||''" @blur="saveConfig('spring_frost_date', $event.target.value)" placeholder="04-15">
+            </div>
+            <div>
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">First Autumn Frost (MM-DD)</label>
+              <input type="text" :value="config.autumn_frost_date||''" @blur="saveConfig('autumn_frost_date', $event.target.value)" placeholder="10-15">
+            </div>
+            <div style="grid-column:1/-1">
+              <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Growing Season Notes</label>
+              <textarea :value="config.growing_season_notes||''" @blur="saveConfig('growing_season_notes', $event.target.value)" rows="3" placeholder="Notes about your growing season…" style="resize:vertical"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zones list (read-only) -->
+        <div class="card">
+          <h2>Zones</h2>
+          <template x-for="z in zones" :key="z.id">
+            <div class="card" style="margin-bottom:.375rem;padding:.75rem 1rem">
+              <div style="display:flex;justify-content:space-between">
+                <strong x-text="z.name"></strong>
+                <span class="text-muted" style="font-size:.75rem" x-text="z.type + ' · ' + z.view_type"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- OpenClaw status -->
+        <div class="card">
+          <h2>OpenClaw</h2>
+          <p class="text-muted" style="font-size:.875rem;margin-bottom:.75rem"
+            x-text="config.openclaw_enabled==='1' ? '✓ Enabled' : 'Not configured'"></p>
+          <p style="font-size:.875rem">Run <code>./openclaw/cron-setup.sh</code> from the repo root to install cron jobs.</p>
+        </div>
+
+        <!-- Location Map Modal -->
+        <div class="modal-overlay" x-show="showMapModal" @click.self="closeMapModal()" @keydown.escape.window="closeMapModal()">
+          <div class="modal-card" style="max-width:600px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <h2>Set Location</h2>
+              <button class="btn btn-secondary btn-sm" @click="closeMapModal()" aria-label="Close">✕</button>
+            </div>
+            <p class="text-muted" style="font-size:.875rem;margin-bottom:.75rem">Click on the map to set your garden location.</p>
+            <div id="settings-map" style="height:350px;border-radius:.75rem;overflow:hidden;margin-bottom:1rem"></div>
+            <p class="text-muted" style="font-size:.75rem;margin-bottom:.75rem"
+              x-text="pendingLat ? 'Selected: ' + pendingLat.toFixed(5) + ', ' + pendingLng.toFixed(5) : ''"></p>
+            <div style="display:flex;justify-content:flex-end;gap:.5rem">
+              <button class="btn btn-secondary" @click="closeMapModal()">Cancel</button>
+              <button class="btn btn-primary" @click="confirmLocation()">Confirm Location</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
     </main>
   </div>
