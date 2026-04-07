@@ -341,7 +341,7 @@
           <div class="cal-grid">
             <!-- Header row: empty seed name cell + 12 month headers -->
             <div class="cal-cell cal-header"></div>
-            <template x-for="m in ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']">
+            <template x-for="m in ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']" :key="m">
               <div class="cal-cell cal-header" x-text="m"></div>
             </template>
 

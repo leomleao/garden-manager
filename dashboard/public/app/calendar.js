@@ -21,21 +21,17 @@ function mmddLe(a, b) {
 
 document.addEventListener('alpine:init', () => {
   Alpine.data('calendarTab', () => ({
-    calYear: new Date().getFullYear(),
+    calYear: new Date().getFullYear(), // display only — sowing windows are month-based and repeat annually
     hoveredSeed: null,
 
     get sowIndoorsNow() {
-      const mm = todayMMDD();
-      return this.seeds.filter(s =>
-        s.sow_indoors_start && mmddLe(s.sow_indoors_start, mm) && mmddLe(mm, s.sow_indoors_end || '12-31')
-      );
+      const m = new Date().getMonth() + 1;
+      return this.seeds.filter(s => monthInWindow(m, s.sow_indoors_start, s.sow_indoors_end));
     },
 
     get sowOutdoorsNow() {
-      const mm = todayMMDD();
-      return this.seeds.filter(s =>
-        s.sow_outdoors_start && mmddLe(s.sow_outdoors_start, mm) && mmddLe(mm, s.sow_outdoors_end || '12-31')
-      );
+      const m = new Date().getMonth() + 1;
+      return this.seeds.filter(s => monthInWindow(m, s.sow_outdoors_start, s.sow_outdoors_end));
     },
 
     get calendarSeeds() {
@@ -54,10 +50,6 @@ document.addEventListener('alpine:init', () => {
       if (monthInWindow(month, seed.plant_out_start, seed.plant_out_end)) bands.push('cal-band-plantout');
       if (monthInWindow(month, seed.harvest_start, seed.harvest_end)) bands.push('cal-band-harvest');
       return bands;
-    },
-
-    hasBands(seed, month) {
-      return this.cellBands(seed, month).length > 0;
     },
 
     prevYear() { this.calYear--; },
