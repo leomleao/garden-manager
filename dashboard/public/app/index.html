@@ -90,7 +90,7 @@
       </div>
 
       <!-- ZONES -->
-      <div x-show="tab==='zones'" x-data="zonesTab()">
+      <div x-show="tab==='zones'" x-data="zonesTab()" @mouseup.window="dragEnd()">
         <template x-for="zone in zones" :key="zone.id">
           <div class="card">
             <!-- Zone header -->
@@ -121,8 +121,7 @@
               </div>
 
               <div style="overflow-x:auto">
-                <div class="grid-view" :style="`grid-template-columns:repeat(${zone.grid_cols},1fr)`"
-                     @mouseup.window="dragEnd()">
+                <div class="grid-view" :style="`grid-template-columns:repeat(${zone.grid_cols},1fr)`">
                   <template x-for="cell in zone.cells" :key="cell.id">
                     <div class="grid-cell"
                       :class="[getCellStatus(cell.id), isDragSelected(cell.id) ? 'cell-selected' : '']"
@@ -200,10 +199,10 @@
             </div>
             <template x-for="s in seeds" :key="s.id">
               <div @click="sowSeed(s.id)"
-                style="padding:.5rem .625rem;border-radius:.5rem;cursor:pointer;display:flex;align-items:center;gap:.5rem"
+                style="padding:.5rem .625rem;border-radius:.5rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;border:2px solid transparent"
                 :style="{'background': 'var(--bg-elevated)','margin-bottom':'3px'}"
                 @mouseenter="$el.style.borderColor='var(--green)'"
-                @mouseleave="$el.style.borderColor=''">
+                @mouseleave="$el.style.borderColor='transparent'">
                 <span class="badge" x-text="s.type||'?'"></span>
                 <span x-text="s.name + (s.variety ? ' · '+s.variety : '')"></span>
               </div>

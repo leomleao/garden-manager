@@ -6,7 +6,6 @@ document.addEventListener('alpine:init', () => {
     zoneForm: {},
 
     // Cell hover menu
-    hoveredCellId: null,
     menuCellId: null,
     menuTimeout: null,
 
@@ -25,9 +24,7 @@ document.addEventListener('alpine:init', () => {
     dragging: false,
     dragMoved: false,
     dragCells: new Set(),
-
-    // Loose view sow target
-    sowLooseZoneId: null,
+    dragJustEnded: false,
 
     // Helper methods
     getCellStatus(cellId) {
@@ -100,7 +97,7 @@ document.addEventListener('alpine:init', () => {
       try {
         await fetch(`/api/plant-lifecycle/${p.id}`, {
           method: 'PATCH', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ germinated_date: new Date().toISOString().slice(0,10) })
+          body: JSON.stringify({ germinated_date: new Date().toISOString().slice(0,10), status: 'germinated' })
         });
         this.menuCellId = null;
         await this.refresh();
@@ -118,7 +115,7 @@ document.addEventListener('alpine:init', () => {
           body: JSON.stringify({ failed_date: new Date().toISOString().slice(0,10), status: 'failed' })
         });
         await this.refresh();
-      } catch(e) { console.error('Mark dead failed:', e); }
+      } catch(e) { console.error('Mark dead failed:', e); await this.refresh(); }
     },
     async markLoosePlantingOk(plantingId) {
       try {
@@ -137,12 +134,12 @@ document.addEventListener('alpine:init', () => {
           body: JSON.stringify({ failed_date: new Date().toISOString().slice(0,10), status: 'failed' })
         });
         await this.refresh();
-      } catch(e) { console.error('Mark dead failed:', e); }
+      } catch(e) { console.error('Mark dead failed:', e); await this.refresh(); }
     },
 
     // Cell detail modal
     openCellDetail(cellId) {
-      if (this.dragging) return; // don't open on drag
+      if (this.dragging || this.dragJustEnded) { this.dragJustEnded = false; return; }
       const p = this.activePlanting(cellId);
       if (!p) return;
       this.detailPlanting = p;
@@ -172,11 +169,14 @@ document.addEventListener('alpine:init', () => {
     dragEnter(cellId) {
       if (!this.dragging) return;
       this.dragMoved = true;
-      this.dragCells.add(cellId);
+      const next = new Set(this.dragCells);
+      next.add(cellId);
+      this.dragCells = next;
     },
     async dragEnd() {
       if (!this.dragging) return;
       this.dragging = false;
+      this.dragJustEnded = this.dragMoved;
       const cells = [...this.dragCells];
       this.dragCells = new Set();
       if (!this.dragMoved || cells.length <= 1) return; // single click — no drag sow
