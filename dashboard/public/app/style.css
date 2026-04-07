@@ -590,37 +590,17 @@ select {
   padding: .25rem 0;
 }
 
-.cal-band-indoor {
+.cal-band {
   height: 6px;
   border-radius: 2px;
   width: 100%;
   margin-bottom: 1px;
-  background: var(--pink);
 }
 
-.cal-band-outdoor {
-  height: 6px;
-  border-radius: 2px;
-  width: 100%;
-  margin-bottom: 1px;
-  background: var(--blue);
-}
-
-.cal-band-plantout {
-  height: 6px;
-  border-radius: 2px;
-  width: 100%;
-  margin-bottom: 1px;
-  background: var(--green);
-}
-
-.cal-band-harvest {
-  height: 6px;
-  border-radius: 2px;
-  width: 100%;
-  margin-bottom: 1px;
-  background: var(--yellow-ochre);
-}
+.cal-band-indoor   { background: var(--pink); }
+.cal-band-outdoor  { background: var(--blue); }
+.cal-band-plantout { background: var(--green); }
+.cal-band-harvest  { background: var(--yellow-ochre); }
 
 .cal-tooltip {
   position: absolute;
@@ -637,8 +617,13 @@ select {
   pointer-events: none;
 }
 
-.cell-selected {
-  border-color: var(--pink) !important;
+.cal-tooltip-left {
+  left: auto;
+  right: 100%;
+}
+
+.cal-cell.cell-selected {
+  border-color: var(--pink);
   box-shadow: 0 0 0 2px var(--pink);
   animation: pulse-select .7s ease-in-out infinite alternate;
 }
