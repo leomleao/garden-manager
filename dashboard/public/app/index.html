@@ -24,14 +24,14 @@
 <body>
   <div class="layout" x-data="app()" x-init="init()">
     <header>
-      <h1>ðŸŒ± Garden Manager</h1>
+      <h1>&#x1F331; Garden Manager</h1>
       <span class="header-location" x-text="config.location_name || ''"></span>
       <span class="header-time" x-text="lastRefresh"></span>
       <span x-show="refreshError" class="header-error" x-text="refreshError"></span>
       <button class="theme-toggle" @click="toggleTheme()"
         :title="darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
         :aria-label="darkMode ? 'Switch to light mode' : 'Switch to dark mode'">
-        <!-- Sun icon â€” shown in dark mode -->
+        <!-- Sun icon shown in dark mode -->
         <svg x-show="darkMode" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="4.5"/>
           <line x1="12" y1="2" x2="12" y2="4.5"/>
@@ -43,7 +43,7 @@
           <line x1="4.93" y1="19.07" x2="6.64" y2="17.36"/>
           <line x1="17.36" y1="6.64" x2="19.07" y2="4.93"/>
         </svg>
-        <!-- Moon icon â€” shown in light mode -->
+        <!-- Moon icon shown in light mode -->
         <svg x-show="!darkMode" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
@@ -69,21 +69,75 @@
         </div>
         <div class="card" x-show="weather.temp !== null">
           <div class="weather-widget">
-            <span style="font-size:1.5rem" x-text="weather.icon"></span>
-            <div>
-              <div style="font-weight:600" x-text="(weather.temp ?? '--') + 'Â°C Â· ' + (weather.desc || '')"></div>
-              <div class="text-muted" style="font-size:.75rem" x-text="config.location_name"></div>
+
+            <!-- Layer 1: Header (current conditions — unchanged) -->
+            <div class="weather-header">
+              <span style="font-size:1.5rem" x-text="weather.icon"></span>
+              <div>
+                <div style="font-weight:600" x-text="(weather.temp ?? '--') + '°C · ' + (weather.desc || '')"></div>
+                <div class="text-muted" style="font-size:.75rem" x-text="config.location_name"></div>
+              </div>
             </div>
+
+            <!-- Layer 2: Alert bar (hidden when no alerts) -->
+            <div class="weather-alerts" x-show="weather.alerts.length > 0">
+              <template x-for="alert in weather.alerts" :key="alert.text">
+                <div class="weather-alert" :class="'weather-alert--' + alert.level">
+                  <span x-text="alert.level === 'green' ? '\u2705' : '\u26A0\uFE0F'"></span>
+                  <span x-text="alert.text"></span>
+                </div>
+              </template>
+            </div>
+
+            <!-- Layer 3: Stats grid (hidden until data arrives) -->
+            <div class="weather-stats" x-show="weather.uv !== null || weather.soil.temp !== null">
+              <div class="weather-stat">
+                <div class="weather-stat-label">Soil Temp</div>
+                <div class="weather-stat-value" x-text="weather.soil.temp !== null ? weather.soil.temp + '\xB0C' : '--'"></div>
+                <div class="weather-stat-sub" x-text="weather.soil.status"></div>
+              </div>
+              <div class="weather-stat">
+                <div class="weather-stat-label">UV Index</div>
+                <div class="weather-stat-value" x-text="weather.uv !== null ? weather.uv : '--'"></div>
+              </div>
+              <div class="weather-stat">
+                <div class="weather-stat-label">Rain Today</div>
+                <div class="weather-stat-value" x-text="weather.rain !== null ? weather.rain + 'mm' : '--'"></div>
+              </div>
+              <div class="weather-stat">
+                <div class="weather-stat-label">Watering</div>
+                <div class="weather-stat-value" style="font-size:.8rem" x-text="weather.wateringStatus || '--'"></div>
+              </div>
+            </div>
+
+            <!-- Layer 4: Action text -->
+            <div class="weather-action"
+                 x-show="!!weather.actionText"
+                 :class="weather.alerts[0] ? 'weather-action--' + weather.alerts[0].level : ''"
+                 x-text="weather.actionText">
+            </div>
+
           </div>
         </div>
         <div class="card">
           <h2>Recent Activity</h2>
           <table>
+            <thead><tr>
+              <th style="width:140px">Time</th>
+              <th style="width:100px">Action</th>
+              <th class="col-800" style="width:90px">Status</th>
+              <th>Description</th>
+              <th class="col-960">Zone</th>
+              <th class="col-1100">Seed</th>
+            </tr></thead>
             <template x-for="entry in activity">
               <tr>
-                <td class="text-muted" style="font-size:.75rem;width:160px" x-text="entry.timestamp.slice(0,16).replace('T',' ')"></td>
+                <td class="text-muted" style="font-size:.75rem" x-text="entry.timestamp.slice(0,16).replace('T',' ')"></td>
                 <td><span class="badge" :class="'badge-'+entry.action_type" x-text="entry.action_type"></span></td>
+                <td class="col-800"><span x-show="!!entry.plant_status" class="badge" :class="'badge-'+entry.plant_status" x-text="entry.plant_status||''"></span></td>
                 <td x-text="entry.description"></td>
+                <td class="col-960 text-muted" x-text="entry.zone_name||''"></td>
+                <td class="col-1100 text-muted" x-text="entry.seed_name ? entry.seed_name + (entry.seed_variety ? ' · ' + entry.seed_variety : '') : ''"></td>
               </tr>
             </template>
           </table>
@@ -92,26 +146,28 @@
 
       <!-- ZONES -->
       <div x-show="tab==='zones'">
+        <div class="zones-grid">
         <template x-for="zone in zones" :key="zone.id">
-          <div class="card">
+          <div class="card zone-card" :class="zone.view_type === 'loose' ? 'zone-card-wide' : 'zone-card-grid'">
             <!-- Zone header -->
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
               <div>
                 <h2 x-text="zone.name"></h2>
                 <span class="text-muted" style="font-size:.75rem"
-                  x-text="zone.type + (zone.covered?' Â· covered':'') + (zone.has_auto_watering?' Â· auto-water':'')">
+                  x-text="zone.type + (zone.covered?' · covered':'') + (zone.has_auto_watering?' · auto-water':'')">
                 </span>
               </div>
               <div style="display:flex;gap:.5rem;align-items:center">
                 <span class="badge" :class="zone.view_type==='grid'?'badge-sown':'badge-germinated'" x-text="zone.view_type"></span>
-                <button class="btn btn-secondary btn-sm" @click="openZoneSettings(zone)" title="Zone settings">âš™ï¸</button>
+                <button class="btn btn-secondary btn-sm" @click="openZoneSettings(zone)" title="Zone settings">&#9881;&#65039;</button>
               </div>
             </div>
 
             <!-- Grid view -->
             <div x-show="zone.view_type==='grid'">
-              <div style="overflow-x:auto">
-                <div class="grid-view" :style="`grid-template-columns:repeat(${zone.grid_cols},1fr)`">
+              <div class="grid-zone-scroll">
+                <div class="grid-zone-canvas">
+                  <div class="grid-view" :style="`grid-template-columns:repeat(${zone.grid_cols},1fr)`">
                   <template x-for="cell in zone.cells" :key="cell.id">
                     <div class="grid-cell"
                       :class="getCellStatus(cell.id)"
@@ -122,21 +178,15 @@
                       @click="openCellModal(cell.id, zone.id)"
                       style="position:relative">
                       <!-- Hover menu -->
-                      <div x-show="menuCellId === cell.id"
+                      <div x-show="menuCellId === cell.id && getCellStatus(cell.id) !== 'empty'"
                            @mousedown.stop
                            @click.stop
                            @mouseenter="keepMenu()"
                            @mouseleave="hideMenu()"
                            class="cell-hover-menu">
-                        <div x-text="cell.label + ': ' + getCellDesc(cell.id)"
-                             class="cell-hover-menu-label"></div>
                         <div class="cell-hover-menu-actions">
-                          <button @mousedown.stop @click.stop="openNewPlantingModal(cell.id, zone.id)" title="Sow"
-                            class="cell-hover-action cell-hover-action-sow">
-                            <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Seedling/Color/seedling_color.svg" width="18" height="18" alt="Sow">
-                          </button>
                           <button @mousedown.stop @click.stop="markOk(cell.id)" title="OK"
-                            x-show="getCellStatus(cell.id) !== 'empty'"
+                            x-show="canMarkOk(activePlanting(cell.id))"
                             class="cell-hover-action cell-hover-action-ok">
                             <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Ok%20hand/Light/Color/ok_hand_color_light.svg" width="18" height="18" alt="OK">
                           </button>
@@ -149,6 +199,7 @@
                       </div>
                     </div>
                   </template>
+                </div>
                 </div>
                 <!-- Legend -->
                 <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
@@ -165,32 +216,34 @@
             <!-- Loose view -->
             <div x-show="zone.view_type==='loose'">
               <template x-for="p in getZonePlantings(zone.id)" :key="p.id">
-                <div style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border)">
+                <div @click="openLoosePlantingModal(p)" class="loose-planting-row">
                   <span class="badge" :class="'badge-'+p.status" x-text="p.status"></span>
-                  <span x-text="p.seed_name + (p.seed_variety ? ' Â· '+p.seed_variety : '')"></span>
+                  <span x-text="p.seed_name + (p.seed_variety ? ' · '+p.seed_variety : '')"></span>
                   <span class="text-muted" style="font-size:.75rem" x-text="p.sown_date"></span>
-                  <span style="margin-left:auto;display:flex;gap:.25rem">
-                    <button @click="markLoosePlantingOk(p.id)" class="btn btn-secondary btn-sm" title="OK">
+                  <span class="loose-planting-actions">
+                    <button @click.stop="markLoosePlantingOk(p.id)" class="btn btn-secondary btn-sm" title="OK"
+                      x-show="canMarkOk(p)">
                       <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Ok%20hand/Light/Color/ok_hand_color_light.svg" width="14" height="14" alt="OK">
                     </button>
-                    <button @click="markLoosePlantingDead(p.id)" class="btn btn-secondary btn-sm" title="Dead">
+                    <button @click.stop="markLoosePlantingDead(p.id)" class="btn btn-secondary btn-sm" title="Dead">
                       <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Skull%20and%20crossbones/Color/skull_and_crossbones_color.svg" width="14" height="14" alt="Dead">
                     </button>
                   </span>
                 </div>
               </template>
               <p x-show="!getZonePlantings(zone.id).length" class="text-muted" style="font-size:.875rem">No active plantings</p>
-              <button class="btn btn-primary btn-sm" style="margin-top:.75rem" @click="openSeedPicker(null, zone.id)">ðŸŒ± Sow</button>
+              <button class="btn btn-primary btn-sm" style="margin-top:.75rem" @click="openSeedPicker(null, zone.id)">&#x1F331; Sow</button>
             </div>
           </div>
         </template>
+        </div>
 
         <!-- Seed Picker Modal -->
         <div class="modal-overlay" x-show="showSeedPicker" @click.self="closeSeedPicker()" @keydown.escape.window="closeSeedPicker()">
           <div class="modal-card" style="max-width:420px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
               <h2>Choose a seed</h2>
-              <button class="btn btn-secondary btn-sm" @click="closeSeedPicker()" aria-label="Close">âœ•</button>
+              <button class="btn btn-secondary btn-sm" @click="closeSeedPicker()" aria-label="Close">&times;</button>
             </div>
             <template x-for="s in seeds" :key="s.id">
               <div @click="sowSeed(s.id)"
@@ -199,7 +252,7 @@
                 @mouseenter="$el.style.borderColor='var(--green)'"
                 @mouseleave="$el.style.borderColor='transparent'">
                 <span class="badge" x-text="s.type||'?'"></span>
-                <span x-text="s.name + (s.variety ? ' Â· '+s.variety : '')"></span>
+                <span x-text="s.name + (s.variety ? ' · '+s.variety : '')"></span>
               </div>
             </template>
           </div>
@@ -210,13 +263,13 @@
           <div class="modal-card cell-modal-card" style="max-width:520px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem">
               <div>
-                <h2 x-show="cellModal.mode === 'new'" x-text="getCellLabel(cellModal.cellId, cellModal.zoneId) + ' Â· New Planting'"></h2>
-                <h2 x-show="cellModal.mode === 'edit'" x-text="getCellLabel(cellModal.cellId, cellModal.zoneId) + ' Â· ' + getSeedDisplayName(cellModal.planting)"></h2>
+                <h2 x-show="cellModal.mode === 'new'" x-text="getCellLabel(cellModal.cellId, cellModal.zoneId) + ' · New Planting'"></h2>
+                <h2 x-show="cellModal.mode === 'edit'" x-text="getCellModalEditTitle()"></h2>
                 <div x-show="cellModal.mode === 'edit' && cellModal.planting" style="margin-top:.35rem">
                   <span class="badge" :class="'badge-' + (cellModal.planting?.status || 'sown')" x-text="cellModal.planting?.status || 'sown'"></span>
                 </div>
               </div>
-              <button class="btn btn-secondary btn-sm" @click="closeCellModal()" aria-label="Close">Ã—</button>
+              <button class="btn btn-secondary btn-sm" @click="closeCellModal()" aria-label="Close">&times;</button>
             </div>
             <template x-if="cellModal.mode === 'new'">
               <div>
@@ -246,17 +299,47 @@
                 <div class="cell-modal-grid" style="margin-bottom:1rem">
                   <div class="cell-modal-field"><label>Sown</label><input type="date" x-model="cellModal.form.sown_date"></div>
                   <div class="cell-modal-field"><label>Germinated</label><input type="date" x-model="cellModal.form.germinated_date"></div>
-                  <div class="cell-modal-field"><label>Moved</label><input type="date" x-model="cellModal.form.moved_date"></div>
                   <div class="cell-modal-field"><label>Harvested</label><input type="date" x-model="cellModal.form.harvested_date"></div>
                   <div class="cell-modal-field"><label>Failed</label><input type="date" x-model="cellModal.form.failed_date"></div>
-                  <div class="cell-modal-field"><label>Quantity</label><input type="number" min="1" x-model.number="cellModal.form.quantity"></div>
                   <div class="cell-modal-field cell-modal-span-2">
                     <label>Notes</label>
                     <textarea placeholder="Notes..." x-model="cellModal.form.notes" rows="3" style="resize:vertical"></textarea>
                   </div>
                 </div>
                 <div class="cell-modal-actions">
-                  <button class="btn btn-danger" @click="markCellModalDead()">Mark Dead</button>
+                  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                    <button class="btn btn-secondary" @click="transplantCellModal()">Transplant</button>
+                    <button class="btn btn-danger" @click="markCellModalDead()">Mark Dead</button>
+                    <button class="btn btn-secondary" @click="resetSoilCellModal()">Reset Soil</button>
+                  </div>
+                </div>
+                <div x-show="cellModal.showTransplant" class="cell-transplant-panel">
+                  <div class="cell-modal-grid" style="margin-bottom:0">
+                    <div class="cell-modal-field">
+                      <label>Target Zone</label>
+                      <select x-model.number="cellModal.form.transplant_zone_id">
+                        <option value="">Select a zone</option>
+                        <template x-for="z in transplantZoneOptions(cellModal.planting)" :key="z.id">
+                          <option :value="z.id" x-text="z.name"></option>
+                        </template>
+                      </select>
+                    </div>
+                    <div class="cell-modal-field" x-show="isGridZone(cellModal.form.transplant_zone_id)">
+                      <label>Target Cell</label>
+                      <select x-model.number="cellModal.form.transplant_cell_id">
+                        <option value="">Select a cell</option>
+                        <template x-for="cell in transplantCellOptions(cellModal.form.transplant_zone_id, cellModal.planting?.id)" :key="cell.id">
+                          <option :value="cell.id" x-text="cell.label"></option>
+                        </template>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="display:flex;justify-content:flex-end;margin-top:.75rem">
+                    <button class="btn btn-secondary" @click="confirmTransplantCellModal()" :disabled="!cellModal.form.transplant_zone_id || (isGridZone(cellModal.form.transplant_zone_id) && !cellModal.form.transplant_cell_id)">Move</button>
+                  </div>
+                </div>
+                <div class="cell-modal-footer">
+                  <div></div>
                   <div style="display:flex;gap:.5rem">
                     <button class="btn btn-secondary" @click="closeCellModal()">Cancel</button>
                     <button class="btn btn-primary" @click="saveCellModal()">Save</button>
@@ -272,7 +355,7 @@
           <div class="modal-card" style="max-width:460px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
               <h2 x-text="'Edit: ' + (editingZone?.name || '')"></h2>
-              <button class="btn btn-secondary btn-sm" @click="closeZoneModal()" aria-label="Close">âœ•</button>
+              <button class="btn btn-secondary btn-sm" @click="closeZoneModal()" aria-label="Close">&times;</button>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">
               <input placeholder="Zone name" x-model="zoneForm.name" style="grid-column:1/-1">
@@ -282,7 +365,7 @@
               <input placeholder="Lighting type" x-model="zoneForm.lighting_type">
               <input placeholder="Grid rows" type="number" x-model.number="zoneForm.grid_rows">
               <input placeholder="Grid cols" type="number" x-model.number="zoneForm.grid_cols">
-              <textarea placeholder="Notesâ€¦" x-model="zoneForm.notes" rows="2" style="grid-column:1/-1;resize:vertical"></textarea>
+              <textarea placeholder="Notes..." x-model="zoneForm.notes" rows="2" style="grid-column:1/-1;resize:vertical"></textarea>
             </div>
             <div style="display:flex;justify-content:flex-end;gap:.5rem">
               <button class="btn btn-secondary" @click="closeZoneModal()">Cancel</button>
@@ -297,99 +380,54 @@
         <div class="card">
           <div style="display:flex;gap:.75rem;margin-bottom:.75rem;align-items:center;flex-wrap:wrap">
             <h2 style="flex:1">Seed Inventory</h2>
-            <input type="search" placeholder="Searchâ€¦" style="width:160px" x-model="search">
+            <input type="search" placeholder="Search..." style="width:160px" x-model="search">
             <select style="width:130px" x-model="typeFilter">
               <option value="">All types</option>
-              <option value="herb">ðŸŒ¿ Herb</option>
-              <option value="vegetable">ðŸ¥• Vegetable</option>
-              <option value="flower">ðŸŒ¸ Flower</option>
+              <option value="herb">&#x1F33F; Herb</option>
+              <option value="vegetable">&#x1F955; Vegetable</option>
+              <option value="flower">&#x1F338; Flower</option>
             </select>
-            <button class="btn btn-primary btn-sm" @click="openAdd()">+ Add Seed</button>
+            <button class="btn btn-primary btn-sm" @click="openSeedAdd()">+ Add Seed</button>
           </div>
           <table>
             <thead><tr>
-              <th style="width:90px">Type</th><th>Name</th><th>Variety</th>
-              <th style="text-align:center;width:60px">Qty</th><th>Supplier</th><th></th>
+              <th style="width:90px">Type</th>
+              <th>Name</th>
+              <th>Variety</th>
+              <th style="text-align:center;width:50px">Qty</th>
+              <th>Supplier</th>
+              <th class="col-800" style="text-align:center;width:70px">Germinate</th>
+              <th class="col-960" style="text-align:center;width:70px">Sow By</th>
+              <th class="col-1100">Soil Type</th>
+              <th class="col-1280">Soil Temp</th>
+              <th class="col-1440">Light</th>
+              <th class="col-1600">Height</th>
+              <th></th>
             </tr></thead>
             <tbody>
               <template x-for="s in filteredSeeds" :key="s.id">
                 <tr>
-                  <td><span class="badge" :class="badgeClass(s.type)" x-text="typeEmoji(s.type) + ' ' + (s.type||'')"></span></td>
+                  <td><span class="badge" :class="badgeClass(s.type)" x-text="typeEmoji(s.type) + ' ' + typeLabel(s.type)"></span></td>
                   <td x-text="s.name"></td>
                   <td class="text-muted" x-text="s.variety||''"></td>
                   <td style="text-align:center" x-text="s.quantity"></td>
-                  <td class="text-muted" x-text="s.supplier||''"></td>
-                  <td><button class="btn btn-secondary btn-sm" @click="openEdit(s)">Edit</button></td>
+                  <td class="text-muted">
+                    <a x-show="!!s.purchase_link" :href="s.purchase_link" target="_blank" rel="noopener noreferrer" x-text="s.supplier||s.name" style="color:var(--green);text-decoration:none"></a>
+                    <span x-show="!s.purchase_link" x-text="s.supplier||''"></span>
+                  </td>
+                  <td class="col-800 text-muted" style="text-align:center" x-text="s.days_to_germinate ? s.days_to_germinate + 'd' : ''"></td>
+                  <td class="col-960 text-muted" style="text-align:center" x-text="s.sow_by_year||''"></td>
+                  <td class="col-1100 text-muted" x-text="s.optimum_soil_type||''"></td>
+                  <td class="col-1280 text-muted" x-text="s.optimum_soil_temp||''"></td>
+                  <td class="col-1440 text-muted" x-text="s.light_requirements||''"></td>
+                  <td class="col-1600 text-muted" x-text="s.plant_height||''"></td>
+                  <td><button class="btn btn-secondary btn-sm" @click="openSeedEdit(s)">Edit</button></td>
                 </tr>
               </template>
             </tbody>
           </table>
         </div>
 
-        <!-- Add/Edit Modal -->
-        <div class="modal-overlay" x-show="showModal" @keydown.escape.window="closeModal()" @click.self="closeModal()">
-          <div class="modal-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
-              <h2 x-text="editingId ? 'Edit Seed' : 'Add Seed'"></h2>
-              <button class="btn btn-secondary btn-sm" @click="closeModal()">âœ•</button>
-            </div>
-
-            <!-- Section 1: Basic -->
-            <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Basic</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
-              <input placeholder="Name *" x-model="form.name" style="grid-column:1/-1">
-              <input placeholder="Variety" x-model="form.variety">
-              <select x-model="form.type">
-                <option value="">Typeâ€¦</option>
-                <option value="herb">ðŸŒ¿ Herb</option>
-                <option value="vegetable">ðŸ¥• Vegetable</option>
-                <option value="flower">ðŸŒ¸ Flower</option>
-              </select>
-              <input placeholder="Quantity" type="number" x-model.number="form.quantity">
-              <input placeholder="Supplier" x-model="form.supplier">
-              <input placeholder="Purchase year" type="number" x-model.number="form.purchase_year">
-              <input placeholder="Sow by year" type="number" x-model.number="form.sow_by_year">
-              <input placeholder="Purchase link (URL)" x-model="form.purchase_link" style="grid-column:1/-1">
-            </div>
-
-            <!-- Section 2: Growing info -->
-            <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Growing Info</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
-              <input placeholder="Days to germinate" type="number" x-model.number="form.days_to_germinate">
-              <input placeholder="Optimum soil temp (e.g. 18-22Â°C)" x-model="form.optimum_soil_temp">
-              <input placeholder="Soil type (e.g. loamy)" x-model="form.optimum_soil_type">
-              <input placeholder="Plant height (e.g. 60cm)" x-model="form.plant_height">
-              <input placeholder="Light requirements (e.g. full sun)" x-model="form.light_requirements">
-              <textarea placeholder="Growing instructionsâ€¦" x-model="form.growing_instructions" rows="3" style="grid-column:1/-1;resize:vertical"></textarea>
-            </div>
-
-            <!-- Section 3: Sowing windows (MM-DD pairs) -->
-            <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Sowing Windows (MM-DD)</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.5rem;margin-bottom:1.25rem">
-              <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">ðŸŒ¸ Sow Indoors</p>
-                <input placeholder="Start MM-DD" x-model="form.sow_indoors_start">
-                <input placeholder="End MM-DD" x-model="form.sow_indoors_end" style="margin-top:.25rem">
-              </div>
-              <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">ðŸ”µ Sow Outdoors</p>
-                <input placeholder="Start MM-DD" x-model="form.sow_outdoors_start">
-                <input placeholder="End MM-DD" x-model="form.sow_outdoors_end" style="margin-top:.25rem">
-              </div>
-              <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">ðŸŸ¢ Plant Out</p>
-                <input placeholder="Start MM-DD" x-model="form.plant_out_start">
-                <input placeholder="End MM-DD" x-model="form.plant_out_end" style="margin-top:.25rem">
-              </div>
-              <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">ðŸŸ¡ Harvest</p>
-                <input placeholder="Start MM-DD" x-model="form.harvest_start">
-                <input placeholder="End MM-DD" x-model="form.harvest_end" style="margin-top:.25rem">
-              </div>
-            </div>
-
-            <div style="display:flex;justify-content:flex-end;gap:.5rem">
-              <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
-              <button class="btn btn-primary" @click="save()">Save</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- TASKS -->
@@ -420,14 +458,24 @@
             <tbody>
               <template x-for="t in filteredTasks" :key="t.id">
                 <tr :class="isOverdue(t) ? 'overdue' : ''">
-                  <td x-text="t.title"></td>
+                  <td>
+                    <div class="task-title-cell">
+                      <span x-text="t.title"></span>
+                      <span
+                        x-show="t.callback_type === 'clear_failed_plant'"
+                        class="task-callback-badge"
+                        :title="taskCallbackDescription(t)"
+                        x-text="taskCallbackLabel(t)"
+                      ></span>
+                    </div>
+                  </td>
                   <td><span class="badge" :class="'badge-'+t.priority" x-text="t.priority"></span></td>
                   <td><span class="badge" :class="'badge-'+t.status" x-text="t.status"></span></td>
                   <td class="text-muted" x-text="t.due_date||''"></td>
                   <td class="text-muted" x-text="t.zone_name||'All zones'"></td>
                   <td>
                     <button x-show="t.status !== 'done'" class="btn btn-sm btn-complete"
-                      @click="completeTask(t.id)">âœ“</button>
+                      @click="completeTask(t.id)">&#10003;</button>
                   </td>
                 </tr>
               </template>
@@ -460,67 +508,75 @@
 
         <!-- Sow Now sections -->
         <div class="card">
-          <h2>ðŸŒ¸ Sow Indoors Now</h2>
+          <h2>&#x1F338; Sow Indoors Now</h2>
           <template x-if="sowIndoorsNow.length === 0">
             <p class="text-muted" style="font-size:.875rem">Nothing to sow indoors right now.</p>
           </template>
           <template x-for="s in sowIndoorsNow" :key="s.id">
-            <div style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border)">
+            <div @click="openSeedEdit(s)" style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border);cursor:pointer">
               <span x-text="typeEmoji(s.type)" style="font-size:1.1rem"></span>
-              <span x-text="s.name + (s.variety ? ' Â· ' + s.variety : '')"></span>
+              <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
             </div>
           </template>
         </div>
 
         <div class="card">
-          <h2>ðŸ”µ Sow Outdoors Now</h2>
+          <h2>&#x1F535; Sow Outdoors Now</h2>
           <template x-if="sowOutdoorsNow.length === 0">
             <p class="text-muted" style="font-size:.875rem">Nothing to sow outdoors right now.</p>
           </template>
           <template x-for="s in sowOutdoorsNow" :key="s.id">
-            <div style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border)">
+            <div @click="openSeedEdit(s)" style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border);cursor:pointer">
               <span x-text="typeEmoji(s.type)" style="font-size:1.1rem"></span>
-              <span x-text="s.name + (s.variety ? ' Â· ' + s.variety : '')"></span>
+              <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
             </div>
           </template>
         </div>
 
         <!-- Yearly Calendar Grid -->
         <div class="card" style="overflow-x:auto">
-          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
-            <button class="btn btn-secondary btn-sm" @click="prevYear()">â†</button>
+          <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1rem">
+            <button class="btn btn-secondary btn-sm" @click="prevYear()">&larr;</button>
             <h2 x-text="calYear"></h2>
-            <button class="btn btn-secondary btn-sm" @click="nextYear()">â†’</button>
+            <button class="btn btn-secondary btn-sm" @click="nextYear()">&rarr;</button>
           </div>
 
           <div class="cal-grid">
-            <!-- Header row: empty seed name cell + 12 month headers -->
+            <!-- Header row: empty name cell + 12 month labels -->
             <div class="cal-cell cal-header"></div>
             <template x-for="m in ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']" :key="m">
               <div class="cal-cell cal-header" x-text="m"></div>
             </template>
 
-            <!-- One row per seed -->
+            <!-- One row per seed: name cell + single spanning bar container -->
             <template x-for="seed in calendarSeeds" :key="seed.id">
-              <!-- Seed name cell with tooltip -->
-              <div class="cal-cell cal-seed-name" style="position:relative"
-                   @mouseenter="hoveredSeed = seed.id"
-                   @mouseleave="hoveredSeed = null">
-                <span x-text="typeEmoji(seed.type) + ' ' + seed.name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;display:block"></span>
-                <!-- Tooltip -->
-                <div class="cal-tooltip" x-show="hoveredSeed === seed.id">
-                  <div style="font-weight:600;margin-bottom:.25rem" x-text="seed.name"></div>
-                  <div style="color:var(--text-3);font-size:.7rem" x-text="tooltipText(seed)"></div>
+              <div style="display:contents">
+                <div class="cal-cell cal-seed-name" style="cursor:pointer"
+                     @click="openSeedEdit(seed)"
+                     @mouseenter="hoveredSeed = seed.id"
+                     @mouseleave="hoveredSeed = null">
+                  <span x-text="typeEmoji(seed.type) + ' ' + seed.name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block"></span>
+                  <div class="cal-tooltip" x-show="hoveredSeed === seed.id">
+                    <div style="font-weight:600;margin-bottom:.25rem" x-text="seed.name"></div>
+                    <div style="color:var(--text-3);font-size:.7rem" x-text="tooltipText(seed)"></div>
+                  </div>
                 </div>
-              </div>
-              <!-- 12 month cells -->
-              <template x-for="month in [1,2,3,4,5,6,7,8,9,10,11,12]" :key="month">
-                <div class="cal-cell" style="display:flex;flex-direction:column;justify-content:center;padding:2px">
-                  <template x-for="band in cellBands(seed, month)" :key="band">
-                    <div :class="'cal-band ' + band"></div>
+                <!-- Spanning bar container covering all 12 month columns -->
+                <div style="grid-column:2/14;position:relative;min-height:34px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:3px;cursor:pointer" @click="openSeedEdit(seed)">
+                  <template x-if="seed.sow_indoors_start">
+                    <div class="cal-band cal-band-indoor" :style="barStyle(seed.sow_indoors_start, seed.sow_indoors_end, 0)"></div>
+                  </template>
+                  <template x-if="seed.sow_outdoors_start">
+                    <div class="cal-band cal-band-outdoor" :style="barStyle(seed.sow_outdoors_start, seed.sow_outdoors_end, 1)"></div>
+                  </template>
+                  <template x-if="seed.plant_out_start">
+                    <div class="cal-band cal-band-plantout" :style="barStyle(seed.plant_out_start, seed.plant_out_end, 2)"></div>
+                  </template>
+                  <template x-if="seed.harvest_start">
+                    <div class="cal-band cal-band-harvest" :style="barStyle(seed.harvest_start, seed.harvest_end, 3)"></div>
                   </template>
                 </div>
-              </template>
+              </div>
             </template>
           </div>
 
@@ -604,7 +660,7 @@
             </div>
             <div style="grid-column:1/-1">
               <label style="font-size:.75rem;color:var(--text-3);display:block;margin-bottom:.25rem">Growing Season Notes</label>
-              <textarea :value="config.growing_season_notes||''" @blur="saveConfig('growing_season_notes', $event.target.value)" rows="3" placeholder="Notes about your growing seasonâ€¦" style="resize:vertical"></textarea>
+              <textarea :value="config.growing_season_notes||''" @blur="saveConfig('growing_season_notes', $event.target.value)" rows="3" placeholder="Notes about your growing season..." style="resize:vertical"></textarea>
             </div>
           </div>
         </div>
@@ -616,7 +672,7 @@
             <div class="card" style="margin-bottom:.375rem;padding:.75rem 1rem">
               <div style="display:flex;justify-content:space-between">
                 <strong x-text="z.name"></strong>
-                <span class="text-muted" style="font-size:.75rem" x-text="z.type + ' Â· ' + z.view_type"></span>
+                <span class="text-muted" style="font-size:.75rem" x-text="z.type + ' · ' + z.view_type"></span>
               </div>
             </div>
           </template>
@@ -626,7 +682,7 @@
         <div class="card">
           <h2>OpenClaw</h2>
           <p class="text-muted" style="font-size:.875rem;margin-bottom:.75rem"
-            x-text="config.openclaw_enabled==='1' ? 'âœ“ Enabled' : 'Not configured'"></p>
+            x-text="config.openclaw_enabled==='1' ? '✓ Enabled' : 'Not configured'"></p>
           <p style="font-size:.875rem">Run <code>./openclaw/cron-setup.sh</code> from the repo root to install cron jobs.</p>
         </div>
 
@@ -635,7 +691,7 @@
           <div class="modal-card" style="max-width:600px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
               <h2>Set Location</h2>
-              <button class="btn btn-secondary btn-sm" @click="closeMapModal()" aria-label="Close">âœ•</button>
+              <button class="btn btn-secondary btn-sm" @click="closeMapModal()" aria-label="Close">&times;</button>
             </div>
             <p class="text-muted" style="font-size:.875rem;margin-bottom:.75rem">Click on the map to set your garden location.</p>
             <div id="settings-map" style="height:350px;border-radius:.75rem;overflow:hidden;margin-bottom:1rem"></div>
@@ -649,8 +705,72 @@
         </div>
       </div>
 
+      <!-- Global Seed Add/Edit Modal -->
+      <div class="modal-overlay" x-show="seedModal.show" @keydown.escape.window="closeSeedModal()" @click.self="closeSeedModal()">
+        <div class="modal-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+            <h2 x-text="seedModal.editingId ? 'Edit Seed' : 'Add Seed'"></h2>
+            <button class="btn btn-secondary btn-sm" @click="closeSeedModal()">&times;</button>
+          </div>
+
+          <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Basic</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+            <input placeholder="Name *" x-model="seedModal.form.name" style="grid-column:1/-1">
+            <input placeholder="Variety" x-model="seedModal.form.variety">
+            <select x-model="seedModal.form.type">
+              <option value="">Type...</option>
+              <option value="herb">&#x1F33F; Herb</option>
+              <option value="vegetable">&#x1F955; Vegetable</option>
+              <option value="flower">&#x1F338; Flower</option>
+            </select>
+            <input placeholder="Quantity" type="number" x-model.number="seedModal.form.quantity">
+            <input placeholder="Supplier" x-model="seedModal.form.supplier">
+            <input placeholder="Purchase year" type="number" x-model.number="seedModal.form.purchase_year">
+            <input placeholder="Sow by year" type="number" x-model.number="seedModal.form.sow_by_year">
+            <input placeholder="Purchase link (URL)" x-model="seedModal.form.purchase_link" style="grid-column:1/-1">
+          </div>
+
+          <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Growing Info</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+            <input placeholder="Days to germinate" type="number" x-model.number="seedModal.form.days_to_germinate">
+            <input placeholder="Optimum soil temp (e.g. 18-22&#xB0;C)" x-model="seedModal.form.optimum_soil_temp">
+            <input placeholder="Soil type (e.g. loamy)" x-model="seedModal.form.optimum_soil_type">
+            <input placeholder="Plant height (e.g. 60cm)" x-model="seedModal.form.plant_height">
+            <input placeholder="Light requirements (e.g. full sun)" x-model="seedModal.form.light_requirements">
+            <textarea placeholder="Growing instructions..." x-model="seedModal.form.growing_instructions" rows="3" style="grid-column:1/-1;resize:vertical"></textarea>
+          </div>
+
+          <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Sowing Windows (DD-MM)</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.5rem;margin-bottom:1.25rem">
+            <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">&#x1F338; Sow Indoors</p>
+              <input placeholder="Start DD-MM" x-model="seedModal.form.sow_indoors_start">
+              <input placeholder="End DD-MM" x-model="seedModal.form.sow_indoors_end" style="margin-top:.25rem">
+            </div>
+            <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">&#x1F535; Sow Outdoors</p>
+              <input placeholder="Start DD-MM" x-model="seedModal.form.sow_outdoors_start">
+              <input placeholder="End DD-MM" x-model="seedModal.form.sow_outdoors_end" style="margin-top:.25rem">
+            </div>
+            <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">&#x1F7E2; Plant Out</p>
+              <input placeholder="Start DD-MM" x-model="seedModal.form.plant_out_start">
+              <input placeholder="End DD-MM" x-model="seedModal.form.plant_out_end" style="margin-top:.25rem">
+            </div>
+            <div><p style="font-size:.7rem;color:var(--text-3);margin-bottom:.25rem">&#x1F7E1; Harvest</p>
+              <input placeholder="Start DD-MM" x-model="seedModal.form.harvest_start">
+              <input placeholder="End DD-MM" x-model="seedModal.form.harvest_end" style="margin-top:.25rem">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:.5rem">
+            <button class="btn btn-secondary" @click="closeSeedModal()">Cancel</button>
+            <button class="btn btn-primary" @click="saveSeed()">Save</button>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 </body>
 </html>
+
+
 
