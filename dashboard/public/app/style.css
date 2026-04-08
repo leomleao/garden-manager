@@ -226,7 +226,7 @@ nav button.active {
 /* â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 main {
   padding: 1.375rem;
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
   width: 100%;
 }
@@ -253,6 +253,74 @@ main {
   letter-spacing: .01em;
   color: var(--text-1);
   margin-bottom: .875rem;
+}
+
+.zones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.zone-card {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.zone-card-grid {
+  min-height: 100%;
+}
+
+.zone-card-wide {
+  grid-column: span 2;
+}
+
+.loose-planting-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s, transform .12s;
+}
+
+.loose-planting-row:hover {
+  background: var(--bg-elevated);
+}
+
+.loose-planting-actions {
+  margin-left: auto;
+  display: flex;
+  gap: .25rem;
+}
+
+.task-title-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.task-callback-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: .18rem .5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--border));
+  background: color-mix(in srgb, var(--amber) 12%, var(--bg-elevated));
+  color: color-mix(in srgb, var(--amber) 70%, var(--text-1));
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: help;
 }
 
 /* â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -357,6 +425,16 @@ main {
 [data-theme="light"] .badge-flower      { background: #fbcfe8;           color: #be185d; }
 
 /* â”€â”€ Grid view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.grid-zone-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.grid-zone-canvas {
+  display: inline-block;
+  padding: 12px 8px 8px 12px;
+}
+
 .grid-view { display: inline-grid; gap: 3px; }
 
 .grid-cell {
@@ -386,24 +464,13 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: .35rem;
-  min-width: 124px;
-  padding: .45rem;
+  gap: .3rem;
+  min-width: 86px;
+  padding: .35rem;
   border: 1px solid var(--border);
   border-radius: .65rem;
   background: var(--bg-surface);
   box-shadow: var(--shadow);
-}
-
-.cell-hover-menu-label {
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
-  line-height: 1.2;
-  font-size: .63rem;
-  color: var(--text-2);
 }
 
 .cell-hover-menu-actions {
@@ -590,21 +657,105 @@ select {
 .text-dim   { color: var(--text-3); }
 
 /* â”€â”€ Weather widget â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Weather widget ──────────────────────────────────────────────────────── */
 .weather-widget {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: .9rem 1.125rem;
+  flex-direction: column;
+  font-size: .875rem;
   background: linear-gradient(
     135deg,
     var(--bg-elevated) 0%,
     color-mix(in srgb, var(--green) 6%, var(--bg-elevated)) 100%
   );
   border-radius: .875rem;
-  font-size: .875rem;
   border: 1px solid var(--border);
   transition: background .35s;
+  overflow: hidden;
 }
+
+.weather-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .875rem 1.125rem;
+}
+
+/* ── Alerts ─────────────────────────────────────────────────────────────── */
+.weather-alerts {
+  border-top: 1px solid var(--border);
+  padding: .5rem .75rem;
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+}
+
+.weather-alert {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .8rem;
+  padding: .375rem .625rem;
+  border-radius: .5rem;
+  border-left: 3px solid transparent;
+}
+
+.weather-alert--red   {
+  border-left-color: var(--red);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+}
+.weather-alert--amber {
+  border-left-color: var(--yellow-ochre);
+  background: color-mix(in srgb, var(--yellow-ochre) 10%, transparent);
+}
+.weather-alert--green {
+  border-left-color: var(--green);
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+}
+
+/* ── Stats grid ─────────────────────────────────────────────────────────── */
+.weather-stats {
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: .75rem 1.125rem;
+  gap: .5rem;
+}
+
+.weather-stat {
+  display: flex;
+  flex-direction: column;
+  gap: .125rem;
+}
+
+.weather-stat-label {
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-3);
+}
+
+.weather-stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.weather-stat-sub {
+  font-size: .7rem;
+  color: var(--text-3);
+}
+
+/* ── Action text ────────────────────────────────────────────────────────── */
+.weather-action {
+  border-top: 1px solid var(--border);
+  padding: .625rem 1.125rem;
+  font-size: .8rem;
+  font-style: italic;
+  color: var(--text-2);
+}
+
+.weather-action--red   { color: var(--red); }
+.weather-action--amber { color: var(--yellow-ochre); }
+.weather-action--green { color: var(--green); }
 
 /* â”€â”€ Calendar tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .calendar-grid {
@@ -698,12 +849,7 @@ select {
   right: 100%;
 }
 
-  to {
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--pink) 50%, transparent);
-  }
-}
-
-/* â”€â”€ Alpine cloak â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Alpine cloak */
 [x-cloak] { display: none !important; }
 
 /* â”€â”€ Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -760,11 +906,24 @@ select {
   grid-column: 1 / -1;
 }
 
-.cell-modal-actions {
+.cell-modal-actions,
+.cell-modal-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: .75rem;
+}
+
+.cell-modal-actions {
+  margin-bottom: 1rem;
+}
+
+.cell-transplant-panel {
+  margin-bottom: 1rem;
+  padding: .9rem;
+  border: 1px solid var(--border);
+  border-radius: .85rem;
+  background: color-mix(in srgb, var(--blue) 4%, var(--bg-elevated));
 }
 
 /* â”€â”€ Scrollbars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -773,15 +932,29 @@ select {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
 
+/* â”€â”€ Seed table: progressive column reveal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.col-800, .col-960, .col-1100, .col-1280, .col-1440, .col-1600 { display: none; }
+@media (min-width: 800px)  { .col-800  { display: table-cell; } }
+@media (min-width: 960px)  { .col-960  { display: table-cell; } }
+@media (min-width: 1100px) { .col-1100 { display: table-cell; } }
+@media (min-width: 1280px) { .col-1280 { display: table-cell; } }
+@media (min-width: 1440px) { .col-1440 { display: table-cell; } }
+@media (min-width: 1600px) { .col-1600 { display: table-cell; } }
+
 /* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 600px) {
   main { padding: 1rem .875rem; }
   header { padding: .625rem 1rem; }
   header h1 { font-size: 1.2rem; }
   .stats { grid-template-columns: repeat(2, 1fr); }
+  .weather-stats { grid-template-columns: repeat(2, 1fr); }
   nav button { padding: .6rem .875rem; font-size: .68rem; }
+  .zones-grid { grid-template-columns: 1fr; }
+  .zone-card-wide { grid-column: auto; }
   .cell-modal-grid { grid-template-columns: 1fr; }
-  .cell-modal-actions { flex-direction: column; align-items: stretch; }
-  .cell-modal-actions > div { display: grid !important; grid-template-columns: 1fr 1fr; }
+  .cell-modal-actions,
+  .cell-modal-footer { flex-direction: column; align-items: stretch; }
+  .cell-modal-actions > div,
+  .cell-modal-footer > div { display: grid !important; grid-template-columns: 1fr 1fr; }
 }
 
