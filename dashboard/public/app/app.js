@@ -79,26 +79,42 @@ function app() {
     // Seed edit modal (shared: accessible from seeds tab, calendar, etc.)
     seedModal: {
       show: false, editingId: null,
-      form: { name:'', variety:'', type:'', quantity:0, supplier:'', purchase_year:null, sow_by_year:null, purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'' }
+      form: { name:'', variety:'', type:'', quantity:0, box_id:null, supplier:'', purchase_year:null, sow_by_year:null, purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'', picture:null }
     },
 
     openSeedEdit(seed) {
-      const { name, variety, type, quantity, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end } = seed;
-      this.seedModal = { show: true, editingId: seed.id, form: { name, variety, type, quantity, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end } };
+      const { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture } = seed;
+      const pictureDataUrl = picture ? `data:image/jpeg;base64,${picture}` : null;
+      this.seedModal = { show: true, editingId: seed.id, form: { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture: pictureDataUrl } };
     },
 
     openSeedAdd() {
-      this.seedModal = { show: true, editingId: null, form: { name:'', variety:'', type:'', quantity:0, supplier:'', purchase_year:null, sow_by_year:null, purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'' } };
+      this.seedModal = { show: true, editingId: null, form: { name:'', variety:'', type:'', quantity:0, box_id:null, supplier:'', purchase_year:null, sow_by_year:null, purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'', picture:null } };
     },
 
     closeSeedModal() { this.seedModal.show = false; },
+
+    handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.seedModal.form.picture = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    },
 
     async saveSeed() {
       if (!this.seedModal.form.name) return;
       try {
         const url = this.seedModal.editingId ? `/api/seeds/${this.seedModal.editingId}` : '/api/seeds';
         const method = this.seedModal.editingId ? 'PATCH' : 'POST';
-        const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(this.seedModal.form) });
+        const formData = { ...this.seedModal.form };
+        // Extract base64 from data URL if present
+        if (formData.picture && formData.picture.startsWith('data:')) {
+          formData.picture = formData.picture.split(',')[1];
+        }
+        const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(formData) });
         if (!r.ok) throw new Error(await r.text());
         this.seedModal.show = false;
         await this.refresh();

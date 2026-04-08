@@ -49,8 +49,10 @@ CREATE TABLE IF NOT EXISTS seeds (
   id                    INTEGER PRIMARY KEY AUTOINCREMENT,
   name                  TEXT NOT NULL,
   variety               TEXT,
+  emoji                 TEXT,
   type                  TEXT,
   quantity              INTEGER DEFAULT 0,
+  box_id                INTEGER,
   supplier              TEXT,
   purchase_year         INTEGER,
   sow_by_year           INTEGER,
@@ -69,7 +71,8 @@ CREATE TABLE IF NOT EXISTS seeds (
   plant_out_start       TEXT,
   plant_out_end         TEXT,
   harvest_start         TEXT,
-  harvest_end           TEXT
+  harvest_end           TEXT,
+  picture               BLOB
 );
 
 CREATE TABLE IF NOT EXISTS plant_lifecycle (

@@ -40,6 +40,7 @@ Hot Pepper 'Large Red Cherry' - 75 Seeds × 1	£1.29	https://premierseedsdirect.
 
 
 
+
 ## Second
 In the calendar view I want to enhance the section Sow Indoors Now and Sow Outdoors Now. Show more information about the seeds. Following the style in how a plant appears in a zone in the zone tab, I want to add the following info:
 Purchased year, Sow by year, days to germinate, Optimum soil temp, soil type, light requirements.
@@ -96,6 +97,13 @@ Oregano Seeds - Herb - 700x Seeds - Finest £1.19 https://yorkshire-seeds.co.uk/
 Thyme Seeds - Herb - 350 Seeds - Finest £1.19 https://yorkshire-seeds.co.uk/products/thyme-seeds-herb-350-seeds-finest?_pos=1&_psq=Thyme+Seeds+-+Herb+-+350+Seeds+-+Finest&_ss=e&_v=1.0
 
 
+Mint Seeds - 800x Seeds - Finest Herb Seeds - Vegetable Seeds × 1 https://yorkshire-seeds.co.uk/products/mint-seeds-800x-seeds-finest-herb-seeds-vegetable-seeds?_pos=1&_sid=bf8de86c7&_ss=r
+700 Coriander/Cilantro Seeds - Free Delivery - Finest Herb Seeds × 1 https://yorkshire-seeds.co.uk/products/700-coriandercilantro-seeds-free-delivery-finest-herb-seeds?_pos=1&_psq=700+Coriander%2FCilantro+Seeds+-+Free+Delivery+-+Finest+Herb+Seeds&_ss=e&_v=1.0
+Gherkin F1 Adam Pickling Gherkin Cucumber - 20x Seeds - Vegetable × 1 https://yorkshire-seeds.co.uk/products/gherkin-f1-adam-pickling-gherkin-cucumber-20x-seeds-vegetable?_pos=1&_psq=Gherkin+F1+Adam+Pickling+Gherkin+Cucumber+-+20x+Seeds+-+Vegetable&_ss=e&_v=1.0
+Asparagus Mary Washington - 50x seeds - Vegetable × 1 https://yorkshire-seeds.co.uk/products/asparagus-mary-washington-50x-seeds-vegetable?_pos=1&_psq=Asparagus+Mary+Washington+-+50x+seeds+-+Vegetable&_ss=e&_v=1.0
+Gherkin Seeds 35x National Cucumber Pickling - Vegetable Seeds × 1 https://yorkshire-seeds.co.uk/products/gherkin-seeds-35x-national-cucumber-pickling-vegetable-seeds?_pos=1&_psq=Gherkin+Seeds+35x+National+Cucumber+Pickling+-+Vegetable+Seeds&_ss=e&_v=1.0
+Vegetable - Beetroot - Boltardy - 200 Seeds - Finest Seeds × 1 https://yorkshire-seeds.co.uk/products/vegetable-beetroot-boltardy-200-seeds-finest-seeds?_pos=1&_psq=Vegetable+-+Beetroot+-+Boltardy+-+200+Seeds+-+Finest+Seeds&_ss=e&_v=1.0
+1100x Lettuce Iceberg Great Lakes 118 Seeds - Sweet Variety - Vegetable × 1 https://yorkshire-seeds.co.uk/products/1100x-lettuce-iceberg-great-lakes-118-seeds-sweet-variety-b514?_pos=1&_psq=1100x+Lettuce+Iceberg+Great+Lakes+118+Seeds+-+Sweet+Variety+-+Vegetable&_ss=e&_v=1.0
 
 
 17 April 2025:

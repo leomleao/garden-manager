@@ -46,7 +46,12 @@ document.addEventListener('alpine:init', () => {
 
     prevYear() { this.calYear--; },
     nextYear() { this.calYear++; },
-    typeEmoji(type) { return { herb: '\u{1F33F}', vegetable: '\u{1F955}', flower: '\u{1F338}' }[type] || ''; },
+    typeEmoji(type) { return { herb: '\u{1F33F}', vegetable: '\u{1F955}', flower: '\u{1F338}', salad: '\u{1F96C}', fruit: '\u{1F345}' }[type] || ''; },
+
+    getSeedEmoji(seed) {
+      // Priority: use seed-specific emoji from the database, fallback to type-based emoji
+      return (seed?.emoji && seed.emoji.trim()) || this.typeEmoji(seed?.type);
+    },
 
     tooltipText(seed) {
       const parts = [];

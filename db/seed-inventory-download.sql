@@ -1,39 +1,9 @@
--- Seed Inventory Database Schema and Initial Data
--- Created: 2026-04-08
--- Sourced from Premier Seeds Direct (www.premierseedsdirect.com)
+-- Seed Inventory Export
+-- Exported on 2026-04-08T23:42:38.184Z
+-- Total seeds: 69
 
-CREATE TABLE IF NOT EXISTS seeds (
-  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
-  name                  TEXT NOT NULL,
-  variety               TEXT,
-  emoji                 TEXT,
-  type                  TEXT,
-  quantity              INTEGER DEFAULT 0,
-  box_id                INTEGER,
-  supplier              TEXT,
-  purchase_year         INTEGER,
-  sow_by_year           INTEGER,
-  notes                 TEXT,
-  purchase_link         TEXT,
-  days_to_germinate     INTEGER,
-  optimum_soil_temp     TEXT,
-  optimum_soil_type     TEXT,
-  plant_height          TEXT,
-  light_requirements    TEXT,
-  growing_instructions  TEXT,
-  sow_indoors_start     TEXT,
-  sow_indoors_end       TEXT,
-  sow_outdoors_start    TEXT,
-  sow_outdoors_end      TEXT,
-  plant_out_start       TEXT,
-  plant_out_end         TEXT,
-  harvest_start         TEXT,
-  harvest_end           TEXT
-);
--- Clear existing data
 DELETE FROM seeds;
 
--- Insert seed inventory data
 INSERT INTO seeds (name, variety, emoji, type, quantity, box_id, supplier, purchase_year, sow_by_year, notes, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end) VALUES
 ('Basil', 'Licorice', '🌿', 'herb', 900, 1, 'Yorkshire Seeds', 2025, 2030, 'Thai basil variety with distinctive licorice/anise flavour. Aromatic herb for Asian cooking.', 'https://yorkshire-seeds.co.uk/products/400x-herb-basil-thai-liquorice-flavour-finest-seeds-herb', '7-10', '18-21°C', NULL, '30-45cm', 'Warm sunny location', 'Sow indoors in spring on surface of seed compost, lightly cover. Germination 7-10 days at 18-21°C. Prick out into individual pots. Plant out after last frost in warm sunny spot, 30cm apart. Pinch out flower buds to encourage leaf production. Harvest regularly. Can be grown in containers.', '01-03', '31-05', NULL, NULL, '15-05', '30-06', '01-06', '31-10'),
 ('Parsley', 'Italian Triple Moss Curled', '🌿', 'herb', 700, 2, 'Yorkshire Seeds', 2025, 2026, 'Classic curly parsley with finely crinkled leaves. Italian variety with robust flavour.', 'https://yorkshire-seeds.co.uk/products/italian-parsley-triple-moss-curled-700x-seeds-herb', '14-21', '15-18°C', NULL, '30cm', 'Full sun to partial shade', 'Soak seed overnight to aid germination. Sow direct outdoors or start indoors in late winter. Germination 14-21 days (slow). Thin to 20cm apart. Can be slow to establish. Harvest outer leaves regularly once plant is well established. Biennial producing mainly leaves in first year.', '01-01', '28-02', '01-03', '31-08', NULL, NULL, '01-05', '31-10'),
