@@ -958,6 +958,47 @@ select {
 @media (min-width: 1440px) { .col-1440 { display: table-cell; } }
 @media (min-width: 1600px) { .col-1600 { display: table-cell; } }
 
+/* ── Sow Now enhanced rows ──────────────────────────────────────── */
+.sow-now-row {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  padding: .5rem 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .15s;
+}
+.sow-now-row:hover { background: var(--bg-elevated); }
+
+.sow-now-top {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.sow-now-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .375rem;
+  font-size: .72rem;
+  color: var(--text-3);
+  padding-left: 1.6rem;
+}
+
+.sow-now-badge {
+  margin-left: auto;
+  font-size: .7rem;
+  padding: .1rem .45rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+[data-theme="dark"]  .sow-now-badge--good { background: #0b2510;           color: var(--green); }
+[data-theme="dark"]  .sow-now-badge--cold { background: var(--blue-dim);   color: var(--blue);  }
+[data-theme="dark"]  .sow-now-badge--warm { background: var(--red-dim);    color: var(--red);   }
+[data-theme="light"] .sow-now-badge--good { background: var(--green-dim);  color: #166534;      }
+[data-theme="light"] .sow-now-badge--cold { background: var(--blue-dim);   color: #1e40af;      }
+[data-theme="light"] .sow-now-badge--warm { background: var(--red-dim);    color: #991b1b;      }
+
 /* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 600px) {
   main { padding: 1rem .875rem; }
