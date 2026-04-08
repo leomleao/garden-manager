@@ -14,12 +14,30 @@ task management, and AI integration via [OpenClaw](./openclaw/README.md).
 
 ## Quick Start
 
+### With Docker
+
 ```bash
 cp .env.example .env
 # Edit .env — set DATA_DIR, PORT, DOMAIN
 docker compose up -d
 # garden-db-init runs once to create the DB then exits — this is normal
 # Open http://localhost:8420 (or your configured PORT)
+```
+
+### Without Docker (local dev)
+
+Requires Node.js 18+. No native compilation needed — the SQLite driver is pure WebAssembly and works on Windows, macOS, and Linux.
+
+```bash
+# Install dependencies
+cd dashboard && npm install
+
+# Initialise the database (run once)
+cd .. && node init-db.js
+
+# Start the server with auto-reload on file changes
+cd dashboard && DB_PATH=../data/garden.db npm run dev
+# Open http://localhost:8420
 ```
 
 On first launch, a setup wizard guides you through configuring your garden.

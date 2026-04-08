@@ -18,7 +18,7 @@ router.patch('/config', (req, res) => {
     'spring_frost_date', 'autumn_frost_date', 'growing_season_notes'
   ];
   if (!key || !ALLOWED_KEYS.includes(key)) return res.status(400).json({ error: 'invalid key' });
-  db.prepare('INSERT OR REPLACE INTO app_config(key,value) VALUES(?,?)').run(key, String(value ?? ''));
+  db.prepare('INSERT OR REPLACE INTO app_config(key,value) VALUES(?,?)').run([key, String(value ?? '')]);
   res.json({ ok: true });
 });
 
@@ -28,9 +28,9 @@ router.get('/zones', (req, res) => {
 });
 
 router.get('/zones/:id', (req, res) => {
-  const zone = db.prepare('SELECT * FROM zones WHERE id=?').get(req.params.id);
+  const zone = db.prepare('SELECT * FROM zones WHERE id=?').get([req.params.id]);
   if (!zone) return res.status(404).json({ error: 'not found' });
-  zone.cells = db.prepare('SELECT * FROM zone_cells WHERE zone_id=? ORDER BY row,col').all(zone.id);
+  zone.cells = db.prepare('SELECT * FROM zone_cells WHERE zone_id=? ORDER BY row,col').all([zone.id]);
   res.json(zone);
 });
 
@@ -43,7 +43,24 @@ router.patch('/zones/:id', (req, res) => {
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
   const set = fields.map(f => `${f}=?`).join(',');
   const vals = fields.map(f => req.body[f]);
-  db.prepare(`UPDATE zones SET ${set} WHERE id=?`).run(...vals, req.params.id);
+
+  const gridChanged = fields.some(f => ['view_type','grid_rows','grid_cols'].includes(f));
+
+  db.prepare(`UPDATE zones SET ${set} WHERE id=?`).run([...vals, req.params.id]);
+
+  if (gridChanged) {
+    const zone = db.prepare('SELECT view_type, grid_rows, grid_cols FROM zones WHERE id=?').get([req.params.id]);
+    db.prepare('DELETE FROM zone_cells WHERE zone_id=?').run([req.params.id]);
+    if (zone.view_type === 'grid' && zone.grid_rows && zone.grid_cols) {
+      const insert = db.prepare('INSERT INTO zone_cells(zone_id,row,col,label) VALUES(?,?,?,?)');
+      for (let r = 1; r <= zone.grid_rows; r++) {
+        for (let c = 1; c <= zone.grid_cols; c++) {
+          insert.run([req.params.id, r, c, String.fromCharCode(64 + r) + c]);
+        }
+      }
+    }
+  }
+
   res.json({ ok: true });
 });
 
@@ -51,7 +68,7 @@ router.patch('/zones/:id', (req, res) => {
 router.get('/seeds', (req, res) => {
   const q = req.query.q;
   if (q) {
-    res.json(db.prepare("SELECT * FROM seeds WHERE name LIKE ? OR variety LIKE ?").all(`%${q}%`, `%${q}%`));
+    res.json(db.prepare("SELECT * FROM seeds WHERE name LIKE ? OR variety LIKE ?").all([`%${q}%`, `%${q}%`]));
   } else {
     res.json(db.prepare('SELECT * FROM seeds ORDER BY name').all());
   }
@@ -74,13 +91,13 @@ router.post('/seeds', (req, res) => {
       sow_indoors_start,sow_indoors_end,sow_outdoors_start,sow_outdoors_end,
       plant_out_start,plant_out_end,harvest_start,harvest_end
     ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
-  ).run(
+  ).run([
     name, variety, type, quantity, supplier, purchase_year, sow_by_year, notes,
     purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type,
     plant_height, light_requirements, growing_instructions,
     sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end,
     plant_out_start, plant_out_end, harvest_start, harvest_end
-  );
+  ]);
   res.status(201).json({ id: info.lastInsertRowid });
 });
 
@@ -95,7 +112,7 @@ router.patch('/seeds/:id', (req, res) => {
   const fields = Object.keys(req.body).filter(k => allowed.includes(k));
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
   const set = fields.map(f => `${f}=?`).join(',');
-  db.prepare(`UPDATE seeds SET ${set} WHERE id=?`).run(...fields.map(f => req.body[f]), req.params.id);
+  db.prepare(`UPDATE seeds SET ${set} WHERE id=?`).run([...fields.map(f => req.body[f]), req.params.id]);
   res.json({ ok: true });
 });
 
@@ -107,7 +124,7 @@ router.get('/plant-lifecycle', (req, res) => {
   const params = [];
   if (zone_id) { q += ' AND p.zone_id=?'; params.push(zone_id); }
   if (status)  { q += ' AND p.status=?';  params.push(status);  }
-  res.json(db.prepare(q + ' ORDER BY p.sown_date DESC').all(...params));
+  res.json(db.prepare(q + ' ORDER BY p.sown_date DESC').all(params));
 });
 
 router.post('/plant-lifecycle', (req, res) => {
@@ -115,10 +132,10 @@ router.post('/plant-lifecycle', (req, res) => {
   if (!zone_id) return res.status(400).json({ error: 'zone_id required' });
   const info = db.prepare(
     'INSERT INTO plant_lifecycle(seed_id,zone_id,cell_id,sown_date,status,quantity,notes) VALUES(?,?,?,?,?,?,?)'
-  ).run(seed_id, zone_id, cell_id, sown_date || new Date().toISOString().slice(0,10), 'sown', quantity, notes);
+  ).run([seed_id, zone_id, cell_id, sown_date || new Date().toISOString().slice(0,10), 'sown', quantity, notes]);
   // Log
   db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES('sow',?,?,?)")
-    .run(zone_id, info.lastInsertRowid, `Sowed plant #${info.lastInsertRowid}`);
+    .run([zone_id, info.lastInsertRowid, `Sowed plant #${info.lastInsertRowid}`]);
   res.status(201).json({ id: info.lastInsertRowid });
 });
 
@@ -127,12 +144,12 @@ router.patch('/plant-lifecycle/:id', (req, res) => {
   const fields = Object.keys(req.body).filter(k => allowed.includes(k));
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
   const set = fields.map(f => `${f}=?`).join(',');
-  db.prepare(`UPDATE plant_lifecycle SET ${set} WHERE id=?`).run(...fields.map(f => req.body[f]), req.params.id);
+  db.prepare(`UPDATE plant_lifecycle SET ${set} WHERE id=?`).run([...fields.map(f => req.body[f]), req.params.id]);
   // Log status changes
   if (req.body.status) {
-    const p = db.prepare('SELECT zone_id FROM plant_lifecycle WHERE id=?').get(req.params.id);
+    const p = db.prepare('SELECT zone_id FROM plant_lifecycle WHERE id=?').get([req.params.id]);
     db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES(?,?,?,?)")
-      .run(req.body.status, p?.zone_id, req.params.id, `Plant lifecycle #${req.params.id} → ${req.body.status}`);
+      .run([req.body.status, p?.zone_id, req.params.id, `Plant lifecycle #${req.params.id} → ${req.body.status}`]);
   }
   res.json({ ok: true });
 });
@@ -145,7 +162,7 @@ router.get('/tasks', (req, res) => {
   if (zone_id)  { q += ' AND t.zone_id=?';  params.push(zone_id); }
   if (status)   { q += ' AND t.status=?';   params.push(status);  }
   if (priority) { q += ' AND t.priority=?'; params.push(priority);}
-  res.json(db.prepare(q + ' ORDER BY t.due_date ASC NULLS LAST').all(...params));
+  res.json(db.prepare(q + ' ORDER BY t.due_date ASC NULLS LAST').all(params));
 });
 
 router.post('/tasks', (req, res) => {
@@ -153,7 +170,7 @@ router.post('/tasks', (req, res) => {
   if (!title) return res.status(400).json({ error: 'title required' });
   const info = db.prepare(
     'INSERT INTO tasks(zone_id,title,due_date,priority,status,notes) VALUES(?,?,?,?,?,?)'
-  ).run(zone_id, title, due_date, priority, 'pending', notes);
+  ).run([zone_id, title, due_date, priority, 'pending', notes]);
   res.status(201).json({ id: info.lastInsertRowid });
 });
 
@@ -162,14 +179,14 @@ router.patch('/tasks/:id', (req, res) => {
   const fields = Object.keys(req.body).filter(k => allowed.includes(k));
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
   const set = fields.map(f => `${f}=?`).join(',');
-  db.prepare(`UPDATE tasks SET ${set} WHERE id=?`).run(...fields.map(f => req.body[f]), req.params.id);
+  db.prepare(`UPDATE tasks SET ${set} WHERE id=?`).run([...fields.map(f => req.body[f]), req.params.id]);
   res.json({ ok: true });
 });
 
 // Activity log
 router.get('/activity', (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
-  res.json(db.prepare('SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT ?').all(limit));
+  res.json(db.prepare('SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT ?').all([limit]));
 });
 
 // Summary stats (for overview cards)

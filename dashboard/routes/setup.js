@@ -12,7 +12,7 @@ router.get('/status', (req, res) => {
 router.post('/config', (req, res) => {
   const { key, value } = req.body;
   if (!key) return res.status(400).json({ error: 'key required' });
-  db.prepare("INSERT OR REPLACE INTO app_config(key,value) VALUES (?,?)").run(key, value);
+  db.prepare("INSERT OR REPLACE INTO app_config(key,value) VALUES (?,?)").run([key, value]);
   res.json({ ok: true });
 });
 
@@ -37,10 +37,10 @@ router.post('/zone', (req, res) => {
       has_lighting,lighting_type,soil_type,view_type,grid_rows,grid_cols,
       cell_width_cm,cell_height_cm,notes,sort_order)
     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-  `).run(name,type,latitude,longitude,area_sqm,covered,cover_type,
+  `).run([name,type,latitude,longitude,area_sqm,covered,cover_type,
          orientation,slope_degrees,has_auto_watering,watering_type,has_heating,heating_type,
          has_lighting,lighting_type,soil_type,view_type,grid_rows,grid_cols,
-         cell_width_cm,cell_height_cm,notes,sort_order);
+         cell_width_cm,cell_height_cm,notes,sort_order]);
 
   const zoneId = info.lastInsertRowid;
 
@@ -51,7 +51,7 @@ router.post('/zone', (req, res) => {
       for (let r = 1; r <= grid_rows; r++) {
         for (let c = 1; c <= grid_cols; c++) {
           const label = String.fromCharCode(64 + r) + c;
-          insert.run(zoneId, r, c, label);
+          insert.run([zoneId, r, c, label]);
         }
       }
     });
