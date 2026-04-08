@@ -69,6 +69,29 @@ test('GET /api/plant-lifecycle returns array', async () => {
   expect(Array.isArray(res.body)).toBe(true);
 });
 
+test('PATCH /api/plant-lifecycle/:id updates sown_date and quantity', async () => {
+  const seedRes = await request(app)
+    .post('/api/seeds')
+    .send({ name: 'Lettuce', variety: 'Little Gem', type: 'vegetable', quantity: 12 });
+
+  const plantingRes = await request(app)
+    .post('/api/plant-lifecycle')
+    .send({ seed_id: seedRes.body.id, zone_id: 1, sown_date: '2026-04-01', quantity: 1 });
+
+  const patchRes = await request(app)
+    .patch(`/api/plant-lifecycle/${plantingRes.body.id}`)
+    .send({ sown_date: '2026-04-02', quantity: 3, notes: 'thinned and regrouped' });
+
+  expect(patchRes.status).toBe(200);
+
+  const listRes = await request(app).get('/api/plant-lifecycle');
+  const planting = listRes.body.find(p => p.id === plantingRes.body.id);
+
+  expect(planting.sown_date).toBe('2026-04-02');
+  expect(planting.quantity).toBe(3);
+  expect(planting.notes).toBe('thinned and regrouped');
+});
+
 test('GET /api/seeds returns full seed fields', async () => {
   // Seed a record first so the response is non-empty
   await request(app)

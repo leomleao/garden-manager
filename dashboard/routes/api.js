@@ -140,7 +140,7 @@ router.post('/plant-lifecycle', (req, res) => {
 });
 
 router.patch('/plant-lifecycle/:id', (req, res) => {
-  const allowed = ['status','germinated_date','moved_date','harvested_date','failed_date','notes','cell_id'];
+  const allowed = ['status','sown_date','germinated_date','moved_date','harvested_date','failed_date','notes','cell_id','quantity'];
   const fields = Object.keys(req.body).filter(k => allowed.includes(k));
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
   const set = fields.map(f => `${f}=?`).join(',');

@@ -140,15 +140,14 @@ function app() {
     sowCellId: null,
     sowZoneId: null,
 
-    showCellDetail: false,
-    detailPlanting: null,
-    detailForm: {},
-
-    activeSeedId: {},
-    dragging: false,
-    dragMoved: false,
-    dragCells: new Set(),
-    dragJustEnded: false,
+    cellModal: {
+      show: false,
+      mode: 'new',
+      cellId: null,
+      zoneId: null,
+      planting: null,
+      form: {}
+    },
 
     getCellStatus(cellId) {
       const p = this.plantings.find(p => p.cell_id === cellId && !['harvested','failed'].includes(p.status));
@@ -157,6 +156,38 @@ function app() {
     getCellDesc(cellId) {
       const p = this.plantings.find(p => p.cell_id === cellId && !['harvested','failed'].includes(p.status));
       return p ? `${p.seed_name} (${p.status})` : 'Empty';
+    },
+    getCellLabel(cellId, zoneId = null) {
+      for (const zone of this.zones) {
+        if (zoneId !== null && zone.id !== zoneId) continue;
+        const cell = (zone.cells || []).find(c => c.id === cellId);
+        if (cell) return cell.label;
+      }
+      return '';
+    },
+    getSeedDisplayName(plantingOrSeed) {
+      if (!plantingOrSeed) return '';
+      const name = plantingOrSeed.seed_name || plantingOrSeed.name || 'Unknown seed';
+      const variety = plantingOrSeed.seed_variety || plantingOrSeed.variety;
+      return variety ? `${name} · ${variety}` : name;
+    },
+    defaultCellModalForm() {
+      return {
+        seed_id: '',
+        sown_date: new Date().toISOString().slice(0,10),
+        germinated_date: '',
+        moved_date: '',
+        harvested_date: '',
+        failed_date: '',
+        quantity: 1,
+        notes: ''
+      };
+    },
+    derivePlantingStatus(form) {
+      if (form.failed_date) return 'failed';
+      if (form.harvested_date) return 'harvested';
+      if (form.germinated_date) return 'germinated';
+      return 'sown';
     },
     getZonePlantings(zoneId) {
       return this.plantings.filter(p => p.zone_id === zoneId && !['harvested','failed'].includes(p.status));
@@ -255,64 +286,100 @@ function app() {
       } catch(e) { console.error('Mark dead failed:', e); await this.refresh(); }
     },
 
-    openCellDetail(cellId) {
-      if (this.dragging || this.dragJustEnded) { this.dragJustEnded = false; return; }
+    openCellModal(cellId, zoneId) {
+      this.menuCellId = null;
       const p = this.activePlanting(cellId);
-      if (!p) return;
-      this.detailPlanting = p;
-      this.detailForm = { sown_date: p.sown_date||'', germinated_date: p.germinated_date||'', moved_date: p.moved_date||'', harvested_date: p.harvested_date||'', failed_date: p.failed_date||'', notes: p.notes||'', quantity: p.quantity||1 };
-      this.showCellDetail = true;
+      if (p) {
+        this.cellModal = {
+          show: true,
+          mode: 'edit',
+          cellId,
+          zoneId,
+          planting: p,
+          form: {
+            seed_id: p.seed_id || '',
+            sown_date: p.sown_date || '',
+            germinated_date: p.germinated_date || '',
+            moved_date: p.moved_date || '',
+            harvested_date: p.harvested_date || '',
+            failed_date: p.failed_date || '',
+            notes: p.notes || '',
+            quantity: p.quantity || 1
+          }
+        };
+        return;
+      }
+      this.cellModal = {
+        show: true,
+        mode: 'new',
+        cellId,
+        zoneId,
+        planting: null,
+        form: {
+          ...this.defaultCellModalForm()
+        }
+      };
     },
-    closeCellDetail() { this.showCellDetail = false; },
-    async saveCellDetail() {
+    openNewPlantingModal(cellId, zoneId) {
+      this.cellModal = {
+        show: true,
+        mode: 'new',
+        cellId,
+        zoneId,
+        planting: null,
+        form: {
+          ...this.defaultCellModalForm()
+        }
+      };
+      this.menuCellId = null;
+    },
+    closeCellModal() {
+      this.cellModal = { show: false, mode: 'new', cellId: null, zoneId: null, planting: null, form: {} };
+    },
+    async saveCellModal() {
       try {
-        const r = await fetch(`/api/plant-lifecycle/${this.detailPlanting.id}`, {
-          method: 'PATCH', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(this.detailForm)
-        });
+        let r;
+        if (this.cellModal.mode === 'new') {
+          r = await fetch('/api/plant-lifecycle', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+              seed_id: this.cellModal.form.seed_id || null,
+              zone_id: this.cellModal.zoneId,
+              cell_id: this.cellModal.cellId,
+              sown_date: this.cellModal.form.sown_date,
+              quantity: this.cellModal.form.quantity || 1,
+              notes: this.cellModal.form.notes || ''
+            })
+          });
+        } else {
+          r = await fetch(`/api/plant-lifecycle/${this.cellModal.planting.id}`, {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+              ...this.cellModal.form,
+              status: this.derivePlantingStatus(this.cellModal.form)
+            })
+          });
+        }
         if (!r.ok) throw new Error(await r.text());
-        this.showCellDetail = false;
+        this.closeCellModal();
         await this.refresh();
       } catch(e) { console.error('Save detail failed:', e); }
     },
-
-    dragStart(cellId, zoneId) {
-      this.dragging = true;
-      this.dragMoved = false;
-      this.dragCells = new Set([cellId]);
-      this.sowZoneId = zoneId;
-    },
-    dragEnter(cellId) {
-      if (!this.dragging) return;
-      this.dragMoved = true;
-      const next = new Set(this.dragCells);
-      next.add(cellId);
-      this.dragCells = next;
-    },
-    async dragEnd() {
-      if (!this.dragging) return;
-      this.dragging = false;
-      this.dragJustEnded = this.dragMoved;
-      const cells = [...this.dragCells];
-      this.dragCells = new Set();
-      if (!this.dragMoved || cells.length <= 1) return;
-      const zoneId = this.sowZoneId;
-      const seedId = this.activeSeedId[zoneId];
-      if (!seedId) return;
-      const occupied = new Set(this.plantings.filter(p => !['harvested','failed'].includes(p.status)).map(p => p.cell_id));
-      const freeCells = cells.filter(id => !occupied.has(id));
+    async markCellModalDead() {
+      if (this.cellModal.mode !== 'edit' || !this.cellModal.planting) return;
       try {
-        await Promise.all(freeCells.map(cellId =>
-          fetch('/api/plant-lifecycle', {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ seed_id: seedId, zone_id: zoneId, cell_id: cellId, sown_date: new Date().toISOString().slice(0,10) })
-          })
-        ));
+        const failedDate = new Date().toISOString().slice(0,10);
+        const r = await fetch(`/api/plant-lifecycle/${this.cellModal.planting.id}`, {
+          method: 'PATCH',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ failed_date: failedDate, status: 'failed' })
+        });
+        if (!r.ok) throw new Error(await r.text());
+        this.closeCellModal();
         await this.refresh();
-      } catch(e) { console.error('Drag sow failed:', e); }
-    },
-    isDragSelected(cellId) {
-      return this.dragCells.has(cellId);
+      } catch(e) { console.error('Mark dead failed:', e); }
     },
   };
 }

@@ -1,14 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
 
-/* ── Reduced motion ─────────────────────────────────────────────── */
+/* â”€â”€ Reduced motion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
 
-/* ══ Forest Vigil — Design Tokens ══════════════════════════════════
+/* â•â• Forest Vigil â€” Design Tokens â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Dark  : Deep moss black + vibrant spring green + golden harvest
    Light : Warm parchment + rich forest green + amber gold
-   ═══════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 :root,
 [data-theme="dark"] {
   --bg-base:      #06090400;   /* fallback: real value below */
@@ -80,7 +80,7 @@
   color-scheme: light;
 }
 
-/* ── Reset & base ────────────────────────────────────────────────── */
+/* â”€â”€ Reset & base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -94,10 +94,10 @@ body {
   transition: background .35s ease, color .35s ease;
 }
 
-/* ── Layout ──────────────────────────────────────────────────────── */
+/* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .layout { display: grid; grid-template-rows: auto auto 1fr; min-height: 100vh; }
 
-/* ── Header ──────────────────────────────────────────────────────── */
+/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 header {
   background: var(--bg-surface);
   padding: .75rem 1.375rem;
@@ -152,7 +152,7 @@ header h1 {
   font-size: .75rem;
 }
 
-/* ── Theme toggle — pill with SVG icon ───────────────────────────── */
+/* â”€â”€ Theme toggle â€” pill with SVG icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .theme-toggle {
   width: 38px;
   height: 38px;
@@ -186,7 +186,7 @@ header h1 {
   stroke-linejoin: round;
 }
 
-/* ── Nav ──────────────────────────────────────────────────────────── */
+/* â”€â”€ Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 nav {
   display: flex;
   overflow-x: auto;
@@ -223,7 +223,7 @@ nav button.active {
   text-shadow: 0 0 12px color-mix(in srgb, var(--green) 50%, transparent);
 }
 
-/* ── Main ─────────────────────────────────────────────────────────── */
+/* â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 main {
   padding: 1.375rem;
   max-width: 1200px;
@@ -231,7 +231,7 @@ main {
   width: 100%;
 }
 
-/* ── Cards ────────────────────────────────────────────────────────── */
+/* â”€â”€ Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .card {
   background: var(--bg-surface);
   border-radius: 1rem;
@@ -255,7 +255,7 @@ main {
   margin-bottom: .875rem;
 }
 
-/* ── Stats ────────────────────────────────────────────────────────── */
+/* â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -270,7 +270,7 @@ main {
   text-align: center;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
-  /* Bold accent top border — the motivating punch */
+  /* Bold accent top border â€” the motivating punch */
   border-top: 3px solid var(--green);
   transition: background .35s, border-color .35s, transform .18s, box-shadow .18s;
   cursor: pointer;
@@ -313,7 +313,7 @@ main {
   margin-top: .45rem;
 }
 
-/* ── Badges ───────────────────────────────────────────────────────── */
+/* â”€â”€ Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .badge {
   display: inline-block;
   padding: .16rem .58rem;
@@ -327,7 +327,6 @@ main {
 /* Dark badges */
 [data-theme="dark"] .badge-sown        { background: var(--blue-dim);   color: var(--blue); }
 [data-theme="dark"] .badge-germinated  { background: #0b2510;            color: var(--green); }
-[data-theme="dark"] .badge-established { background: #0b2c0e;            color: #86efac; }
 [data-theme="dark"] .badge-harvested   { background: var(--amber-dim);   color: var(--amber); }
 [data-theme="dark"] .badge-failed      { background: var(--red-dim);     color: var(--red); }
 [data-theme="dark"] .badge-pending     { background: var(--amber-dim);   color: var(--amber); }
@@ -344,7 +343,6 @@ main {
 /* Light badges */
 [data-theme="light"] .badge-sown        { background: var(--blue-dim);   color: #1e40af; }
 [data-theme="light"] .badge-germinated  { background: var(--green-dim);  color: #166534; }
-[data-theme="light"] .badge-established { background: #d1fae5;           color: #065f46; }
 [data-theme="light"] .badge-harvested   { background: var(--amber-dim);  color: #854d0e; }
 [data-theme="light"] .badge-failed      { background: var(--red-dim);    color: #991b1b; }
 [data-theme="light"] .badge-pending     { background: var(--amber-dim);  color: #854d0e; }
@@ -358,7 +356,7 @@ main {
 [data-theme="light"] .badge-vegetable   { background: var(--amber-dim);  color: #854d0e; }
 [data-theme="light"] .badge-flower      { background: #fbcfe8;           color: #be185d; }
 
-/* ── Grid view ────────────────────────────────────────────────────── */
+/* â”€â”€ Grid view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .grid-view { display: inline-grid; gap: 3px; }
 
 .grid-cell {
@@ -379,17 +377,87 @@ main {
 
 .grid-cell:hover { transform: scale(1.22); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
 
+.cell-hover-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  min-width: 124px;
+  padding: .45rem;
+  border: 1px solid var(--border);
+  border-radius: .65rem;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow);
+}
+
+.cell-hover-menu-label {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
+  font-size: .63rem;
+  color: var(--text-2);
+}
+
+.cell-hover-menu-actions {
+  display: flex;
+  gap: .3rem;
+}
+
+.cell-hover-action {
+  min-width: 34px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: .45rem;
+  background: var(--bg-elevated);
+  color: var(--text-1);
+  cursor: pointer;
+  transition: transform .12s, border-color .12s, background .12s, color .12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-hover-action:hover {
+  transform: translateY(-1px);
+}
+
+.cell-hover-action img {
+  display: block;
+}
+
+.cell-hover-action-sow:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.cell-hover-action-ok:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.cell-hover-action-dead:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
 [data-theme="dark"] .grid-cell.sown        { background: #0b1e3a; border-color: #173a70; }
 [data-theme="dark"] .grid-cell.germinated  { background: #0a2214; border-color: #164428; }
-[data-theme="dark"] .grid-cell.established { background: #0a2810; border-color: #1a5020; color: #4ade80; }
 [data-theme="dark"] .grid-cell.failed      { background: #2a0c0c; border-color: #541414; }
 
 [data-theme="light"] .grid-cell.sown        { background: #dbeafe; border-color: #93c5fd; }
 [data-theme="light"] .grid-cell.germinated  { background: #dcfce7; border-color: #86efac; }
-[data-theme="light"] .grid-cell.established { background: #d1fae5; border-color: #34d399; }
 [data-theme="light"] .grid-cell.failed      { background: #fee2e2; border-color: #fca5a5; }
 
-/* ── Table ────────────────────────────────────────────────────────── */
+/* â”€â”€ Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 table { width: 100%; border-collapse: collapse; font-size: .875rem; line-height: 1.5; }
 
 th {
@@ -413,7 +481,7 @@ tr:last-child td { border-bottom: none; }
 
 tr:hover td { background: var(--bg-elevated); }
 
-/* ── Forms ────────────────────────────────────────────────────────── */
+/* â”€â”€ Forms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 input, select, textarea {
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -449,7 +517,7 @@ select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234a6128' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
-/* ── Buttons ──────────────────────────────────────────────────────── */
+/* â”€â”€ Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .btn {
   padding: .5625rem 1.25rem;
   border-radius: .625rem;
@@ -466,7 +534,7 @@ select {
 .btn:hover { opacity: .9; transform: translateY(-1px); }
 .btn:active { transform: translateY(0); opacity: 1; }
 
-/* Primary — bold green gradient */
+/* Primary â€” bold green gradient */
 .btn-primary {
   background: linear-gradient(135deg, var(--green) 0%, var(--lime) 100%);
   color: #0a1006;
@@ -494,6 +562,14 @@ select {
   border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
 }
 
+.btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
 .btn-sm { padding: .3125rem .75rem; font-size: .68rem; }
 
 .btn-complete {
@@ -508,12 +584,12 @@ select {
   box-shadow: var(--glow-green);
 }
 
-/* ── Utility classes ──────────────────────────────────────────────── */
+/* â”€â”€ Utility classes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .overdue td { color: var(--red); }
 .text-muted { color: var(--text-2); }
 .text-dim   { color: var(--text-3); }
 
-/* ── Weather widget ───────────────────────────────────────────────── */
+/* â”€â”€ Weather widget â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .weather-widget {
   display: flex;
   align-items: center;
@@ -530,7 +606,7 @@ select {
   transition: background .35s;
 }
 
-/* ── Calendar tab ─────────────────────────────────────────────────── */
+/* â”€â”€ Calendar tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -554,7 +630,7 @@ select {
 
 .cal-day.has-event { border-color: var(--amber); }
 
-/* ── Yearly Sowing Calendar ───────────────────────────────────────── */
+/* â”€â”€ Yearly Sowing Calendar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .cal-grid {
   display: grid;
   grid-template-columns: 140px repeat(12, 1fr);
@@ -622,25 +698,15 @@ select {
   right: 100%;
 }
 
-.cal-cell.cell-selected {
-  border-color: var(--pink);
-  box-shadow: 0 0 0 2px var(--pink);
-  animation: pulse-select .7s ease-in-out infinite alternate;
-}
-
-@keyframes pulse-select {
-  from {
-    box-shadow: 0 0 0 2px var(--pink);
-  }
   to {
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--pink) 50%, transparent);
   }
 }
 
-/* ── Alpine cloak ─────────────────────────────────────────────────── */
+/* â”€â”€ Alpine cloak â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 [x-cloak] { display: none !important; }
 
-/* ── Modal ────────────────────────────────────────────────────────── */
+/* â”€â”€ Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -664,17 +730,58 @@ select {
   box-shadow: var(--shadow);
 }
 
-/* ── Scrollbars ───────────────────────────────────────────────────── */
+.cell-modal-card {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--green) 5%, var(--bg-surface)) 0%, var(--bg-surface) 28%),
+    var(--bg-surface);
+}
+
+.cell-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+}
+
+.cell-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.cell-modal-field label {
+  font-size: .72rem;
+  color: var(--text-3);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.cell-modal-span-2 {
+  grid-column: 1 / -1;
+}
+
+.cell-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+}
+
+/* â”€â”€ Scrollbars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
 
-/* ── Responsive ───────────────────────────────────────────────────── */
+/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 600px) {
   main { padding: 1rem .875rem; }
   header { padding: .625rem 1rem; }
   header h1 { font-size: 1.2rem; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   nav button { padding: .6rem .875rem; font-size: .68rem; }
+  .cell-modal-grid { grid-template-columns: 1fr; }
+  .cell-modal-actions { flex-direction: column; align-items: stretch; }
+  .cell-modal-actions > div { display: grid !important; grid-template-columns: 1fr 1fr; }
 }
+
