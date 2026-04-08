@@ -1,4 +1,4 @@
-function esc(s) {
+﻿function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
@@ -14,7 +14,13 @@ function app() {
     seeds: [],
     tasks: [],
     activity: [],
-    weather: { temp: null, desc: '', icon: '' },
+    weather: {
+      temp: null, desc: '', icon: '',
+      alerts: [],
+      soil: { temp: null, status: '' },
+      uv: null, rain: null,
+      wateringStatus: '', actionText: '',
+    },
     lastRefresh: '',
     refreshError: null,
     taskFilter: { zone_id: '', status: 'pending', priority: '' },
@@ -69,24 +75,144 @@ function app() {
       }
     },
 
+    // Seed edit modal (shared: accessible from seeds tab, calendar, etc.)
+    seedModal: {
+      show: false, editingId: null,
+      form: { name:'', variety:'', type:'', quantity:0, supplier:'', purchase_year:null, sow_by_year:null, purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'' }
+    },
+
+    openSeedEdit(seed) {
+      const { name, variety, type, quantity, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end } = seed;
+      this.seedModal = { show: true, editingId: seed.id, form: { name, variety, type, quantity, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end } };
+    },
+
+    openSeedAdd() {
+      this.seedModal = { show: true, editingId: null, form: { name:'', variety:'', type:'', quantity:0, supplier:'', purchase_year:null, sow_by_year:null, purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'' } };
+    },
+
+    closeSeedModal() { this.seedModal.show = false; },
+
+    async saveSeed() {
+      if (!this.seedModal.form.name) return;
+      try {
+        const url = this.seedModal.editingId ? `/api/seeds/${this.seedModal.editingId}` : '/api/seeds';
+        const method = this.seedModal.editingId ? 'PATCH' : 'POST';
+        const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(this.seedModal.form) });
+        if (!r.ok) throw new Error(await r.text());
+        this.seedModal.show = false;
+        await this.refresh();
+      } catch(e) { console.error('Save seed failed:', e); }
+    },
+
     async fetchWeather() {
       const lat = this.config.latitude;
       const lng = this.config.longitude;
       if (!lat || !lng) return;
       try {
         const r = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode&timezone=auto`
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
+          `&current=temperature_2m,weathercode` +
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_max,et0_fao_evapotranspiration` +
+          `&hourly=soil_temperature_6cm` +
+          `&timezone=auto&forecast_days=7`
         );
         const d = await r.json();
+        if (!d.current || !d.daily || !d.hourly) return;
+
+        // ── Current conditions (unchanged behaviour) ──────────────────────
         this.weather.temp = Math.round(d.current.temperature_2m);
         const code = d.current.weathercode;
-        if (code === 0) { this.weather.desc = 'Clear'; this.weather.icon = '☀️'; }
-        else if (code <= 3) { this.weather.desc = 'Partly cloudy'; this.weather.icon = '⛅'; }
-        else if (code <= 48) { this.weather.desc = 'Foggy'; this.weather.icon = '🌫️'; }
-        else if (code <= 67) { this.weather.desc = 'Rainy'; this.weather.icon = '🌧️'; }
-        else if (code <= 77) { this.weather.desc = 'Snowy'; this.weather.icon = '❄️'; }
-        else { this.weather.desc = 'Stormy'; this.weather.icon = '⛈️'; }
-      } catch(e) { /* weather is optional */ }
+        if (code === 0)       { this.weather.desc = 'Clear';        this.weather.icon = '\u2600\uFE0F'; }
+        else if (code <= 3)   { this.weather.desc = 'Partly cloudy'; this.weather.icon = '\u26C5'; }
+        else if (code <= 48)  { this.weather.desc = 'Foggy';        this.weather.icon = '\u{1F32B}\uFE0F'; }
+        else if (code <= 67)  { this.weather.desc = 'Rainy';        this.weather.icon = '\u{1F327}\uFE0F'; }
+        else if (code <= 77)  { this.weather.desc = 'Snowy';        this.weather.icon = '\u2744\uFE0F'; }
+        else                  { this.weather.desc = 'Stormy';       this.weather.icon = '\u26C8\uFE0F'; }
+
+        // ── Daily data ────────────────────────────────────────────────────
+        const daily    = d.daily;
+        const dayNames = daily.time.map(t =>
+          new Date(t + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' })
+        );
+
+        const alerts = [];
+
+        // Frost: first day with min temp <= 2°C
+        const frostIdx = daily.temperature_2m_min.findIndex(t => t <= 2);
+        if (frostIdx !== -1) {
+          alerts.push({ level: 'red',
+            text: `Frost Alert: ${dayNames[frostIdx]}, ${Math.round(daily.temperature_2m_min[frostIdx])}°C` });
+        }
+
+        // Severe weather: first day with code >= 96 (thunderstorm with hail)
+        const severeIdx = daily.weather_code.findIndex(c => c >= 96);
+        if (severeIdx !== -1) {
+          alerts.push({ level: 'red', text: `Severe Weather: ${dayNames[severeIdx]}` });
+        }
+
+        // High wind: first day with code 85–95 (snow/wind showers)
+        const windIdx = daily.weather_code.findIndex(c => c >= 85 && c <= 95);
+        if (windIdx !== -1) {
+          alerts.push({ level: 'amber', text: `High Winds: ${dayNames[windIdx]}` });
+        }
+
+        // High UV today
+        if ((daily.uv_index_max[0] ?? 0) >= 7) {
+          alerts.push({ level: 'amber', text: 'High UV today \u2014 avoid midday watering' });
+        }
+
+        // ── Today's stats ─────────────────────────────────────────────────
+        this.weather.uv   = daily.uv_index_max[0]       ?? null;
+        this.weather.rain = daily.precipitation_sum[0]   ?? null;
+
+        // Water balance: precip minus evapotranspiration
+        const balance = (daily.precipitation_sum[0] ?? 0) - (daily.et0_fao_evapotranspiration[0] ?? 0);
+        if (balance < -2 && (daily.uv_index_max[0] ?? 0) >= 5) {
+          this.weather.wateringStatus = 'High Water Need';
+        } else if (balance < 0) {
+          this.weather.wateringStatus = 'Adequate \u2014 monitor';
+        } else {
+          this.weather.wateringStatus = 'Well Watered';
+        }
+
+        // ── Soil temperature (current hour, 6 cm depth) ───────────────────
+        const currentHour = new Date().getHours();
+        const soilTemp = d.hourly.soil_temperature_6cm[currentHour];
+        this.weather.soil.temp = soilTemp != null ? Math.round(soilTemp * 10) / 10 : null;
+        if (soilTemp == null)      { this.weather.soil.status = ''; }
+        else if (soilTemp < 10)    { this.weather.soil.status = 'Dormant / Too Cold'; }
+        else if (soilTemp <= 18)   { this.weather.soil.status = 'Cool Season (Peas, Lettuce)'; }
+        else                       { this.weather.soil.status = 'Warm Season (Tomatoes, Peppers)'; }
+
+        // Ideal conditions green alert (only if no red/amber)
+        const hasRedAmber = alerts.some(a => a.level === 'red' || a.level === 'amber');
+        if (!hasRedAmber && soilTemp != null && soilTemp >= 10) {
+          alerts.push({ level: 'green', text: 'Good conditions for sowing' });
+        }
+
+        this.weather.alerts = alerts;
+
+        // ── Action text ───────────────────────────────────────────────────
+        const topLevel = alerts[0]?.level;
+        if (topLevel === 'red' && frostIdx === 0) {
+          this.weather.actionText = 'Protect tender plants tonight';
+        } else if (topLevel === 'red') {
+          this.weather.actionText = 'Severe weather forecast \u2014 avoid outdoor work';
+        } else if ((daily.uv_index_max[0] ?? 0) >= 7) {
+          this.weather.actionText = 'Avoid watering foliage today \u2014 high UV';
+        } else if (this.weather.wateringStatus === 'High Water Need') {
+          this.weather.actionText = 'Plants need watering today';
+        } else if (soilTemp != null && soilTemp < 10) {
+          this.weather.actionText = 'Too cold for sowing \u2014 focus on indoor propagation';
+        } else if (soilTemp != null && soilTemp > 18) {
+          this.weather.actionText = 'Ideal conditions for warm-season crops';
+        } else if (soilTemp != null && soilTemp >= 10) {
+          this.weather.actionText = 'Good day for sowing peas or lettuce';
+        } else {
+          this.weather.actionText = 'Good day for general garden maintenance';
+        }
+
+      } catch(e) { /* weather is optional — new fields stay at initial empty state */ }
     },
 
     // Task management
@@ -101,6 +227,33 @@ function app() {
 
     isOverdue(t) {
       return t.status === 'pending' && t.due_date && t.due_date < new Date().toISOString().slice(0,10);
+    },
+
+    taskCallbackPayload(task) {
+      if (!task?.callback_payload) return null;
+      if (typeof task.callback_payload === 'object') return task.callback_payload;
+      try {
+        return JSON.parse(task.callback_payload);
+      } catch (e) {
+        return null;
+      }
+    },
+
+    taskCallbackLabel(task) {
+      if (task?.callback_type !== 'clear_failed_plant') return '';
+      const payload = this.taskCallbackPayload(task);
+      return payload?.view_type === 'grid' ? 'Auto reset soil' : 'Auto remove plant';
+    },
+
+    taskCallbackDescription(task) {
+      if (task?.callback_type !== 'clear_failed_plant') return '';
+      const payload = this.taskCallbackPayload(task);
+      const location = payload?.view_type === 'grid'
+        ? (payload?.cell_label || task.zone_name || 'grid cell')
+        : (task.zone_name || 'zone');
+      return payload?.view_type === 'grid'
+        ? `Completing this task will reset the soil in ${location}.`
+        : `Completing this task will remove the failed plant from ${location}.`;
     },
 
     async addTask() {
@@ -128,7 +281,7 @@ function app() {
       this.tab = name;
     },
 
-    // ── Zone grid state ──────────────────────────────────────────
+    // Zone grid state
     showZoneModal: false,
     editingZone: null,
     zoneForm: {},
@@ -146,18 +299,20 @@ function app() {
       cellId: null,
       zoneId: null,
       planting: null,
-      form: {}
+      form: {},
+      showTransplant: false
     },
 
     getCellStatus(cellId) {
-      const p = this.plantings.find(p => p.cell_id === cellId && !['harvested','failed'].includes(p.status));
+      const p = this.plantings.find(p => p.cell_id === cellId && p.status !== 'harvested');
       return p ? p.status : 'empty';
     },
     getCellDesc(cellId) {
-      const p = this.plantings.find(p => p.cell_id === cellId && !['harvested','failed'].includes(p.status));
+      const p = this.plantings.find(p => p.cell_id === cellId && p.status !== 'harvested');
       return p ? `${p.seed_name} (${p.status})` : 'Empty';
     },
     getCellLabel(cellId, zoneId = null) {
+      if (!cellId) return '';
       for (const zone of this.zones) {
         if (zoneId !== null && zone.id !== zoneId) continue;
         const cell = (zone.cells || []).find(c => c.id === cellId);
@@ -165,11 +320,23 @@ function app() {
       }
       return '';
     },
+    getZoneName(zoneId) {
+      return this.zones.find(z => z.id === zoneId)?.name || '';
+    },
     getSeedDisplayName(plantingOrSeed) {
       if (!plantingOrSeed) return '';
       const name = plantingOrSeed.seed_name || plantingOrSeed.name || 'Unknown seed';
       const variety = plantingOrSeed.seed_variety || plantingOrSeed.variety;
       return variety ? `${name} · ${variety}` : name;
+    },
+    getCellModalEditTitle() {
+      if (!this.cellModal.planting) return '';
+      const location = this.cellModal.cellId
+        ? this.getCellLabel(this.cellModal.cellId, this.cellModal.zoneId)
+        : this.getZoneName(this.cellModal.zoneId);
+      return location
+        ? `${location} · ${this.getSeedDisplayName(this.cellModal.planting)}`
+        : this.getSeedDisplayName(this.cellModal.planting);
     },
     defaultCellModalForm() {
       return {
@@ -179,9 +346,28 @@ function app() {
         moved_date: '',
         harvested_date: '',
         failed_date: '',
-        quantity: 1,
         notes: ''
       };
+    },
+    defaultTransplantZoneId(planting) {
+      const zones = this.zones.filter(z => z.id !== planting?.zone_id);
+      return zones[0]?.id || '';
+    },
+    isGridZone(zoneId) {
+      return this.zones.find(z => z.id === Number(zoneId))?.view_type === 'grid';
+    },
+    transplantZoneOptions(planting) {
+      return this.zones.filter(z => z.id !== planting?.zone_id);
+    },
+    transplantCellOptions(zoneId, plantingId = null) {
+      const targetZone = this.zones.find(z => z.id === Number(zoneId));
+      if (!targetZone || targetZone.view_type !== 'grid') return [];
+      const occupied = new Set(
+        this.plantings
+          .filter(p => p.id !== plantingId && p.cell_id && p.status !== 'harvested')
+          .map(p => p.cell_id)
+      );
+      return (targetZone.cells || []).filter(cell => !occupied.has(cell.id));
     },
     derivePlantingStatus(form) {
       if (form.failed_date) return 'failed';
@@ -193,7 +379,10 @@ function app() {
       return this.plantings.filter(p => p.zone_id === zoneId && !['harvested','failed'].includes(p.status));
     },
     activePlanting(cellId) {
-      return this.plantings.find(p => p.cell_id === cellId && !['harvested','failed'].includes(p.status));
+      return this.plantings.find(p => p.cell_id === cellId && p.status !== 'harvested');
+    },
+    canMarkOk(planting) {
+      return !!planting && !['germinated', 'failed', 'harvested'].includes(planting.status);
     },
 
     openZoneSettings(zone) {
@@ -247,7 +436,11 @@ function app() {
       try {
         await fetch(`/api/plant-lifecycle/${p.id}`, {
           method: 'PATCH', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ germinated_date: new Date().toISOString().slice(0,10), status: 'germinated' })
+          body: JSON.stringify({
+            germinated_date: new Date().toISOString().slice(0,10),
+            failed_date: null,
+            status: 'germinated'
+          })
         });
         this.menuCellId = null;
         await this.refresh();
@@ -256,7 +449,6 @@ function app() {
     async markDead(cellId) {
       const p = this.activePlanting(cellId);
       if (!p) return;
-      this.plantings = this.plantings.filter(pl => pl.id !== p.id);
       this.menuCellId = null;
       try {
         await fetch(`/api/plant-lifecycle/${p.id}`, {
@@ -270,7 +462,11 @@ function app() {
       try {
         await fetch(`/api/plant-lifecycle/${plantingId}`, {
           method: 'PATCH', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ germinated_date: new Date().toISOString().slice(0,10) })
+          body: JSON.stringify({
+            germinated_date: new Date().toISOString().slice(0,10),
+            failed_date: null,
+            status: 'germinated'
+          })
         });
         await this.refresh();
       } catch(e) { console.error('Mark OK failed:', e); }
@@ -286,27 +482,34 @@ function app() {
       } catch(e) { console.error('Mark dead failed:', e); await this.refresh(); }
     },
 
+    openPlantingModal(planting, options = {}) {
+      const zoneId = options.zoneId ?? planting?.zone_id ?? null;
+      const cellId = options.cellId ?? planting?.cell_id ?? null;
+      this.cellModal = {
+        show: true,
+        mode: 'edit',
+        cellId,
+        zoneId,
+        planting,
+        showTransplant: false,
+        form: {
+          seed_id: planting.seed_id || '',
+          sown_date: planting.sown_date || '',
+          germinated_date: planting.germinated_date || '',
+          moved_date: planting.moved_date || '',
+          harvested_date: planting.harvested_date || '',
+          failed_date: planting.failed_date || '',
+          notes: planting.notes || '',
+          transplant_zone_id: this.defaultTransplantZoneId(planting),
+          transplant_cell_id: ''
+        }
+      };
+    },
     openCellModal(cellId, zoneId) {
       this.menuCellId = null;
       const p = this.activePlanting(cellId);
       if (p) {
-        this.cellModal = {
-          show: true,
-          mode: 'edit',
-          cellId,
-          zoneId,
-          planting: p,
-          form: {
-            seed_id: p.seed_id || '',
-            sown_date: p.sown_date || '',
-            germinated_date: p.germinated_date || '',
-            moved_date: p.moved_date || '',
-            harvested_date: p.harvested_date || '',
-            failed_date: p.failed_date || '',
-            notes: p.notes || '',
-            quantity: p.quantity || 1
-          }
-        };
+        this.openPlantingModal(p, { cellId, zoneId });
         return;
       }
       this.cellModal = {
@@ -315,6 +518,7 @@ function app() {
         cellId,
         zoneId,
         planting: null,
+        showTransplant: false,
         form: {
           ...this.defaultCellModalForm()
         }
@@ -327,14 +531,18 @@ function app() {
         cellId,
         zoneId,
         planting: null,
+        showTransplant: false,
         form: {
           ...this.defaultCellModalForm()
         }
       };
       this.menuCellId = null;
     },
+    openLoosePlantingModal(planting) {
+      this.openPlantingModal(planting, { cellId: null, zoneId: planting.zone_id });
+    },
     closeCellModal() {
-      this.cellModal = { show: false, mode: 'new', cellId: null, zoneId: null, planting: null, form: {} };
+      this.cellModal = { show: false, mode: 'new', cellId: null, zoneId: null, planting: null, form: {}, showTransplant: false };
     },
     async saveCellModal() {
       try {
@@ -348,7 +556,7 @@ function app() {
               zone_id: this.cellModal.zoneId,
               cell_id: this.cellModal.cellId,
               sown_date: this.cellModal.form.sown_date,
-              quantity: this.cellModal.form.quantity || 1,
+              quantity: 1,
               notes: this.cellModal.form.notes || ''
             })
           });
@@ -380,6 +588,42 @@ function app() {
         this.closeCellModal();
         await this.refresh();
       } catch(e) { console.error('Mark dead failed:', e); }
+    },
+    async transplantCellModal() {
+      if (this.cellModal.mode !== 'edit' || !this.cellModal.planting) return;
+      this.cellModal.showTransplant = true;
+    },
+    async confirmTransplantCellModal() {
+      if (this.cellModal.mode !== 'edit' || !this.cellModal.planting) return;
+      try {
+        const targetZoneId = Number(this.cellModal.form.transplant_zone_id);
+        if (!targetZoneId) return;
+        const targetCellId = this.isGridZone(targetZoneId)
+          ? Number(this.cellModal.form.transplant_cell_id || 0)
+          : null;
+        if (this.isGridZone(targetZoneId) && !targetCellId) return;
+        const movedDate = new Date().toISOString().slice(0,10);
+        const nextStatus = this.cellModal.form.germinated_date ? 'germinated' : 'sown';
+        const r = await fetch(`/api/plant-lifecycle/${this.cellModal.planting.id}`, {
+          method: 'PATCH',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ moved_date: movedDate, zone_id: targetZoneId, cell_id: targetCellId, status: nextStatus })
+        });
+        if (!r.ok) throw new Error(await r.text());
+        this.closeCellModal();
+        await this.refresh();
+      } catch(e) { console.error('Transplant failed:', e); }
+    },
+    async resetSoilCellModal() {
+      if (this.cellModal.mode !== 'edit' || !this.cellModal.planting) return;
+      try {
+        const r = await fetch(`/api/plant-lifecycle/${this.cellModal.planting.id}`, {
+          method: 'DELETE'
+        });
+        if (!r.ok) throw new Error(await r.text());
+        this.closeCellModal();
+        await this.refresh();
+      } catch(e) { console.error('Reset soil failed:', e); }
     },
   };
 }
