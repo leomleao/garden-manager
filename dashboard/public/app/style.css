@@ -479,11 +479,11 @@ main {
 }
 
 .cell-hover-action {
-  min-width: 34px;
-  height: 28px;
+  min-width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: .45rem;
+  border-radius: .65rem;
   background: var(--bg-elevated);
   color: var(--text-1);
   cursor: pointer;
@@ -499,6 +499,8 @@ main {
 
 .cell-hover-action img {
   display: block;
+  width: 20px;
+  height: 20px;
 }
 
 .cell-hover-action-sow:hover {
@@ -637,7 +639,22 @@ select {
   filter: none;
 }
 
-.btn-sm { padding: .3125rem .75rem; font-size: .68rem; }
+.btn-sm {
+  min-height: 2.2rem;
+  padding: .38rem .82rem;
+  font-size: .85rem;
+  line-height: 1;
+}
+
+.loose-planting-actions .btn {
+  min-width: 2.2rem;
+  padding: .3rem;
+}
+
+.loose-planting-actions img {
+  width: 20px;
+  height: 20px;
+}
 
 .btn-complete {
   background: color-mix(in srgb, var(--green) 14%, transparent);

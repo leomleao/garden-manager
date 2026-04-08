@@ -1,0 +1,10 @@
+taskkill /F /IM msedge.exe /T; 
+
+http://localhost:9222/json
+
+
+
+for /f "tokens=5" %a in ('netstat -aon ^| findstr :8420') do taskkill /f /pid %a
+
+
+rm -rf ../data/garden.db.lock; DB_PATH=../data/garden.db npm run dev

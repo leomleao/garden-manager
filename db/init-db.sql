@@ -94,7 +94,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   due_date  TEXT,
   priority  TEXT NOT NULL DEFAULT 'medium',
   status    TEXT NOT NULL DEFAULT 'pending',
-  notes     TEXT
+  notes     TEXT,
+  callback_type TEXT,
+  callback_payload TEXT
 );
 
 CREATE TABLE IF NOT EXISTS activity_log (
@@ -121,13 +123,28 @@ VALUES
   ('Polytunnel','polytunnel',56.1667,-4.2833,1,'polytunnel','grid',5,4,25,25,3),
   ('Outdoor Veg Plot','outdoor',56.1667,-4.2833,0,NULL,'loose',NULL,NULL,NULL,NULL,4);
 
+-- Generate cells for grid zones (mirrors the logic in PATCH /zones/:id)
+WITH RECURSIVE
+  rows(r) AS (SELECT 1 UNION ALL SELECT r+1 FROM rows WHERE r < 5),
+  cols(c) AS (SELECT 1 UNION ALL SELECT c+1 FROM cols WHERE c < 8)
+INSERT INTO zone_cells(zone_id, row, col, label)
+SELECT (SELECT id FROM zones WHERE name='Germinator 1'), r, c, char(64+r)||c
+FROM rows CROSS JOIN cols;
+
+WITH RECURSIVE
+  rows(r) AS (SELECT 1 UNION ALL SELECT r+1 FROM rows WHERE r < 5),
+  cols(c) AS (SELECT 1 UNION ALL SELECT c+1 FROM cols WHERE c < 4)
+INSERT INTO zone_cells(zone_id, row, col, label)
+SELECT (SELECT id FROM zones WHERE name='Polytunnel'), r, c, char(64+r)||c
+FROM rows CROSS JOIN cols;
+
 INSERT INTO seeds(name,variety,type,quantity,supplier,purchase_year,sow_indoors_start,sow_indoors_end,sow_outdoors_start,sow_outdoors_end,plant_out_start,plant_out_end,harvest_start,harvest_end)
 VALUES
-  ('Tomato',   'Gardeners Delight','vegetable',30,'Thompson & Morgan',2024, '02-01','03-31',NULL,    NULL,    '05-15','06-15','07-01','10-31'),
-  ('Courgette','Black Beauty',      'vegetable',15,'RHS',              2024, '04-01','05-15','05-15','06-01', '06-01','06-15','07-01','09-30'),
-  ('Lettuce',  'Little Gem',        'vegetable',50,'Suttons',          2024, '02-01','08-31','03-15','09-01', NULL,   NULL,   '05-01','11-30'),
-  ('Basil',    'Sweet Genovese',    'herb',      20,'Jekka''s',         2024, '03-01','05-31',NULL,    NULL,    '06-01','06-15','06-01','09-30'),
-  ('Kale',     'Cavolo Nero',       'vegetable', 25,'Thompson & Morgan',2024, '04-01','07-31','04-15','07-31', NULL,   NULL,   '10-01','03-31'),
-  ('Beetroot', 'Boltardy',          'vegetable', 40,'Suttons',          2024, NULL,   NULL,   '03-15','07-31', NULL,   NULL,   '06-01','10-31'),
-  ('Peas',     'Kelvedon Wonder',   'vegetable', 60,'Thompson & Morgan',2024, NULL,   NULL,   '02-15','06-30', NULL,   NULL,   '06-01','09-30'),
-  ('Chilli',   'Apache',            'vegetable', 10,'Nicky''s',         2024, '01-15','03-31',NULL,    NULL,    '05-15','06-01','08-01','10-31');
+  ('Tomato',   'Gardeners Delight','vegetable',30,'Thompson & Morgan',2024, '01-02','31-03',NULL,    NULL,    '15-05','15-06','01-07','31-10'),
+  ('Courgette','Black Beauty',      'vegetable',15,'RHS',              2024, '01-04','15-05','15-05','01-06', '01-06','15-06','01-07','30-09'),
+  ('Lettuce',  'Little Gem',        'vegetable',50,'Suttons',          2024, '01-02','31-08','15-03','01-09', NULL,   NULL,   '01-05','30-11'),
+  ('Basil',    'Sweet Genovese',    'herb',      20,'Jekka''s',         2024, '01-03','31-05',NULL,    NULL,    '01-06','15-06','01-06','30-09'),
+  ('Kale',     'Cavolo Nero',       'vegetable', 25,'Thompson & Morgan',2024, '01-04','31-07','15-04','31-07', NULL,   NULL,   '01-10','31-03'),
+  ('Beetroot', 'Boltardy',          'vegetable', 40,'Suttons',          2024, NULL,   NULL,   '15-03','31-07', NULL,   NULL,   '01-06','31-10'),
+  ('Peas',     'Kelvedon Wonder',   'vegetable', 60,'Thompson & Morgan',2024, NULL,   NULL,   '15-02','30-06', NULL,   NULL,   '01-06','30-09'),
+  ('Chilli',   'Apache',            'vegetable', 10,'Nicky''s',         2024, '15-01','31-03',NULL,    NULL,    '15-05','01-06','01-08','31-10');

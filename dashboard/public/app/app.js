@@ -14,6 +14,7 @@ function app() {
     seeds: [],
     tasks: [],
     activity: [],
+    weatherData: null,   // full raw Open-Meteo response — available to all tabs
     weather: {
       temp: null, desc: '', icon: '',
       alerts: [],
@@ -118,6 +119,7 @@ function app() {
         );
         const d = await r.json();
         if (!d.current || !d.daily || !d.hourly) return;
+        this.weatherData = d;
 
         // ── Current conditions (unchanged behaviour) ──────────────────────
         this.weather.temp = Math.round(d.current.temperature_2m);

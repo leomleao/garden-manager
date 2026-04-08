@@ -33,7 +33,7 @@ Requires Node.js 18+. No native compilation needed — the SQLite driver is pure
 cd dashboard && npm install
 
 # Initialise the database (run once)
-cd .. && node init-db.js
+node init-db.js
 
 # Start the server with auto-reload on file changes
 cd dashboard && DB_PATH=../data/garden.db npm run dev

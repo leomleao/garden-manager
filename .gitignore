@@ -6,6 +6,6 @@ data/
 data/*.db
 .claude/settings.local.json
 .worktrees/
-.helperCommands
 .playwright-mcp/
 dashboard/package-lock.json
+docs/*

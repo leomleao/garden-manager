@@ -1,27 +1,17 @@
 function monthInWindow(month, start, end) {
-  // month: 1-12, start/end: "MM-DD" strings
+  // month: 1-12, start/end: "DD-MM" strings
   // Returns true if any day of `month` falls within [start, end]
   if (!start) return false;
-  const s = parseInt(start.slice(0,2));
-  const e = end ? parseInt(end.slice(0,2)) : 12;
+  const s = parseInt(start.slice(3, 5)); // DD-MM: month is chars 3-4
+  const e = end ? parseInt(end.slice(3, 5)) : 12;
   if (s <= e) return month >= s && month <= e;
   // year-crossing window (e.g. Oct-Mar): month >= s OR month <= e
   return month >= s || month <= e;
 }
 
-function todayMMDD() {
-  const d = new Date();
-  return String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-
-function mmddLe(a, b) {
-  // "MM-DD" string comparison (lexicographic works for same format)
-  return a <= b;
-}
-
 document.addEventListener('alpine:init', () => {
   Alpine.data('calendarTab', () => ({
-    calYear: new Date().getFullYear(), // display only — sowing windows are month-based and repeat annually
+    calYear: new Date().getFullYear(),
     hoveredSeed: null,
 
     get sowIndoorsNow() {
@@ -35,26 +25,28 @@ document.addEventListener('alpine:init', () => {
     },
 
     get calendarSeeds() {
-      // Seeds sorted by type then name
       return [...this.seeds].sort((a, b) => {
         const t = (a.type||'').localeCompare(b.type||'');
         return t !== 0 ? t : a.name.localeCompare(b.name);
       });
     },
 
-    cellBands(seed, month) {
-      // Returns array of band class names for this seed x month cell
-      const bands = [];
-      if (monthInWindow(month, seed.sow_indoors_start, seed.sow_indoors_end)) bands.push('cal-band-indoor');
-      if (monthInWindow(month, seed.sow_outdoors_start, seed.sow_outdoors_end)) bands.push('cal-band-outdoor');
-      if (monthInWindow(month, seed.plant_out_start, seed.plant_out_end)) bands.push('cal-band-plantout');
-      if (monthInWindow(month, seed.harvest_start, seed.harvest_end)) bands.push('cal-band-harvest');
-      return bands;
+    // Returns inline style for a spanning Gantt-style bar.
+    // row 0=indoor, 1=outdoor, 2=plantout, 3=harvest
+    barStyle(start, end, row) {
+      if (!start) return 'display:none';
+      const s = parseInt(start.slice(3, 5));
+      const e = end ? parseInt(end.slice(3, 5)) : 12;
+      const actualEnd = (e >= s) ? e : 12; // clip year-crossing at Dec
+      const left = ((s - 1) / 12 * 100).toFixed(2);
+      const width = ((actualEnd - s + 1) / 12 * 100).toFixed(2);
+      const top = row * 7 + 3;
+      return `position:absolute;left:${left}%;width:${width}%;top:${top}px;height:5px;border-radius:2px`;
     },
 
     prevYear() { this.calYear--; },
     nextYear() { this.calYear++; },
-    typeEmoji(type) { return { herb: '🌿', vegetable: '🥕', flower: '🌸' }[type] || ''; },
+    typeEmoji(type) { return { herb: '\u{1F33F}', vegetable: '\u{1F955}', flower: '\u{1F338}' }[type] || ''; },
 
     tooltipText(seed) {
       const parts = [];

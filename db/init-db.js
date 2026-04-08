@@ -1,4 +1,4 @@
-const { Database } = require('./dashboard/node_modules/node-sqlite3-wasm');
+const { Database } = require('../dashboard/node_modules/node-sqlite3-wasm/node-sqlite3-wasm');
 const fs = require('fs');
 const path = require('path');
 

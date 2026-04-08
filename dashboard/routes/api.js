@@ -2,6 +2,117 @@ const express = require('express');
 const db = require('../db');
 const router = express.Router();
 
+function addDays(dateString, days) {
+  const date = new Date(dateString);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function getPlantingDisplayName(planting) {
+  if (!planting) return 'plant';
+  return [planting.seed_name, planting.seed_variety].filter(Boolean).join(' - ') || `plant #${planting.id}`;
+}
+
+function createTask({ zone_id = null, title, due_date = null, priority = 'medium', notes = null, callback_type = null, callback_payload = null }) {
+  const normalizedPayload = callback_payload == null || typeof callback_payload === 'string'
+    ? callback_payload
+    : JSON.stringify(callback_payload);
+  return db.prepare(
+    'INSERT INTO tasks(zone_id,title,due_date,priority,status,notes,callback_type,callback_payload) VALUES(?,?,?,?,?,?,?,?)'
+  ).run([zone_id, title, due_date, priority, 'pending', notes, callback_type, normalizedPayload]);
+}
+
+function clearPlantLifecycleFromZone(plantingId, context = {}) {
+  const planting = db.prepare(`
+    SELECT p.*, z.name AS zone_name, z.view_type, s.name AS seed_name, s.variety AS seed_variety
+    FROM plant_lifecycle p
+    LEFT JOIN zones z ON z.id = p.zone_id
+    LEFT JOIN seeds s ON s.id = p.seed_id
+    WHERE p.id = ?
+  `).get([plantingId]);
+
+  if (!planting) return { ok: true, action: 'noop' };
+
+  const viewType = context.view_type || planting.view_type;
+  if (viewType === 'grid') {
+    db.prepare('DELETE FROM activity_log WHERE plant_lifecycle_id=?').run([plantingId]);
+    db.prepare('DELETE FROM plant_lifecycle WHERE id=?').run([plantingId]);
+    db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES('reset-soil',?,?,?)")
+      .run([planting.zone_id, null, `Reset soil for ${getPlantingDisplayName(planting)} from ${context.cell_label || 'grid cell'}`]);
+    return { ok: true, action: 'reset-soil' };
+  }
+
+  db.prepare('UPDATE plant_lifecycle SET zone_id=NULL, cell_id=NULL WHERE id=?').run([plantingId]);
+  db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES('clear-plant',?,?,?)")
+    .run([planting.zone_id, plantingId, `Cleared ${getPlantingDisplayName(planting)} from ${planting.zone_name || 'zone'}`]);
+  return { ok: true, action: 'remove-from-zone' };
+}
+
+function executeTaskCallback(task) {
+  if (!task?.callback_type) return { ok: true, action: 'none' };
+
+  let payload = {};
+  if (task.callback_payload) {
+    payload = JSON.parse(task.callback_payload);
+  }
+
+  if (task.callback_type === 'clear_failed_plant') {
+    return clearPlantLifecycleFromZone(payload.plant_lifecycle_id, payload);
+  }
+
+  throw new Error(`Unsupported task callback: ${task.callback_type}`);
+}
+
+function ensureFailedCleanupTask(plantingId) {
+  const planting = db.prepare(`
+    SELECT p.*, s.name AS seed_name, s.variety AS seed_variety, z.name AS zone_name, z.view_type, c.label AS cell_label
+    FROM plant_lifecycle p
+    LEFT JOIN seeds s ON s.id = p.seed_id
+    LEFT JOIN zones z ON z.id = p.zone_id
+    LEFT JOIN zone_cells c ON c.id = p.cell_id
+    WHERE p.id = ?
+  `).get([plantingId]);
+
+  if (!planting || !planting.zone_id) return null;
+
+  const callbackPayload = JSON.stringify({
+    plant_lifecycle_id: planting.id,
+    zone_id: planting.zone_id,
+    cell_id: planting.cell_id,
+    view_type: planting.view_type,
+    cell_label: planting.cell_label || null
+  });
+
+  const existingTask = db.prepare(`
+    SELECT id
+    FROM tasks
+    WHERE status='pending'
+      AND callback_type='clear_failed_plant'
+      AND callback_payload=?
+  `).get([callbackPayload]);
+
+  if (existingTask) return existingTask.id;
+
+  const locationLabel = planting.view_type === 'grid'
+    ? (planting.cell_label || planting.zone_name || 'grid cell')
+    : (planting.zone_name || 'zone');
+
+  const info = createTask({
+    zone_id: planting.zone_id,
+    title: `Clear plant ${getPlantingDisplayName(planting)} from ${locationLabel}`,
+    due_date: addDays(new Date().toISOString().slice(0, 10), 7),
+    priority: 'medium',
+    notes: 'Created automatically after marking a plant as dead.',
+    callback_type: 'clear_failed_plant',
+    callback_payload: callbackPayload
+  });
+
+  db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES('task-created',?,?,?)")
+    .run([planting.zone_id, planting.id, `Created cleanup task #${info.lastInsertRowid} for ${getPlantingDisplayName(planting)} in ${locationLabel}`]);
+
+  return info.lastInsertRowid;
+}
+
 // Config
 router.get('/config', (req, res) => {
   const rows = db.prepare('SELECT key, value FROM app_config').all();
@@ -128,7 +239,7 @@ router.get('/plant-lifecycle', (req, res) => {
 });
 
 router.post('/plant-lifecycle', (req, res) => {
-  const { seed_id, zone_id, cell_id, sown_date, quantity = 1, notes } = req.body;
+  const { seed_id, zone_id, cell_id = null, sown_date, quantity = 1, notes = null } = req.body;
   if (!zone_id) return res.status(400).json({ error: 'zone_id required' });
   const info = db.prepare(
     'INSERT INTO plant_lifecycle(seed_id,zone_id,cell_id,sown_date,status,quantity,notes) VALUES(?,?,?,?,?,?,?)'
@@ -140,17 +251,31 @@ router.post('/plant-lifecycle', (req, res) => {
 });
 
 router.patch('/plant-lifecycle/:id', (req, res) => {
-  const allowed = ['status','sown_date','germinated_date','moved_date','harvested_date','failed_date','notes','cell_id','quantity'];
+  const allowed = ['status','sown_date','germinated_date','moved_date','harvested_date','failed_date','notes','cell_id','zone_id','quantity'];
   const fields = Object.keys(req.body).filter(k => allowed.includes(k));
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
+  const existing = db.prepare('SELECT * FROM plant_lifecycle WHERE id=?').get([req.params.id]);
+  if (!existing) return res.status(404).json({ error: 'not found' });
   const set = fields.map(f => `${f}=?`).join(',');
   db.prepare(`UPDATE plant_lifecycle SET ${set} WHERE id=?`).run([...fields.map(f => req.body[f]), req.params.id]);
-  // Log status changes
   if (req.body.status) {
     const p = db.prepare('SELECT zone_id FROM plant_lifecycle WHERE id=?').get([req.params.id]);
     db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES(?,?,?,?)")
-      .run([req.body.status, p?.zone_id, req.params.id, `Plant lifecycle #${req.params.id} → ${req.body.status}`]);
+      .run([req.body.status, p?.zone_id, req.params.id, `Plant lifecycle #${req.params.id} -> ${req.body.status}`]);
   }
+  const nextFailed = req.body.status === 'failed' || (fields.includes('failed_date') && !!req.body.failed_date);
+  if (existing.status !== 'failed' && nextFailed) {
+    ensureFailedCleanupTask(req.params.id);
+  }
+  res.json({ ok: true });
+});
+router.delete('/plant-lifecycle/:id', (req, res) => {
+  const existing = db.prepare('SELECT zone_id FROM plant_lifecycle WHERE id=?').get([req.params.id]);
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  db.prepare('DELETE FROM activity_log WHERE plant_lifecycle_id=?').run([req.params.id]);
+  db.prepare('DELETE FROM plant_lifecycle WHERE id=?').run([req.params.id]);
+  db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES('reset-soil',?,?,?)")
+    .run([existing.zone_id, null, `Reset soil for plant lifecycle #${req.params.id}`]);
   res.json({ ok: true });
 });
 
@@ -166,27 +291,48 @@ router.get('/tasks', (req, res) => {
 });
 
 router.post('/tasks', (req, res) => {
-  const { zone_id, title, due_date, priority = 'medium', notes } = req.body;
+  const { zone_id, title, due_date, priority = 'medium', notes, callback_type = null, callback_payload = null } = req.body;
   if (!title) return res.status(400).json({ error: 'title required' });
-  const info = db.prepare(
-    'INSERT INTO tasks(zone_id,title,due_date,priority,status,notes) VALUES(?,?,?,?,?,?)'
-  ).run([zone_id, title, due_date, priority, 'pending', notes]);
+  const info = createTask({ zone_id, title, due_date, priority, notes, callback_type, callback_payload });
   res.status(201).json({ id: info.lastInsertRowid });
 });
-
 router.patch('/tasks/:id', (req, res) => {
-  const allowed = ['title','due_date','priority','status','notes','zone_id'];
+  const allowed = ['title','due_date','priority','status','notes','zone_id','callback_type','callback_payload'];
   const fields = Object.keys(req.body).filter(k => allowed.includes(k));
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
+  const existing = db.prepare('SELECT * FROM tasks WHERE id=?').get([req.params.id]);
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const taskForCallback = {
+    ...existing,
+    ...Object.fromEntries(fields.map(field => [field, req.body[field]]))
+  };
+  if (req.body.status === 'done' && existing.status !== 'done') {
+    try {
+      executeTaskCallback(taskForCallback);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+  }
   const set = fields.map(f => `${f}=?`).join(',');
   db.prepare(`UPDATE tasks SET ${set} WHERE id=?`).run([...fields.map(f => req.body[f]), req.params.id]);
   res.json({ ok: true });
 });
-
 // Activity log
 router.get('/activity', (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
-  res.json(db.prepare('SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT ?').all([limit]));
+  res.json(db.prepare(`
+    SELECT
+      a.*,
+      z.name  AS zone_name,
+      s.name  AS seed_name,
+      s.variety AS seed_variety,
+      pl.status AS plant_status
+    FROM activity_log a
+    LEFT JOIN zones           z  ON z.id  = a.zone_id
+    LEFT JOIN plant_lifecycle pl ON pl.id = a.plant_lifecycle_id
+    LEFT JOIN seeds           s  ON s.id  = pl.seed_id
+    ORDER BY a.timestamp DESC LIMIT ?
+  `).all([limit]));
 });
 
 // Summary stats (for overview cards)
