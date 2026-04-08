@@ -41,6 +41,130 @@ test('GET /api/zones/:id returns zone with cells array', async () => {
   expect(Array.isArray(res.body.cells)).toBe(true);
 });
 
+test('PATCH /api/zones/:id updates extended zone fields', async () => {
+  const createRes = await request(app)
+    .post('/api/setup/zone')
+    .send({
+      name: 'Edit Me',
+      type: 'greenhouse',
+      view_type: 'loose',
+      area_sqm: 12.5,
+      covered: true,
+      cover_type: 'glass',
+      has_auto_watering: true,
+      watering_type: 'drip',
+      has_heating: true,
+      heating_type: 'fan heater',
+      has_lighting: true,
+      lighting_type: 'LED grow light',
+      orientation: 'SE',
+      slope_degrees: 4,
+      soil_type: 'container',
+      latitude: 51.5,
+      longitude: -0.12,
+      notes: 'Original notes'
+    });
+
+  const patchRes = await request(app)
+    .patch(`/api/zones/${createRes.body.id}`)
+    .send({
+      name: 'Updated Zone',
+      type: 'indoor',
+      view_type: 'loose',
+      area_sqm: 8.25,
+      covered: false,
+      cover_type: '',
+      has_auto_watering: false,
+      watering_type: '',
+      has_heating: true,
+      heating_type: 'radiator',
+      has_lighting: true,
+      lighting_type: 'natural only',
+      orientation: 'S',
+      slope_degrees: 1,
+      soil_type: 'hydroponic',
+      latitude: 52.1,
+      longitude: -0.45,
+      notes: 'Updated notes'
+    });
+
+  expect(patchRes.status).toBe(200);
+  expect(patchRes.body.ok).toBe(true);
+
+  const zoneRes = await request(app).get(`/api/zones/${createRes.body.id}`);
+  expect(zoneRes.body.name).toBe('Updated Zone');
+  expect(zoneRes.body.type).toBe('indoor');
+  expect(zoneRes.body.area_sqm).toBe(8.25);
+  expect(zoneRes.body.covered).toBe(0);
+  expect(zoneRes.body.heating_type).toBe('radiator');
+  expect(zoneRes.body.lighting_type).toBe('natural only');
+  expect(zoneRes.body.orientation).toBe('S');
+  expect(zoneRes.body.soil_type).toBe('hydroponic');
+  expect(zoneRes.body.notes).toBe('Updated notes');
+});
+
+test('PATCH /api/zones/:id rejects grid changes when active plantings exist', async () => {
+  const zoneCreateRes = await request(app)
+    .post('/api/setup/zone')
+    .send({ name: 'Busy Grid', type: 'germinator', view_type: 'grid', grid_rows: 2, grid_cols: 2 });
+  const zoneRes = await request(app).get(`/api/zones/${zoneCreateRes.body.id}`);
+  const seedRes = await request(app)
+    .post('/api/seeds')
+    .send({ name: 'Tomato', variety: 'Roma', type: 'vegetable', quantity: 12 });
+
+  await request(app)
+    .post('/api/plant-lifecycle')
+    .send({
+      seed_id: seedRes.body.id,
+      zone_id: zoneCreateRes.body.id,
+      cell_id: zoneRes.body.cells[0].id,
+      sown_date: '2026-04-08',
+      quantity: 1
+    });
+
+  const patchRes = await request(app)
+    .patch(`/api/zones/${zoneCreateRes.body.id}`)
+    .send({ grid_rows: 3, grid_cols: 2 });
+
+  expect(patchRes.status).toBe(400);
+  expect(patchRes.body.error).toContain('cannot change grid settings');
+});
+
+test('DELETE /api/zones/:id removes empty zones', async () => {
+  const zoneCreateRes = await request(app)
+    .post('/api/setup/zone')
+    .send({ name: 'Disposable Zone', type: 'outdoor', view_type: 'loose' });
+
+  const deleteRes = await request(app).delete(`/api/zones/${zoneCreateRes.body.id}`);
+  expect(deleteRes.status).toBe(200);
+  expect(deleteRes.body.ok).toBe(true);
+
+  const fetchRes = await request(app).get(`/api/zones/${zoneCreateRes.body.id}`);
+  expect(fetchRes.status).toBe(404);
+});
+
+test('DELETE /api/zones/:id rejects zones with active plantings', async () => {
+  const zoneCreateRes = await request(app)
+    .post('/api/setup/zone')
+    .send({ name: 'Protected Zone', type: 'outdoor', view_type: 'loose' });
+  const seedRes = await request(app)
+    .post('/api/seeds')
+    .send({ name: 'Lettuce', variety: 'Butterhead', type: 'vegetable', quantity: 8 });
+
+  await request(app)
+    .post('/api/plant-lifecycle')
+    .send({
+      seed_id: seedRes.body.id,
+      zone_id: zoneCreateRes.body.id,
+      sown_date: '2026-04-08',
+      quantity: 1
+    });
+
+  const deleteRes = await request(app).delete(`/api/zones/${zoneCreateRes.body.id}`);
+  expect(deleteRes.status).toBe(400);
+  expect(deleteRes.body.error).toContain('cannot delete zone');
+});
+
 test('GET /api/seeds returns array', async () => {
   const res = await request(app).get('/api/seeds');
   expect(res.status).toBe(200);

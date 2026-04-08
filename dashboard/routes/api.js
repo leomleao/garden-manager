@@ -146,32 +146,74 @@ router.get('/zones/:id', (req, res) => {
 });
 
 router.patch('/zones/:id', (req, res) => {
+  const zoneId = Number(req.params.id);
+  const existing = db.prepare('SELECT * FROM zones WHERE id=?').get([zoneId]);
+  if (!existing) return res.status(404).json({ error: 'not found' });
+
   const allowed = ['name','type','latitude','longitude','area_sqm','covered','cover_type',
     'orientation','slope_degrees','has_auto_watering','watering_type','has_heating','heating_type',
     'has_lighting','lighting_type','soil_type','view_type','grid_rows','grid_cols',
     'cell_width_cm','cell_height_cm','notes','sort_order'];
   const fields = Object.keys(req.body).filter(k => allowed.includes(k));
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
+
+  const activePlantings = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM plant_lifecycle
+    WHERE zone_id=?
+      AND status NOT IN ('harvested','failed')
+  `).get([zoneId]).count;
+
+  const currentIsGrid = existing.view_type === 'grid';
+  const gridStructureChanged =
+    (fields.includes('view_type') && req.body.view_type !== existing.view_type) ||
+    (fields.includes('grid_rows') && Number(req.body.grid_rows) !== Number(existing.grid_rows)) ||
+    (fields.includes('grid_cols') && Number(req.body.grid_cols) !== Number(existing.grid_cols)) ||
+    (fields.includes('cell_width_cm') && Number(req.body.cell_width_cm) !== Number(existing.cell_width_cm)) ||
+    (fields.includes('cell_height_cm') && Number(req.body.cell_height_cm) !== Number(existing.cell_height_cm));
+
+  if (currentIsGrid && activePlantings > 0 && gridStructureChanged) {
+    return res.status(400).json({ error: 'cannot change grid settings while plants are active in this zone' });
+  }
+
   const set = fields.map(f => `${f}=?`).join(',');
   const vals = fields.map(f => req.body[f]);
 
-  const gridChanged = fields.some(f => ['view_type','grid_rows','grid_cols'].includes(f));
+  db.prepare(`UPDATE zones SET ${set} WHERE id=?`).run([...vals, zoneId]);
 
-  db.prepare(`UPDATE zones SET ${set} WHERE id=?`).run([...vals, req.params.id]);
-
-  if (gridChanged) {
-    const zone = db.prepare('SELECT view_type, grid_rows, grid_cols FROM zones WHERE id=?').get([req.params.id]);
-    db.prepare('DELETE FROM zone_cells WHERE zone_id=?').run([req.params.id]);
+  if (gridStructureChanged) {
+    const zone = db.prepare('SELECT view_type, grid_rows, grid_cols FROM zones WHERE id=?').get([zoneId]);
+    db.prepare('DELETE FROM zone_cells WHERE zone_id=?').run([zoneId]);
     if (zone.view_type === 'grid' && zone.grid_rows && zone.grid_cols) {
       const insert = db.prepare('INSERT INTO zone_cells(zone_id,row,col,label) VALUES(?,?,?,?)');
       for (let r = 1; r <= zone.grid_rows; r++) {
         for (let c = 1; c <= zone.grid_cols; c++) {
-          insert.run([req.params.id, r, c, String.fromCharCode(64 + r) + c]);
+          insert.run([zoneId, r, c, String.fromCharCode(64 + r) + c]);
         }
       }
     }
   }
 
+  res.json({ ok: true });
+});
+
+router.delete('/zones/:id', (req, res) => {
+  const zoneId = Number(req.params.id);
+  const existing = db.prepare('SELECT id FROM zones WHERE id=?').get([zoneId]);
+  if (!existing) return res.status(404).json({ error: 'not found' });
+
+  const activePlantings = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM plant_lifecycle
+    WHERE zone_id=?
+      AND status NOT IN ('harvested','failed')
+  `).get([zoneId]).count;
+
+  if (activePlantings > 0) {
+    return res.status(400).json({ error: 'cannot delete zone while plants are active in this zone' });
+  }
+
+  db.prepare('DELETE FROM zones WHERE id=?').run([zoneId]);
   res.json({ ok: true });
 });
 

@@ -178,7 +178,7 @@
                       @click="openCellModal(cell.id, zone.id)"
                       style="position:relative">
                       <!-- Hover menu -->
-                      <div x-show="menuCellId === cell.id && getCellStatus(cell.id) !== 'empty'"
+                      <div x-show="menuCellId === cell.id && activePlanting(cell.id) !== null"
                            @mousedown.stop
                            @click.stop
                            @mouseenter="keepMenu()"
@@ -190,8 +190,13 @@
                             class="cell-hover-action cell-hover-action-ok">
                             <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Ok%20hand/Light/Color/ok_hand_color_light.svg" width="18" height="18" alt="OK">
                           </button>
+                          <button @mousedown.stop @click.stop="markHarvest(cell.id)" title="Harvest"
+                            x-show="canMarkHarvest(activePlanting(cell.id))"
+                            class="cell-hover-action cell-hover-action-harvest">
+                            <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Sheaf%20of%20rice/Color/sheaf_of_rice_color.svg" width="18" height="18" alt="Harvest">
+                          </button>
                           <button @mousedown.stop @click.stop="markDead(cell.id)" title="Dead"
-                            x-show="getCellStatus(cell.id) !== 'empty'"
+                            x-show="activePlanting(cell.id) !== null"
                             class="cell-hover-action cell-hover-action-dead">
                             <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Skull%20and%20crossbones/Color/skull_and_crossbones_color.svg" width="18" height="18" alt="Dead">
                           </button>
@@ -203,7 +208,7 @@
                 </div>
                 <!-- Legend -->
                 <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
-                  <template x-for="s in ['empty','sown','germinated','failed']" :key="s">
+                  <template x-for="s in ['empty','sown','germinated','harvested','failed']" :key="s">
                     <span style="font-size:.75rem;display:flex;align-items:center;gap:.25rem">
                       <span class="grid-cell" :class="s==='empty'?'':s" style="width:12px;height:12px;display:inline-block"></span>
                       <span x-text="s" class="text-muted"></span>
@@ -215,7 +220,7 @@
 
             <!-- Loose view -->
             <div x-show="zone.view_type==='loose'">
-              <template x-for="p in getZonePlantings(zone.id)" :key="p.id">
+              <template x-for="p in getAllZonePlantings(zone.id)" :key="p.id">
                 <div @click="openLoosePlantingModal(p)" class="loose-planting-row">
                   <span class="badge" :class="'badge-'+p.status" x-text="p.status"></span>
                   <span x-text="p.seed_name + (p.seed_variety ? ' · '+p.seed_variety : '')"></span>
@@ -225,13 +230,17 @@
                       x-show="canMarkOk(p)">
                       <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Ok%20hand/Light/Color/ok_hand_color_light.svg" width="14" height="14" alt="OK">
                     </button>
+                    <button @click.stop="markLoosePlantingHarvest(p.id)" class="btn btn-secondary btn-sm" title="Harvest"
+                      x-show="canMarkHarvest(p)">
+                      <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Sheaf%20of%20rice/Color/sheaf_of_rice_color.svg" width="14" height="14" alt="Harvest">
+                    </button>
                     <button @click.stop="markLoosePlantingDead(p.id)" class="btn btn-secondary btn-sm" title="Dead">
                       <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Skull%20and%20crossbones/Color/skull_and_crossbones_color.svg" width="14" height="14" alt="Dead">
                     </button>
                   </span>
                 </div>
               </template>
-              <p x-show="!getZonePlantings(zone.id).length" class="text-muted" style="font-size:.875rem">No active plantings</p>
+              <p x-show="!getAllZonePlantings(zone.id).length" class="text-muted" style="font-size:.875rem">No plantings</p>
               <button class="btn btn-primary btn-sm" style="margin-top:.75rem" @click="openSeedPicker(null, zone.id)">&#x1F331; Sow</button>
             </div>
           </div>
@@ -352,24 +361,174 @@
 
         <!-- Zone Settings Modal -->
         <div class="modal-overlay" x-show="showZoneModal" @click.self="closeZoneModal()" @keydown.escape.window="closeZoneModal()">
-          <div class="modal-card" style="max-width:460px">
+          <div class="modal-card" style="max-width:680px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
               <h2 x-text="'Edit: ' + (editingZone?.name || '')"></h2>
               <button class="btn btn-secondary btn-sm" @click="closeZoneModal()" aria-label="Close">&times;</button>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">
-              <input placeholder="Zone name" x-model="zoneForm.name" style="grid-column:1/-1">
-              <input placeholder="Soil type" x-model="zoneForm.soil_type">
-              <input placeholder="Watering type" x-model="zoneForm.watering_type">
-              <input placeholder="Heating type" x-model="zoneForm.heating_type">
-              <input placeholder="Lighting type" x-model="zoneForm.lighting_type">
-              <input placeholder="Grid rows" type="number" x-model.number="zoneForm.grid_rows">
-              <input placeholder="Grid cols" type="number" x-model.number="zoneForm.grid_cols">
-              <textarea placeholder="Notes..." x-model="zoneForm.notes" rows="2" style="grid-column:1/-1;resize:vertical"></textarea>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
+              <div>
+                <label>Zone name</label>
+                <input type="text" x-model="zoneForm.name" placeholder="e.g. Germinator 1">
+              </div>
+              <div>
+                <label>Type</label>
+                <select x-model="zoneForm.type">
+                  <option>germinator</option><option>greenhouse</option>
+                  <option>polytunnel</option><option>outdoor</option>
+                  <option>indoor</option><option>other</option>
+                </select>
+              </div>
+
+              <div style="grid-column:1/-1">
+                <label>View type</label>
+                <select x-model="zoneForm.view_type"
+                  :disabled="zoneGridLocked(editingZone)"
+                  :title="zoneGridLockReason(editingZone)">
+                  <option value="grid">Grid - track every cell individually</option>
+                  <option value="loose">Loose - general planting overview</option>
+                </select>
+              </div>
+
+              <div x-show="zoneForm.view_type==='grid'" class="zone-grid-panel" style="grid-column:1/-1">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.5rem">
+                  <div>
+                    <label>Rows</label>
+                    <input type="number" min="1" x-model.number="zoneForm.grid_rows"
+                      :disabled="zoneGridLocked(editingZone)"
+                      :title="zoneGridLockReason(editingZone)">
+                  </div>
+                  <div>
+                    <label>Cols</label>
+                    <input type="number" min="1" x-model.number="zoneForm.grid_cols"
+                      :disabled="zoneGridLocked(editingZone)"
+                      :title="zoneGridLockReason(editingZone)">
+                  </div>
+                  <div>
+                    <label>Cell W (cm)</label>
+                    <input type="number" step="0.1" x-model.number="zoneForm.cell_width_cm"
+                      :disabled="zoneGridLocked(editingZone)"
+                      :title="zoneGridLockReason(editingZone)">
+                  </div>
+                  <div>
+                    <label>Cell H (cm)</label>
+                    <input type="number" step="0.1" x-model.number="zoneForm.cell_height_cm"
+                      :disabled="zoneGridLocked(editingZone)"
+                      :title="zoneGridLockReason(editingZone)">
+                  </div>
+                </div>
+                <div x-show="zoneForm.grid_rows && zoneForm.grid_cols">
+                  <label style="margin-bottom:.25rem">Preview</label>
+                  <div class="grid-preview"
+                    :style="`grid-template-columns: repeat(${zoneForm.grid_cols},1fr)`">
+                    <template x-for="n in (zoneForm.grid_rows||0)*(zoneForm.grid_cols||0)">
+                      <div class="grid-cell" style="width:16px;height:16px"></div>
+                    </template>
+                  </div>
+                  <p style="font-size:.75rem;color:var(--text-3);margin-top:.25rem"
+                    x-text="`${zoneForm.grid_rows}x${zoneForm.grid_cols} = ${zoneForm.grid_rows*zoneForm.grid_cols} cells`"></p>
+                </div>
+              </div>
+
+              <div x-show="zoneForm.view_type==='loose'" style="grid-column:1/-1">
+                <label>Area (sqm)</label>
+                <input type="number" step="0.1" x-model.number="zoneForm.area_sqm">
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;grid-column:1/-1">
+                <label class="toggle">
+                  <input type="checkbox" x-model="zoneForm.covered">
+                  <span>Covered</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" x-model="zoneForm.has_auto_watering">
+                  <span>Auto-watering</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" x-model="zoneForm.has_heating">
+                  <span>Heating</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" x-model="zoneForm.has_lighting">
+                  <span>Lighting</span>
+                </label>
+              </div>
+
+              <div x-show="zoneForm.covered" style="grid-column:1/-1">
+                <label>Cover type</label>
+                <select x-model="zoneForm.cover_type">
+                  <option>glass</option><option>polycarbonate</option>
+                  <option>fleece</option><option>polytunnel</option><option>other</option>
+                </select>
+              </div>
+              <div x-show="zoneForm.has_auto_watering" style="grid-column:1/-1">
+                <label>Watering type</label>
+                <select x-model="zoneForm.watering_type">
+                  <option>drip</option><option>sprinkler</option>
+                  <option>misting</option><option>flood</option>
+                </select>
+              </div>
+              <div x-show="zoneForm.has_heating" style="grid-column:1/-1">
+                <label>Heating type</label>
+                <select x-model="zoneForm.heating_type">
+                  <option>electric mat</option><option>fan heater</option>
+                  <option>underfloor</option><option>radiator</option><option>other</option>
+                </select>
+              </div>
+              <div x-show="zoneForm.has_lighting" style="grid-column:1/-1">
+                <label>Lighting type</label>
+                <select x-model="zoneForm.lighting_type">
+                  <option>LED grow light</option><option>fluorescent</option>
+                  <option>HPS</option><option>natural only</option>
+                </select>
+              </div>
+
+              <div>
+                <label>Orientation</label>
+                <select x-model="zoneForm.orientation">
+                  <option value="">Unknown</option>
+                  <option>N</option><option>NE</option><option>E</option><option>SE</option>
+                  <option>S</option><option>SW</option><option>W</option><option>NW</option>
+                </select>
+              </div>
+              <div>
+                <label>Slope (deg)</label>
+                <input type="number" min="0" max="90" x-model.number="zoneForm.slope_degrees">
+              </div>
+
+              <div style="grid-column:1/-1">
+                <label>Soil / growing medium</label>
+                <select x-model="zoneForm.soil_type">
+                  <option value="">Unknown</option>
+                  <option>raised_bed</option><option>ground</option>
+                  <option>hydroponic</option><option>container</option><option>none</option>
+                </select>
+              </div>
+
+              <div style="grid-column:1/-1">
+                <label>GPS (overrides garden location for this zone)</label>
+                <div style="display:flex;gap:.5rem">
+                  <input type="number" step="0.0001" x-model.number="zoneForm.latitude" placeholder="Latitude">
+                  <input type="number" step="0.0001" x-model.number="zoneForm.longitude" placeholder="Longitude">
+                </div>
+              </div>
+
+              <div style="grid-column:1/-1">
+                <label>Notes</label>
+                <textarea rows="2" x-model="zoneForm.notes" style="resize:vertical"></textarea>
+              </div>
             </div>
-            <div style="display:flex;justify-content:flex-end;gap:.5rem">
+            <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center">
+              <button class="btn btn-secondary"
+                @click="deleteZone()"
+                :disabled="zoneHasActivePlantings(editingZone?.id)"
+                :title="zoneDeleteBlockedReason(editingZone)">
+                Delete zone
+              </button>
+              <div style="display:flex;gap:.5rem">
               <button class="btn btn-secondary" @click="closeZoneModal()">Cancel</button>
               <button class="btn btn-primary" @click="saveZoneSettings()">Save</button>
+              </div>
             </div>
           </div>
         </div>
@@ -535,11 +694,7 @@
 
         <!-- Yearly Calendar Grid -->
         <div class="card" style="overflow-x:auto">
-          <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1rem">
-            <button class="btn btn-secondary btn-sm" @click="prevYear()">&larr;</button>
-            <h2 x-text="calYear"></h2>
-            <button class="btn btn-secondary btn-sm" @click="nextYear()">&rarr;</button>
-          </div>
+          <h2 style="text-align:center;margin-bottom:1rem" x-text="'Sowing Calendar ' + calYear"></h2>
 
           <div class="cal-grid">
             <!-- Header row: empty name cell + 12 month labels -->

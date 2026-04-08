@@ -306,11 +306,11 @@ function app() {
     },
 
     getCellStatus(cellId) {
-      const p = this.plantings.find(p => p.cell_id === cellId && p.status !== 'harvested');
+      const p = this.plantings.find(p => p.cell_id === cellId);
       return p ? p.status : 'empty';
     },
     getCellDesc(cellId) {
-      const p = this.plantings.find(p => p.cell_id === cellId && p.status !== 'harvested');
+      const p = this.plantings.find(p => p.cell_id === cellId);
       return p ? `${p.seed_name} (${p.status})` : 'Empty';
     },
     getCellLabel(cellId, zoneId = null) {
@@ -378,7 +378,48 @@ function app() {
       return 'sown';
     },
     getZonePlantings(zoneId) {
-      return this.plantings.filter(p => p.zone_id === zoneId && !['harvested','failed'].includes(p.status));
+      return this.plantings.filter(p => p.zone_id === zoneId && p.status !== 'harvested');
+    },
+    getAllZonePlantings(zoneId) {
+      return this.plantings.filter(p => p.zone_id === zoneId);
+    },
+    zoneHasActivePlantings(zoneId) {
+      return this.getZonePlantings(zoneId).length > 0;
+    },
+    zoneGridLocked(zone) {
+      return zone?.view_type === 'grid' && this.zoneHasActivePlantings(zone.id);
+    },
+    zoneGridLockReason(zone) {
+      return this.zoneGridLocked(zone) ? 'Grid settings are locked while this zone has active plantings.' : '';
+    },
+    zoneDeleteBlockedReason(zone) {
+      return this.zoneHasActivePlantings(zone?.id) ? 'This zone cannot be deleted while it has active plantings.' : '';
+    },
+    buildZoneForm(zone) {
+      return {
+        name: zone.name || '',
+        type: zone.type || 'other',
+        view_type: zone.view_type || 'loose',
+        grid_rows: zone.grid_rows ?? null,
+        grid_cols: zone.grid_cols ?? null,
+        cell_width_cm: zone.cell_width_cm ?? null,
+        cell_height_cm: zone.cell_height_cm ?? null,
+        area_sqm: zone.area_sqm ?? null,
+        covered: !!zone.covered,
+        cover_type: zone.cover_type || '',
+        has_auto_watering: !!zone.has_auto_watering,
+        watering_type: zone.watering_type || '',
+        has_heating: !!zone.has_heating,
+        heating_type: zone.heating_type || '',
+        has_lighting: !!zone.has_lighting,
+        lighting_type: zone.lighting_type || '',
+        orientation: zone.orientation || '',
+        slope_degrees: zone.slope_degrees ?? null,
+        soil_type: zone.soil_type || '',
+        latitude: zone.latitude ?? null,
+        longitude: zone.longitude ?? null,
+        notes: zone.notes || ''
+      };
     },
     activePlanting(cellId) {
       return this.plantings.find(p => p.cell_id === cellId && p.status !== 'harvested');
@@ -386,13 +427,20 @@ function app() {
     canMarkOk(planting) {
       return !!planting && !['germinated', 'failed', 'harvested'].includes(planting.status);
     },
+    canMarkHarvest(planting) {
+      return !!planting && planting.status === 'germinated';
+    },
 
     openZoneSettings(zone) {
       this.editingZone = zone;
-      this.zoneForm = { name: zone.name, type: zone.type, soil_type: zone.soil_type||'', watering_type: zone.watering_type||'', heating_type: zone.heating_type||'', lighting_type: zone.lighting_type||'', grid_rows: zone.grid_rows, grid_cols: zone.grid_cols, notes: zone.notes||'' };
+      this.zoneForm = this.buildZoneForm(zone);
       this.showZoneModal = true;
     },
-    closeZoneModal() { this.showZoneModal = false; },
+    closeZoneModal() {
+      this.showZoneModal = false;
+      this.editingZone = null;
+      this.zoneForm = {};
+    },
     async saveZoneSettings() {
       try {
         const r = await fetch(`/api/zones/${this.editingZone.id}`, {
@@ -403,6 +451,15 @@ function app() {
         this.showZoneModal = false;
         await this.refresh();
       } catch(e) { console.error('Zone save failed:', e); }
+    },
+    async deleteZone() {
+      if (!this.editingZone || this.zoneHasActivePlantings(this.editingZone.id)) return;
+      try {
+        const r = await fetch(`/api/zones/${this.editingZone.id}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(await r.text());
+        this.closeZoneModal();
+        await this.refresh();
+      } catch(e) { console.error('Zone delete failed:', e); }
     },
 
     showMenu(cellId) {
@@ -460,6 +517,18 @@ function app() {
         await this.refresh();
       } catch(e) { console.error('Mark dead failed:', e); await this.refresh(); }
     },
+    async markHarvest(cellId) {
+      const p = this.activePlanting(cellId);
+      if (!p) return;
+      this.menuCellId = null;
+      try {
+        await fetch(`/api/plant-lifecycle/${p.id}`, {
+          method: 'PATCH', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ harvested_date: new Date().toISOString().slice(0,10), status: 'harvested' })
+        });
+        await this.refresh();
+      } catch(e) { console.error('Mark harvest failed:', e); await this.refresh(); }
+    },
     async markLoosePlantingOk(plantingId) {
       try {
         await fetch(`/api/plant-lifecycle/${plantingId}`, {
@@ -474,7 +543,6 @@ function app() {
       } catch(e) { console.error('Mark OK failed:', e); }
     },
     async markLoosePlantingDead(plantingId) {
-      this.plantings = this.plantings.filter(p => p.id !== plantingId);
       try {
         await fetch(`/api/plant-lifecycle/${plantingId}`, {
           method: 'PATCH', headers: {'Content-Type':'application/json'},
@@ -482,6 +550,15 @@ function app() {
         });
         await this.refresh();
       } catch(e) { console.error('Mark dead failed:', e); await this.refresh(); }
+    },
+    async markLoosePlantingHarvest(plantingId) {
+      try {
+        await fetch(`/api/plant-lifecycle/${plantingId}`, {
+          method: 'PATCH', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ harvested_date: new Date().toISOString().slice(0,10), status: 'harvested' })
+        });
+        await this.refresh();
+      } catch(e) { console.error('Mark harvest failed:', e); }
     },
 
     openPlantingModal(planting, options = {}) {
