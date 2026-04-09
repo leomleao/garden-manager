@@ -71,47 +71,118 @@
         <div class="card" x-show="weather.temp !== null">
           <div class="weather-widget">
 
-            <!-- Layer 1: Header (current conditions — unchanged) -->
+            <!-- Layer 1: Header -->
             <div class="weather-header">
-              <span style="font-size:1.5rem" x-text="weather.icon"></span>
+              <span style="font-size:2rem" x-text="weather.icon"></span>
               <div>
-                <div style="font-weight:600" x-text="(weather.temp ?? '--') + '°C · ' + (weather.desc || '')"></div>
-                <div class="text-muted" style="font-size:.75rem" x-text="config.location_name"></div>
+                <div style="font-weight:700;font-size:1.4rem" x-text="(weather.temp ?? '--') + '°C'"></div>
+                <div class="text-muted" style="font-size:.8rem" x-text="selectedForecast.desc || weather.desc"></div>
+                <div style="font-size:.68rem;color:var(--text-3)" x-show="!!config.location_name">
+                  📍 <span x-text="config.location_name"></span>
+                </div>
+              </div>
+              <div class="weather-header-right" x-show="weather.forecast.length > 0">
+                <div class="weather-header-day"
+                     x-text="weather.selectedDay === 0 ? 'Today' : (selectedForecast.fullName || '')"></div>
+                <div class="weather-header-hilo"
+                     x-text="'H: ' + (selectedForecast.hi ?? '--') + '°  L: ' + (selectedForecast.lo ?? '--') + '°'"></div>
               </div>
             </div>
 
-            <!-- Layer 2: Alert bar (hidden when no alerts) -->
-            <div class="weather-alerts" x-show="weather.alerts.length > 0">
-              <template x-for="alert in weather.alerts" :key="alert.text">
-                <div class="weather-alert" :class="'weather-alert--' + alert.level">
-                  <span x-text="alert.level === 'green' ? '\u2705' : '\u26A0\uFE0F'"></span>
-                  <span x-text="alert.text"></span>
+            <!-- Layer 2: Interactive stats bar (4 tiles, updates on day click) -->
+            <div class="weather-stats"
+                 x-show="weather.forecast.length > 0"
+                 :class="{ 'weather-stats--flash': weather.statsFlash }">
+              <div class="weather-stat">
+                <div class="weather-stat-label">Soil Temp</div>
+                <div class="weather-stat-value"
+                     x-text="selectedForecast.soilTemp != null ? selectedForecast.soilTemp + '°C' : '--'"></div>
+                <div class="weather-stat-sub" x-text="selectedForecast.soilSub || ''"></div>
+              </div>
+              <div class="weather-stat">
+                <div class="weather-stat-label">Rain</div>
+                <div class="weather-stat-value"
+                     x-text="selectedForecast.rain != null ? selectedForecast.rain + 'mm' : '--'"></div>
+                <div class="weather-stat-sub"
+                     x-text="weather.selectedDay === 0 ? 'Today' : (selectedForecast.fullName || '')"></div>
+              </div>
+              <div class="weather-stat">
+                <div class="weather-stat-label">UV Index</div>
+                <div class="weather-stat-value"
+                     x-text="selectedForecast.uvMax != null ? selectedForecast.uvMax : '--'"></div>
+                <div class="weather-stat-sub"
+                     x-text="(selectedForecast.uvMax ?? 0) <= 2 ? 'Low' : (selectedForecast.uvMax ?? 0) <= 5 ? 'Moderate' : (selectedForecast.uvMax ?? 0) <= 7 ? 'High' : 'Very High'"></div>
+              </div>
+              <div class="weather-stat">
+                <div class="weather-stat-label">Watering</div>
+                <div class="weather-stat-value" style="font-size:.78rem"
+                     x-text="selectedForecast.watering || '--'"></div>
+                <div class="weather-stat-sub" x-text="selectedForecast.waterSub || ''"></div>
+              </div>
+            </div>
+
+            <!-- Layer 3: 7-day strip -->
+            <div class="weather-section-label" x-show="weather.forecast.length > 0">7-day gardening outlook</div>
+            <div class="weather-7day" x-show="weather.forecast.length > 0">
+              <template x-for="(day, i) in weather.forecast" :key="i">
+                <div class="weather-day-cell"
+                     :class="{ 'weather-day-cell--active': weather.selectedDay === i }"
+                     @click="selectForecastDay(i)">
+                  <div class="wdc-name" :class="{ 'wdc-name--today': i === 0 }"
+                       x-text="i === 0 ? 'Today' : day.name"></div>
+                  <div class="wdc-icon" x-text="day.icon"></div>
+                  <div class="wdc-hilo">
+                    <span x-text="day.hi + '°'"></span><span class="wdc-lo" x-text="'/' + day.lo + '°'"></span>
+                  </div>
+                  <div class="wdc-rain" x-text="day.rain > 0 ? '💧 ' + day.rain + 'mm' : '—'"></div>
+                  <div class="wdc-soil" x-show="day.soilTemp != null" x-text="'🌱 ' + day.soilTemp + '°C'"></div>
+                  <div class="wdc-tag wdc-tag--frost" x-show="day.frost">❄️ frost</div>
+                  <div class="wdc-tag wdc-tag--uv" x-show="day.uvHigh" x-text="'☀️ UV ' + day.uvMax"></div>
                 </div>
               </template>
             </div>
 
-            <!-- Layer 3: Stats grid (hidden until data arrives) -->
-            <div class="weather-stats" x-show="weather.uv !== null || weather.soil.temp !== null">
-              <div class="weather-stat">
-                <div class="weather-stat-label">Soil Temp</div>
-                <div class="weather-stat-value" x-text="weather.soil.temp !== null ? weather.soil.temp + '\xB0C' : '--'"></div>
-                <div class="weather-stat-sub" x-text="weather.soil.status"></div>
-              </div>
-              <div class="weather-stat">
-                <div class="weather-stat-label">UV Index</div>
-                <div class="weather-stat-value" x-text="weather.uv !== null ? weather.uv : '--'"></div>
-              </div>
-              <div class="weather-stat">
-                <div class="weather-stat-label">Rain Today</div>
-                <div class="weather-stat-value" x-text="weather.rain !== null ? weather.rain + 'mm' : '--'"></div>
-              </div>
-              <div class="weather-stat">
-                <div class="weather-stat-label">Watering</div>
-                <div class="weather-stat-value" style="font-size:.8rem" x-text="weather.wateringStatus || '--'"></div>
-              </div>
+            <!-- Layer 4: Gardening insights -->
+            <div class="weather-section-label" x-show="weather.insights.length > 0">Gardening insights</div>
+            <div class="weather-insights" x-show="weather.insights.length > 0">
+              <template x-for="insight in weather.insights" :key="insight.label">
+                <div class="weather-insight" :class="'weather-insight--' + insight.type">
+                  <div class="weather-insight-icon" x-text="insight.icon"></div>
+                  <div class="weather-insight-body">
+                    <div class="weather-insight-label" x-text="insight.label"></div>
+                    <div class="weather-insight-title" x-text="insight.title"></div>
+                    <div class="weather-insight-desc" x-text="insight.desc"></div>
+                    <div x-show="insight.type === 'season'">
+                      <div class="gdd-bar">
+                        <div class="gdd-track">
+                          <div class="gdd-fill" :style="'width:' + Math.min((insight.gddRatio || 0) * 100, 100) + '%'"></div>
+                        </div>
+                        <span style="font-size:.6rem;color:var(--text-3)"
+                              x-text="Math.round((insight.gddRatio || 0) * 100) + '% of avg'"></span>
+                      </div>
+                      <div class="gdd-labels"><span>0</span><span>Typical GDD</span></div>
+                    </div>
+                    <div class="weather-insight-meta" x-text="insight.meta"></div>
+                  </div>
+                </div>
+              </template>
             </div>
 
-            <!-- Layer 4: Action text -->
+            <!-- Layer 5: Weather alerts (with body text) -->
+            <div class="weather-section-label" x-show="weather.alerts.length > 0">Weather alerts</div>
+            <div class="weather-alerts" x-show="weather.alerts.length > 0">
+              <template x-for="alert in weather.alerts" :key="alert.text">
+                <div class="weather-alert" :class="'weather-alert--' + alert.level">
+                  <span x-text="alert.level === 'green' ? '✅' : '⚠️'"></span>
+                  <div>
+                    <span class="weather-alert-title" x-text="alert.text"></span>
+                    <span class="weather-alert-body" x-show="!!alert.body" x-text="alert.body"></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Layer 6: Action footer -->
             <div class="weather-action"
                  x-show="!!weather.actionText"
                  :class="weather.alerts[0] ? 'weather-action--' + weather.alerts[0].level : ''"
