@@ -264,6 +264,83 @@ function computeFrostEnsemble(ensembleData) {
   return result;
 }
 
+// ── Spring Readiness Index ────────────────────────────────────────────────────
+// Input: historical archive API response (daily temperature_2m_min),
+// current day-of-year, and 7-day ensemble frost probability (0–1 fraction).
+//
+// Computes: what % of historical years had a frost on or after currentDayOfYear,
+// and combines with ensemble forecast to produce a safe/caution/warning status.
+//
+// Returns { historicalRisk, forecastRisk, safeDate, status, body } or null.
+
+function computeSpringReadiness(climateData, currentDayOfYear, ensembleFrostProb7d) {
+  if (!climateData || !climateData.daily) return null;
+  const { time, temperature_2m_min } = climateData.daily;
+  if (!time || !temperature_2m_min || time.length === 0) return null;
+
+  // For each year: did it have a frost on or after currentDayOfYear?
+  const allYears          = new Set();
+  const yearsWithLateFrost = new Set();
+
+  time.forEach((dateStr, i) => {
+    const d    = new Date(dateStr + 'T12:00:00');
+    const year = d.getFullYear();
+    const doy  = Math.floor((d - new Date(year, 0, 0)) / 86400000);
+    const temp = temperature_2m_min[i];
+
+    allYears.add(year);
+    if (doy >= currentDayOfYear && temp != null && temp <= 0) {
+      yearsWithLateFrost.add(year);
+    }
+  });
+
+  if (allYears.size === 0) return null;
+
+  const historicalRisk = yearsWithLateFrost.size / allYears.size;
+  const forecastRisk   = ensembleFrostProb7d ?? 0;
+
+  // Derive safe date: find the latest date in historical data with a frost after
+  // currentDayOfYear, then add a 14-day buffer.
+  let safeDate = null;
+  let lastFrostDoy = -1;
+  time.forEach((dateStr, i) => {
+    const d    = new Date(dateStr + 'T12:00:00');
+    const year = d.getFullYear();
+    const doy  = Math.floor((d - new Date(year, 0, 0)) / 86400000);
+    const temp = temperature_2m_min[i];
+    if (doy >= currentDayOfYear && temp != null && temp <= 0 && doy > lastFrostDoy) {
+      lastFrostDoy = doy;
+    }
+  });
+  if (lastFrostDoy > 0) {
+    const safe = new Date(new Date().getFullYear(), 0, lastFrostDoy + 14);
+    safeDate = safe.toLocaleDateString('en', { month: 'long', day: 'numeric' });
+  }
+
+  let status, body;
+  const forecastPct     = Math.round(forecastRisk * 100);
+  const historicalPct   = Math.round(historicalRisk * 100);
+
+  if (forecastRisk >= 0.1) {
+    status = 'warning';
+    body   = `Active frost risk in the 7-day forecast (${forecastPct}% probability). Wait until the forecast clears before planting tender crops outdoors.`;
+  } else if (historicalRisk >= 0.15) {
+    status = 'caution';
+    body   = `Forecast looks clear, but historically this location has a ${historicalPct}% chance of a late frost after this date.${safeDate ? ` Safe window typically opens around ${safeDate}.` : ''}`;
+  } else {
+    status = 'safe';
+    body   = 'Both historical records and the current forecast confirm low frost risk — safe to plant tender seeds outdoors.';
+  }
+
+  return {
+    historicalRisk: historicalPct,
+    forecastRisk:   forecastPct,
+    safeDate,
+    status,
+    body,
+  };
+}
+
 // ── Watering status from water balance ────────────────────────────────────────
 
 function wateringFromBalance(precipSum, et0, uvMax) {
@@ -656,6 +733,6 @@ if (typeof module !== 'undefined') {
     computeGreenhouseAlert, computePotCheck, computeSeasonGauge,
     gddBaseline, computeInsights, computeAlerts, computeActionText,
     computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
-    computeDualGDD, computeFrostEnsemble,
+    computeDualGDD, computeFrostEnsemble, computeSpringReadiness,
   };
 }

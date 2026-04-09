@@ -5,7 +5,7 @@ const {
   computeGreenhouseAlert, computePotCheck, gddBaseline,
   computeSeasonGauge, computeInsights, computeAlerts,
   computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
-  computeDualGDD, computeFrostEnsemble,
+  computeDualGDD, computeFrostEnsemble, computeSpringReadiness,
 } = require('../public/app/weather-helpers');
 
 // ── codeToIcon / codeToDesc ───────────────────────────────────────────────────
@@ -576,5 +576,77 @@ describe('computeFrostEnsemble', () => {
     const result = computeFrostEnsemble(data);
     expect(result[0].prob).toBe(0.2);
     expect(result[0].level).toBe('possible');
+  });
+});
+
+// ── computeSpringReadiness ────────────────────────────────────────────────────
+describe('computeSpringReadiness', () => {
+  const currentDoy = 99; // ~April 9
+
+  function makeClimate(entries) {
+    return {
+      daily: {
+        time:               entries.map(e => e.date),
+        temperature_2m_min: entries.map(e => e.minTemp),
+      },
+    };
+  }
+
+  test('returns null when climateData is null', () => {
+    expect(computeSpringReadiness(null, currentDoy, 0)).toBeNull();
+  });
+
+  test('returns null when climateData has no daily', () => {
+    expect(computeSpringReadiness({}, currentDoy, 0)).toBeNull();
+  });
+
+  test('status safe when historical < 15% and forecast < 10%', () => {
+    // No frost days in historical data
+    const data = makeClimate([
+      { date: '2020-04-09', minTemp: 5 },
+      { date: '2021-04-09', minTemp: 6 },
+    ]);
+    expect(computeSpringReadiness(data, currentDoy, 0.05).status).toBe('safe');
+  });
+
+  test('status caution when historical >= 15% and forecast < 10%', () => {
+    // 1 of 2 years had frost after currentDoy → 50% historical risk
+    const data = makeClimate([
+      { date: '2020-04-10', minTemp: -1 },
+      { date: '2021-04-10', minTemp: 5 },
+    ]);
+    expect(computeSpringReadiness(data, currentDoy, 0.05).status).toBe('caution');
+  });
+
+  test('status warning when forecast >= 10%', () => {
+    const data = makeClimate([{ date: '2020-04-09', minTemp: 5 }]);
+    expect(computeSpringReadiness(data, currentDoy, 0.4).status).toBe('warning');
+  });
+
+  test('caution body mentions historical percentage', () => {
+    const data = makeClimate([
+      { date: '2020-04-10', minTemp: -1 },
+      { date: '2021-04-10', minTemp: 5 },
+    ]);
+    const r = computeSpringReadiness(data, currentDoy, 0.05);
+    expect(r.body).toMatch(/historically/i);
+    expect(r.body).toMatch(/50%/);
+  });
+
+  test('warning body mentions forecast percentage', () => {
+    const data = makeClimate([{ date: '2020-04-09', minTemp: 5 }]);
+    const r = computeSpringReadiness(data, currentDoy, 0.3);
+    expect(r.body).toMatch(/30%/);
+  });
+
+  test('returns historicalRisk and forecastRisk as integers', () => {
+    const data = makeClimate([{ date: '2020-04-09', minTemp: 5 }]);
+    const r = computeSpringReadiness(data, currentDoy, 0.3);
+    expect(Number.isInteger(r.historicalRisk)).toBe(true);
+    expect(r.forecastRisk).toBe(30);
+  });
+
+  test('returns null when no years found in climate data', () => {
+    expect(computeSpringReadiness({ daily: { time: [], temperature_2m_min: [] } }, currentDoy, 0)).toBeNull();
   });
 });
