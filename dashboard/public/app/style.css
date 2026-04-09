@@ -590,6 +590,10 @@ input, select, textarea {
   transition: border-color .2s, background .35s, box-shadow .2s;
 }
 
+textarea {
+  min-height: calc(1.5em * 3 + 0.9375rem);
+}
+
 input::placeholder, textarea::placeholder {
   color: var(--text-3);
   opacity: .85;

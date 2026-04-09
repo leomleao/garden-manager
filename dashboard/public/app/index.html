@@ -914,7 +914,7 @@
 
           <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Notes</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
-            <textarea placeholder="Notes..." x-model="seedModal.form.notes" @input="autoExpandTextarea" rows="3" style="grid-column:1/-1;resize:none;overflow:hidden" spellcheck="false"></textarea>
+            <textarea placeholder="Notes..." x-model="seedModal.form.notes" @input="autoExpandTextarea($event)" style="grid-column:1/-1;resize:none;overflow-y:auto" spellcheck="false"></textarea>
           </div>
 
           <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Growing Info</p>
@@ -924,7 +924,7 @@
             <input placeholder="Soil type (e.g. loamy)" x-model="seedModal.form.optimum_soil_type">
             <input placeholder="Plant height (e.g. 60cm)" x-model="seedModal.form.plant_height">
             <input placeholder="Light requirements (e.g. full sun)" x-model="seedModal.form.light_requirements">
-            <textarea placeholder="Growing instructions..." x-model="seedModal.form.growing_instructions" @input="autoExpandTextarea" rows="3" style="grid-column:1/-1;resize:none;overflow:hidden" spellcheck="false"></textarea>
+            <textarea placeholder="Growing instructions..." x-model="seedModal.form.growing_instructions" @input="autoExpandTextarea($event)" style="grid-column:1/-1;resize:none;overflow-y:auto" spellcheck="false"></textarea>
           </div>
 
           <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Sowing Windows (DD-MM)</p>

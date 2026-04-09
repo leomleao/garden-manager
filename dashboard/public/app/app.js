@@ -144,26 +144,14 @@ function app() {
     },
 
     expandTextarea(textarea) {
-      // Remove height style to allow rows to control size
-      textarea.style.height = '';
-      
-      // Get computed styles
+      textarea.style.height = 'auto';
       const style = window.getComputedStyle(textarea);
-      const lineHeight = parseFloat(style.lineHeight);
-      const borderTop = parseFloat(style.borderTopWidth) || 0;
-      const borderBottom = parseFloat(style.borderBottomWidth) || 0;
+      const lineHeight = parseFloat(style.lineHeight) || 20;
       const paddingTop = parseFloat(style.paddingTop) || 0;
       const paddingBottom = parseFloat(style.paddingBottom) || 0;
-      
-      // Get scrollHeight to determine content size
-      const scrollHeight = textarea.scrollHeight;
-      
-      // Calculate rows needed
-      const contentHeight = scrollHeight - borderTop - borderBottom - paddingTop - paddingBottom;
-      const rows = Math.max(3, Math.min(10, Math.ceil(contentHeight / lineHeight)));
-      
-      // Set the rows attribute
-      textarea.rows = rows;
+      const minHeight = lineHeight * 3 + paddingTop + paddingBottom;
+      const maxHeight = lineHeight * 10 + paddingTop + paddingBottom;
+      textarea.style.height = Math.max(minHeight, Math.min(maxHeight, textarea.scrollHeight)) + 'px';
     },
 
     async saveSeed() {
