@@ -135,6 +135,46 @@ function computePrecipTypeAlerts(hourly) {
   return alerts;
 }
 
+// ── Light quality / photosynthesis indicator ──────────────────────────────────
+// Compares today's diffuse vs direct radiation (hours 0–23).
+// Returns { diffuseFraction, peakDirect, label, advice, level } or null when
+// total radiation < 50 W/m² (night / heavy overcast — not meaningful).
+
+function computeLightQuality(hourly) {
+  const direct  = hourly.direct_radiation  || [];
+  const diffuse = hourly.diffuse_radiation || [];
+
+  const sumOf = arr => arr.slice(0, 24).reduce((s, v) => s + (v ?? 0), 0);
+  const sumD  = sumOf(direct);
+  const sumDf = sumOf(diffuse);
+  const total = sumD + sumDf;
+
+  if (total < 50) return null;
+
+  const diffuseFraction = sumDf / total;
+  const peakDirect = Math.max(...direct.slice(0, 24).map(v => v ?? 0));
+
+  if (diffuseFraction > 0.6) {
+    return {
+      diffuseFraction,
+      peakDirect,
+      label:  'High Diffuse Light',
+      advice: 'Even, non-scorching light — ideal for indoor seedlings and greenhouse growing today.',
+      level:  'good',
+    };
+  }
+
+  return {
+    diffuseFraction,
+    peakDirect,
+    label:  'High Direct Light',
+    advice: peakDirect > 500
+      ? 'Peak direct radiation exceeds 500 W/m² — ensure greenhouse ventilation and shade netting for sensitive seedlings.'
+      : 'Good direct sunlight today — position full-sun crops to make the most of it.',
+    level: peakDirect > 500 ? 'caution' : 'good',
+  };
+}
+
 // ── Watering status from water balance ────────────────────────────────────────
 
 function wateringFromBalance(precipSum, et0, uvMax) {
@@ -382,6 +422,19 @@ function computeInsights(d, zones) {
     });
   }   // end if (gauge)
 
+  // 6. Light Quality
+  const lq = computeLightQuality(d.hourly);
+  if (lq) {
+    insights.push({
+      type:  'light',
+      icon:  lq.diffuseFraction > 0.6 ? '☁️' : '🌤️',
+      label: `Light Quality · ${lq.label}`,
+      title: lq.label,
+      desc:  lq.advice,
+      meta:  `Diffuse ${Math.round(lq.diffuseFraction * 100)}% · Peak direct ${Math.round(lq.peakDirect)} W/m²`,
+    });
+  }
+
   return insights;
 }
 
@@ -505,6 +558,6 @@ if (typeof module !== 'undefined') {
     buildForecastDays, findWorkWindow, computeDiseaseRisk,
     computeGreenhouseAlert, computePotCheck, computeSeasonGauge,
     gddBaseline, computeInsights, computeAlerts, computeActionText,
-    computeSoilLayers, computePrecipTypeAlerts,
+    computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
   };
 }

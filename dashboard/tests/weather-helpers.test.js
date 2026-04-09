@@ -4,8 +4,8 @@ const {
   buildForecastDays, findWorkWindow, computeDiseaseRisk,
   computeGreenhouseAlert, computePotCheck, gddBaseline,
   computeSeasonGauge, computeInsights, computeAlerts,
-  computeSoilLayers,
-  computePrecipTypeAlerts,
+  computeSoilLayers, computePrecipTypeAlerts,
+  computeLightQuality,
 } = require('../public/app/weather-helpers');
 
 // ── codeToIcon / codeToDesc ───────────────────────────────────────────────────
@@ -369,5 +369,54 @@ describe('computePrecipTypeAlerts', () => {
     types[50] = 3;
     const alerts = computePrecipTypeAlerts({ precipitation_type: types });
     expect(alerts).toHaveLength(0);
+  });
+});
+
+// ── computeLightQuality ───────────────────────────────────────────────────────
+describe('computeLightQuality', () => {
+  function makeHourly(directPeak, diffuseVal) {
+    const direct  = Array(24).fill(0);
+    const diffuse = Array(24).fill(0);
+    direct[12]  = directPeak;
+    diffuse[12] = diffuseVal;
+    return { direct_radiation: direct, diffuse_radiation: diffuse };
+  }
+
+  test('returns null when total radiation < 50', () => {
+    expect(computeLightQuality(makeHourly(0, 0))).toBeNull();
+  });
+
+  test('returns null when both arrays absent', () => {
+    expect(computeLightQuality({})).toBeNull();
+  });
+
+  test('diffuse fraction > 0.6 → High Diffuse Light, level good', () => {
+    const r = computeLightQuality(makeHourly(20, 80));
+    expect(r.label).toBe('High Diffuse Light');
+    expect(r.level).toBe('good');
+  });
+
+  test('peak direct > 500 → level caution', () => {
+    const r = computeLightQuality(makeHourly(600, 100));
+    expect(r.level).toBe('caution');
+    expect(r.advice).toMatch(/500 W/);
+  });
+
+  test('dominant direct but ≤ 500 → High Direct Light, level good', () => {
+    const r = computeLightQuality(makeHourly(300, 50));
+    expect(r.label).toBe('High Direct Light');
+    expect(r.level).toBe('good');
+  });
+
+  test('diffuse fraction exactly 0.6 → NOT High Diffuse (boundary is > 0.6)', () => {
+    // direct=40, diffuse=60 → fraction = 60/100 = 0.6 exactly → should be High Direct Light
+    const r = computeLightQuality(makeHourly(40, 60));
+    expect(r.label).toBe('High Direct Light');
+  });
+
+  test('result includes diffuseFraction and peakDirect fields', () => {
+    const r = computeLightQuality(makeHourly(20, 80));
+    expect(typeof r.diffuseFraction).toBe('number');
+    expect(typeof r.peakDirect).toBe('number');
   });
 });
