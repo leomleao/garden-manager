@@ -1,5 +1,6 @@
 .env
 dashboard/node_modules/
+data-processing/node_modules/
 data/
 !data/.gitkeep
 *.db
