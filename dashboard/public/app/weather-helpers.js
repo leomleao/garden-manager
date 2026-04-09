@@ -38,7 +38,7 @@ function soilStatus(soilTemp) {
 // Returns { surface, root, deep } each { temp, status, advice }, or null if
 // no soil data present.
 
-function computeSoilLayers(hourly) {
+function computeSoilLayers(hourly, now = new Date()) {
   const a0 = hourly.soil_temperature_0_to_7cm;
   const a1 = hourly.soil_temperature_7_to_28cm;
   const a2 = hourly.soil_temperature_28_to_100cm;
@@ -48,8 +48,8 @@ function computeSoilLayers(hourly) {
   const s = pick(a0);
   const r = pick(a1);
   const d = pick(a2);
+  if (s == null && r == null && d == null) return null;
 
-  const now = new Date();
   const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
 
   function surfaceStatus(t) {
@@ -70,7 +70,7 @@ function computeSoilLayers(hourly) {
 
   function rootStatus(surf, root) {
     if (root == null) return '';
-    if (surf != null && surf < 10 && root >= 10) return 'Surface dry — roots still hydrated';
+    if (surf != null && surf < 10 && root >= 10) return 'Surface cold — root zone warmer, hold irrigation';
     if (root < 10) return 'Too cold for transplanting';
     if (root < 15) return 'Cool zone (perennials OK)';
     return 'Warm zone (good for transplanting)';
@@ -79,8 +79,9 @@ function computeSoilLayers(hourly) {
   function rootAdvice(surf, root) {
     if (root == null) return '';
     if (surf != null && surf < 10 && root >= 10)
-      return 'Hold irrigation — root zone is still moist despite dry surface.';
+      return 'Surface is cold but root zone retains warmth — no need to irrigate yet.';
     if (root < 10) return 'Avoid transplanting — roots will cold-shock.';
+    if (root < 15) return 'Cool zone — good for perennials, borderline for tender transplants.';
     return 'Good depth for established perennials and shrubs.';
   }
 

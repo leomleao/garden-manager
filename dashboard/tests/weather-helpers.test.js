@@ -282,11 +282,45 @@ describe('computeSoilLayers', () => {
     expect(computeSoilLayers(makeHourly(16, 15, 14)).surface.status).toBe('Warm-season ready (Tomatoes)');
   });
 
-  test('root layer: cold surface + warm root → "Surface dry — roots still hydrated"', () => {
-    expect(computeSoilLayers(makeHourly(8, 12, 14)).root.status).toBe('Surface dry — roots still hydrated');
+  test('root layer: cold surface + warm root → "Surface cold — root zone warmer, hold irrigation"', () => {
+    expect(computeSoilLayers(makeHourly(8, 12, 14)).root.status).toBe('Surface cold — root zone warmer, hold irrigation');
   });
 
   test('root layer: both cold → "Too cold for transplanting"', () => {
     expect(computeSoilLayers(makeHourly(7, 8, 10)).root.status).toBe('Too cold for transplanting');
+  });
+
+  test('surface exactly 5°C → "Too cold for seeds" (not Frozen)', () => {
+    expect(computeSoilLayers(makeHourly(5, 8, 10)).surface.status).toBe('Too cold for seeds');
+  });
+
+  test('surface exactly 10°C → "Cool-season ready (Peas, Lettuce)"', () => {
+    expect(computeSoilLayers(makeHourly(10, 11, 12)).surface.status).toBe('Cool-season ready (Peas, Lettuce)');
+  });
+
+  test('surface exactly 15°C → "Warm-season ready (Tomatoes)"', () => {
+    expect(computeSoilLayers(makeHourly(15, 14, 13)).surface.status).toBe('Warm-season ready (Tomatoes)');
+  });
+
+  test('null midday value in present array → that layer is null', () => {
+    const hourly = {
+      soil_temperature_0_to_7cm:    Array(24).fill(null),
+      soil_temperature_7_to_28cm:   Array(24).fill(null).map((_, i) => i === 12 ? 10 : null),
+      soil_temperature_28_to_100cm: Array(24).fill(null).map((_, i) => i === 12 ? 12 : null),
+    };
+    const r = computeSoilLayers(hourly);
+    expect(r.surface).toBeNull();
+    expect(r.root).not.toBeNull();
+    expect(r.deep).not.toBeNull();
+  });
+
+  test('deep layer: doy < 121, temp < 8 → "Cold deep soil — dormant conditions"', () => {
+    const febDate = new Date(new Date().getFullYear(), 1, 19); // Feb 19 ≈ doy 50
+    expect(computeSoilLayers(makeHourly(12, 13, 5), febDate).deep.status).toBe('Cold deep soil — dormant conditions');
+  });
+
+  test('deep layer: doy >= 121, temp < 8 → "Deep-soil drought risk for fruit trees"', () => {
+    const mayDate = new Date(new Date().getFullYear(), 4, 20); // May 20 ≈ doy 140
+    expect(computeSoilLayers(makeHourly(12, 13, 5), mayDate).deep.status).toBe('Deep-soil drought risk for fruit trees');
   });
 });
