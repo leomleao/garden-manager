@@ -685,15 +685,16 @@
             <p class="text-muted" style="font-size:.875rem">Nothing to sow indoors right now.</p>
           </template>
           <template x-for="s in sowIndoorsNow" :key="s.id">
-            <div @click="openSeedEdit(s)" class="sow-now-row">
+            <div @click="openSeedEdit(s)" class="sow-now-row"
+                 x-data="{ get badge() { return weatherForecastBadge(s, false) } }">
               <div class="sow-now-top">
                 <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
                 <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
-                <span x-show="weatherForecastBadge(s, false)"
+                <span x-show="badge"
                       class="sow-now-badge"
-                      :class="weatherForecastBadge(s, false) ? 'sow-now-badge--' + weatherForecastBadge(s, false).cls : ''"
-                      :title="weatherForecastBadge(s, false)?.title"
-                      x-text="weatherForecastBadge(s, false)?.label">
+                      :class="badge ? 'sow-now-badge--' + badge.cls : ''"
+                      :title="badge?.title"
+                      x-text="badge?.label">
                 </span>
               </div>
               <div class="sow-now-meta" x-show="s.purchase_year || s.sow_by_year || s.days_to_germinate || s.optimum_soil_temp || s.optimum_soil_type || s.light_requirements">
@@ -714,15 +715,16 @@
             <p class="text-muted" style="font-size:.875rem">Nothing to sow outdoors right now.</p>
           </template>
           <template x-for="s in sowOutdoorsNow" :key="s.id">
-            <div @click="openSeedEdit(s)" class="sow-now-row">
+            <div @click="openSeedEdit(s)" class="sow-now-row"
+                 x-data="{ get badge() { return weatherForecastBadge(s, true) } }">
               <div class="sow-now-top">
                 <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
                 <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
-                <span x-show="weatherForecastBadge(s, true)"
+                <span x-show="badge"
                       class="sow-now-badge"
-                      :class="weatherForecastBadge(s, true) ? 'sow-now-badge--' + weatherForecastBadge(s, true).cls : ''"
-                      :title="weatherForecastBadge(s, true)?.title"
-                      x-text="weatherForecastBadge(s, true)?.label">
+                      :class="badge ? 'sow-now-badge--' + badge.cls : ''"
+                      :title="badge?.title"
+                      x-text="badge?.label">
                 </span>
               </div>
               <div class="sow-now-meta" x-show="s.purchase_year || s.sow_by_year || s.days_to_germinate || s.optimum_soil_temp || s.optimum_soil_type || s.light_requirements">
