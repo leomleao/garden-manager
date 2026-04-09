@@ -192,6 +192,7 @@ function app() {
         const d = await r.json();
         if (!d.current || !d.daily || !d.hourly) return;
         this.weatherData = d;
+        this.weather.selectedDay = 0;
 
         // Current conditions
         this.weather.temp = Math.round(d.current.temperature_2m);
@@ -230,11 +231,13 @@ function app() {
     },
 
     selectForecastDay(i) {
+      if (i < 0 || i >= this.weather.forecast.length) return;
       this.weather.selectedDay = i;
       this.weather.statsFlash  = false;
+      clearTimeout(this._flashTimer);
       this.$nextTick(() => {
         this.weather.statsFlash = true;
-        setTimeout(() => { this.weather.statsFlash = false; }, 350);
+        this._flashTimer = setTimeout(() => { this.weather.statsFlash = false; }, 350);
       });
     },
 
