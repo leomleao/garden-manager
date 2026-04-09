@@ -432,6 +432,7 @@ function computeInsights(d, zones) {
       title: lq.label,
       desc:  lq.advice,
       meta:  `Diffuse ${Math.round(lq.diffuseFraction * 100)}% · Peak direct ${Math.round(lq.peakDirect)} W/m²`,
+      level: lq.level,
     });
   }
 
