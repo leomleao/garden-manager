@@ -5,6 +5,7 @@ const {
   computeGreenhouseAlert, computePotCheck, gddBaseline,
   computeSeasonGauge, computeInsights, computeAlerts,
   computeSoilLayers,
+  computePrecipTypeAlerts,
 } = require('../public/app/weather-helpers');
 
 // ── codeToIcon / codeToDesc ───────────────────────────────────────────────────
@@ -322,5 +323,51 @@ describe('computeSoilLayers', () => {
   test('deep layer: doy >= 121, temp < 8 → "Deep-soil drought risk for fruit trees"', () => {
     const mayDate = new Date(new Date().getFullYear(), 4, 20); // May 20 ≈ doy 140
     expect(computeSoilLayers(makeHourly(12, 13, 5), mayDate).deep.status).toBe('Deep-soil drought risk for fruit trees');
+  });
+});
+
+// ── computePrecipTypeAlerts ───────────────────────────────────────────────────
+describe('computePrecipTypeAlerts', () => {
+  test('returns empty array for normal precipitation codes', () => {
+    expect(computePrecipTypeAlerts({ precipitation_type: Array(48).fill(1) })).toEqual([]);
+  });
+
+  test('returns empty array when precipitation_type absent', () => {
+    expect(computePrecipTypeAlerts({})).toEqual([]);
+  });
+
+  test('code 3 in next 48h → red alert for freezing rain', () => {
+    const types = Array(48).fill(0);
+    types[10] = 3;
+    const alerts = computePrecipTypeAlerts({ precipitation_type: types });
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].level).toBe('red');
+    expect(alerts[0].text).toMatch(/Freezing rain/);
+  });
+
+  test('code 6 in next 48h → amber alert for wet snow', () => {
+    const types = Array(48).fill(0);
+    types[30] = 6;
+    const alerts = computePrecipTypeAlerts({ precipitation_type: types });
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].level).toBe('amber');
+    expect(alerts[0].text).toMatch(/wet snow/i);
+  });
+
+  test('both codes 3 and 6 → two alerts, red first', () => {
+    const types = Array(48).fill(0);
+    types[5] = 3;
+    types[25] = 6;
+    const alerts = computePrecipTypeAlerts({ precipitation_type: types });
+    expect(alerts).toHaveLength(2);
+    expect(alerts[0].level).toBe('red');
+    expect(alerts[1].level).toBe('amber');
+  });
+
+  test('code 3 beyond 48h (index 48+) → not detected', () => {
+    const types = Array(72).fill(0);
+    types[50] = 3;
+    const alerts = computePrecipTypeAlerts({ precipitation_type: types });
+    expect(alerts).toHaveLength(0);
   });
 });

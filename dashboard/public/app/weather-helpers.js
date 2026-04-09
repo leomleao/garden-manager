@@ -107,6 +107,34 @@ function computeSoilLayers(hourly, now = new Date()) {
   };
 }
 
+// ── Precipitation type alerts ─────────────────────────────────────────────────
+// Scans hourly precipitation_type for the next 48h.
+// Code 3 = Freezing Rain, Code 6 = Wet Snow.
+// Returns array of alert objects { level, text, body } to be merged into
+// computeAlerts output.
+
+function computePrecipTypeAlerts(hourly) {
+  const types = hourly.precipitation_type || [];
+  const alerts = [];
+  const hasCode = code => types.slice(0, 48).some(t => t === code);
+
+  if (hasCode(3)) {
+    alerts.push({
+      level: 'red',
+      text:  'Freezing rain expected',
+      body:  'Ice coating damages leaves and weighs down branches — cover tender plants and shake ice off evergreens.',
+    });
+  }
+  if (hasCode(6)) {
+    alerts.push({
+      level: 'amber',
+      text:  'Heavy wet snow expected',
+      body:  'Brush wet snow off evergreens and your greenhouse roof to prevent structural damage.',
+    });
+  }
+  return alerts;
+}
+
 // ── Watering status from water balance ────────────────────────────────────────
 
 function wateringFromBalance(precipSum, et0, uvMax) {
@@ -365,6 +393,10 @@ function computeAlerts(d, soilTemp) {
   const alerts = [];
   const daily   = d.daily;
   const hourly  = d.hourly;
+
+  // Precipitation type alerts (freezing rain, wet snow)
+  const precipAlerts = computePrecipTypeAlerts(hourly);
+  alerts.push(...precipAlerts);
   const dayNames = daily.time.map(t =>
     new Date(t + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' })
   );
@@ -473,6 +505,6 @@ if (typeof module !== 'undefined') {
     buildForecastDays, findWorkWindow, computeDiseaseRisk,
     computeGreenhouseAlert, computePotCheck, computeSeasonGauge,
     gddBaseline, computeInsights, computeAlerts, computeActionText,
-    computeSoilLayers,
+    computeSoilLayers, computePrecipTypeAlerts,
   };
 }
