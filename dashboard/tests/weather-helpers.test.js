@@ -525,13 +525,13 @@ describe('computeFrostEnsemble', () => {
     expect(result[0].level).toBe('high');
   });
 
-  test('50% frost when half members sub-zero → level possible', () => {
+  test('50% frost when half members sub-zero → level high', () => {
     const coldTemps = Array(72).fill(-2);
     const warmTemps = Array(72).fill(5);
     const data = makeEnsemble(4, [coldTemps, coldTemps, warmTemps, warmTemps]);
     const result = computeFrostEnsemble(data);
     expect(result[0].prob).toBe(0.5);
-    expect(result[0].level).toBe('possible');
+    expect(result[0].level).toBe('high');
   });
 
   test('result includes date, dayName, probPct, freezeCount, totalMembers', () => {
@@ -565,5 +565,16 @@ describe('computeFrostEnsemble', () => {
     const members = [...Array(6).fill(coldTemps), ...Array(4).fill(warmTemps)];
     const data = makeEnsemble(10, members);
     expect(computeFrostEnsemble(data)[0].level).toBe('high');
+  });
+
+  test('prob exactly 0.2 → level possible (boundary)', () => {
+    const coldTemps = Array(72).fill(-2);
+    const warmTemps = Array(72).fill(5);
+    // 2 of 10 members freeze → prob = 0.2 → possible
+    const members = [...Array(2).fill(coldTemps), ...Array(8).fill(warmTemps)];
+    const data = makeEnsemble(10, members);
+    const result = computeFrostEnsemble(data);
+    expect(result[0].prob).toBe(0.2);
+    expect(result[0].level).toBe('possible');
   });
 });

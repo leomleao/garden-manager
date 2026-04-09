@@ -254,9 +254,9 @@ function computeFrostEnsemble(ensembleData) {
     const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' });
 
     let level, label;
-    if (prob < 0.2)       { level = 'low';      label = 'Low risk'; }
-    else if (prob <= 0.5) { level = 'possible'; label = 'Possible — cover tender plants'; }
-    else                  { level = 'high';     label = 'High risk — protect everything'; }
+    if (prob < 0.2)      { level = 'low';      label = 'Low risk'; }
+    else if (prob < 0.5) { level = 'possible'; label = 'Possible — cover tender plants'; }
+    else                 { level = 'high';     label = 'High risk — protect everything'; }
 
     result.push({ date: dateStr, dayName, prob, probPct, label, level, freezeCount, totalMembers });
   }
