@@ -33,6 +33,79 @@ function soilStatus(soilTemp) {
   return 'Warm Season (Tomatoes, Peppers)';
 }
 
+// ── Multi-depth soil layer analysis ──────────────────────────────────────────
+// Reads three hourly soil temperature arrays at hour 12 (midday).
+// Returns { surface, root, deep } each { temp, status, advice }, or null if
+// no soil data present.
+
+function computeSoilLayers(hourly) {
+  const a0 = hourly.soil_temperature_0_to_7cm;
+  const a1 = hourly.soil_temperature_7_to_28cm;
+  const a2 = hourly.soil_temperature_28_to_100cm;
+  if (!a0 && !a1 && !a2) return null;
+
+  const pick = arr => arr ? (arr[12] != null ? Math.round(arr[12] * 10) / 10 : null) : null;
+  const s = pick(a0);
+  const r = pick(a1);
+  const d = pick(a2);
+
+  const now = new Date();
+  const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+
+  function surfaceStatus(t) {
+    if (t == null) return '';
+    if (t < 5)  return 'Frozen';
+    if (t < 10) return 'Too cold for seeds';
+    if (t < 15) return 'Cool-season ready (Peas, Lettuce)';
+    return 'Warm-season ready (Tomatoes)';
+  }
+
+  function surfaceAdvice(t) {
+    if (t == null) return '';
+    if (t < 5)  return 'Soil is frozen — no outdoor sowing.';
+    if (t < 10) return 'Wait until 10°C for cool-season crops, 15°C for tomatoes.';
+    if (t < 15) return 'Good for peas, lettuce, and spinach outdoors.';
+    return 'Ideal for tomatoes, peppers, and basil.';
+  }
+
+  function rootStatus(surf, root) {
+    if (root == null) return '';
+    if (surf != null && surf < 10 && root >= 10) return 'Surface dry — roots still hydrated';
+    if (root < 10) return 'Too cold for transplanting';
+    if (root < 15) return 'Cool zone (perennials OK)';
+    return 'Warm zone (good for transplanting)';
+  }
+
+  function rootAdvice(surf, root) {
+    if (root == null) return '';
+    if (surf != null && surf < 10 && root >= 10)
+      return 'Hold irrigation — root zone is still moist despite dry surface.';
+    if (root < 10) return 'Avoid transplanting — roots will cold-shock.';
+    return 'Good depth for established perennials and shrubs.';
+  }
+
+  function deepStatus(t, dayOfYear) {
+    if (t == null) return '';
+    if (dayOfYear >= 121 && t < 8) return 'Deep-soil drought risk for fruit trees';
+    if (t < 8) return 'Cold deep soil — dormant conditions';
+    return 'Adequate for established trees';
+  }
+
+  function deepAdvice(t, dayOfYear) {
+    if (t == null) return '';
+    if (dayOfYear >= 121 && t < 8)
+      return 'Monitor fruit trees — deep drought stress can suppress fruiting.';
+    if (t < 8) return 'Deep soil cold — fruit trees still dormant.';
+    return 'Deep zone stable for established fruit trees and perennials.';
+  }
+
+  return {
+    surface: s != null ? { temp: s, status: surfaceStatus(s),    advice: surfaceAdvice(s)    } : null,
+    root:    r != null ? { temp: r, status: rootStatus(s, r),     advice: rootAdvice(s, r)    } : null,
+    deep:    d != null ? { temp: d, status: deepStatus(d, doy),   advice: deepAdvice(d, doy)  } : null,
+  };
+}
+
 // ── Watering status from water balance ────────────────────────────────────────
 
 function wateringFromBalance(precipSum, et0, uvMax) {
@@ -399,5 +472,6 @@ if (typeof module !== 'undefined') {
     buildForecastDays, findWorkWindow, computeDiseaseRisk,
     computeGreenhouseAlert, computePotCheck, computeSeasonGauge,
     gddBaseline, computeInsights, computeAlerts, computeActionText,
+    computeSoilLayers,
   };
 }

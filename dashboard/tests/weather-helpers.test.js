@@ -4,6 +4,7 @@ const {
   buildForecastDays, findWorkWindow, computeDiseaseRisk,
   computeGreenhouseAlert, computePotCheck, gddBaseline,
   computeSeasonGauge, computeInsights, computeAlerts,
+  computeSoilLayers,
 } = require('../public/app/weather-helpers');
 
 // ── codeToIcon / codeToDesc ───────────────────────────────────────────────────
@@ -247,5 +248,45 @@ describe('computeAlerts frost type', () => {
     const d = makeData(1, Array(24).fill(1));
     const alerts = computeAlerts(d, 7);
     expect(alerts[0].text).toContain('Today');
+  });
+});
+
+// ── computeSoilLayers ─────────────────────────────────────────────────────────
+describe('computeSoilLayers', () => {
+  function makeHourly(s0, s1, s2) {
+    const arr = v => Array(24).fill(null).map((_, i) => i === 12 ? v : null);
+    return {
+      soil_temperature_0_to_7cm:    arr(s0),
+      soil_temperature_7_to_28cm:   arr(s1),
+      soil_temperature_28_to_100cm: arr(s2),
+    };
+  }
+
+  test('returns null when no soil arrays present', () => {
+    expect(computeSoilLayers({})).toBeNull();
+  });
+
+  test('surface < 5°C → status "Frozen"', () => {
+    expect(computeSoilLayers(makeHourly(3, 8, 10)).surface.status).toBe('Frozen');
+  });
+
+  test('surface 5–9°C → status "Too cold for seeds"', () => {
+    expect(computeSoilLayers(makeHourly(7, 8, 10)).surface.status).toBe('Too cold for seeds');
+  });
+
+  test('surface 10–14°C → status "Cool-season ready (Peas, Lettuce)"', () => {
+    expect(computeSoilLayers(makeHourly(12, 13, 14)).surface.status).toBe('Cool-season ready (Peas, Lettuce)');
+  });
+
+  test('surface ≥ 15°C → status "Warm-season ready (Tomatoes)"', () => {
+    expect(computeSoilLayers(makeHourly(16, 15, 14)).surface.status).toBe('Warm-season ready (Tomatoes)');
+  });
+
+  test('root layer: cold surface + warm root → "Surface dry — roots still hydrated"', () => {
+    expect(computeSoilLayers(makeHourly(8, 12, 14)).root.status).toBe('Surface dry — roots still hydrated');
+  });
+
+  test('root layer: both cold → "Too cold for transplanting"', () => {
+    expect(computeSoilLayers(makeHourly(7, 8, 10)).root.status).toBe('Too cold for transplanting');
   });
 });
