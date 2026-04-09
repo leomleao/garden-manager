@@ -21,6 +21,10 @@ function app() {
       soil: { temp: null, status: '' },
       uv: null, rain: null,
       wateringStatus: '', actionText: '',
+      forecast:    [],   // 7-day array built by buildForecastDays()
+      selectedDay: 0,    // index of day shown in stats bar
+      insights:    [],   // gardening insight objects
+      statsFlash:  false, // triggers CSS flash animation on day change
     },
     lastRefresh: '',
     refreshError: null,
@@ -179,108 +183,59 @@ function app() {
         const r = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
           `&current=temperature_2m,weathercode` +
-          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_max,et0_fao_evapotranspiration` +
-          `&hourly=soil_temperature_6cm` +
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,` +
+          `uv_index_max,et0_fao_evapotranspiration,growing_degree_days_base_5_limit_30` +
+          `&hourly=soil_temperature_6cm,temperature_2m,precipitation_probability,precipitation,` +
+          `relative_humidity_2m,leaf_wetness_probability,direct_radiation,wind_gusts_10m,dewpoint_2m` +
           `&timezone=auto&forecast_days=7`
         );
         const d = await r.json();
         if (!d.current || !d.daily || !d.hourly) return;
         this.weatherData = d;
 
-        // ── Current conditions (unchanged behaviour) ──────────────────────
+        // Current conditions
         this.weather.temp = Math.round(d.current.temperature_2m);
         const code = d.current.weathercode;
-        if (code === 0)       { this.weather.desc = 'Clear';        this.weather.icon = '\u2600\uFE0F'; }
-        else if (code <= 3)   { this.weather.desc = 'Partly cloudy'; this.weather.icon = '\u26C5'; }
-        else if (code <= 48)  { this.weather.desc = 'Foggy';        this.weather.icon = '\u{1F32B}\uFE0F'; }
-        else if (code <= 67)  { this.weather.desc = 'Rainy';        this.weather.icon = '\u{1F327}\uFE0F'; }
-        else if (code <= 77)  { this.weather.desc = 'Snowy';        this.weather.icon = '\u2744\uFE0F'; }
-        else                  { this.weather.desc = 'Stormy';       this.weather.icon = '\u26C8\uFE0F'; }
+        this.weather.icon = codeToIcon(code);
+        this.weather.desc = codeToDesc(code);
 
-        // ── Daily data ────────────────────────────────────────────────────
-        const daily    = d.daily;
-        const dayNames = daily.time.map(t =>
-          new Date(t + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' })
+        // 7-day forecast
+        this.weather.forecast = buildForecastDays(d);
+
+        // Stats for today (selectedDay stays at 0 on fresh load)
+        const today = this.weather.forecast[0];
+        this.weather.uv            = today.uvMax;
+        this.weather.rain          = today.rain;
+        this.weather.wateringStatus = today.watering;
+        this.weather.soil.temp     = today.soilTemp;
+        this.weather.soil.status   = today.soilSub;
+
+        // Smart insights (greenhouse check uses loaded zones)
+        this.weather.insights = computeInsights(d, this.zones);
+
+        // Alerts
+        this.weather.alerts = computeAlerts(d, today.soilTemp);
+
+        // Action text
+        const workWin = this.weather.insights.find(i => i.type === 'work') || null;
+        this.weather.actionText = computeActionText(
+          this.weather.alerts, today.soilTemp, workWin
         );
 
-        const alerts = [];
+      } catch(e) { /* weather is optional */ }
+    },
 
-        // Frost: first day with min temp <= 2°C
-        const frostIdx = daily.temperature_2m_min.findIndex(t => t <= 2);
-        if (frostIdx !== -1) {
-          alerts.push({ level: 'red',
-            text: `Frost Alert: ${dayNames[frostIdx]}, ${Math.round(daily.temperature_2m_min[frostIdx])}°C` });
-        }
+    get selectedForecast() {
+      return this.weather.forecast[this.weather.selectedDay] || {};
+    },
 
-        // Severe weather: first day with code >= 96 (thunderstorm with hail)
-        const severeIdx = daily.weather_code.findIndex(c => c >= 96);
-        if (severeIdx !== -1) {
-          alerts.push({ level: 'red', text: `Severe Weather: ${dayNames[severeIdx]}` });
-        }
-
-        // High wind: first day with code 85–95 (snow/wind showers)
-        const windIdx = daily.weather_code.findIndex(c => c >= 85 && c <= 95);
-        if (windIdx !== -1) {
-          alerts.push({ level: 'amber', text: `High Winds: ${dayNames[windIdx]}` });
-        }
-
-        // High UV today
-        if ((daily.uv_index_max[0] ?? 0) >= 7) {
-          alerts.push({ level: 'amber', text: 'High UV today \u2014 avoid midday watering' });
-        }
-
-        // ── Today's stats ─────────────────────────────────────────────────
-        this.weather.uv   = daily.uv_index_max[0]       ?? null;
-        this.weather.rain = daily.precipitation_sum[0]   ?? null;
-
-        // Water balance: precip minus evapotranspiration
-        const balance = (daily.precipitation_sum[0] ?? 0) - (daily.et0_fao_evapotranspiration[0] ?? 0);
-        if (balance < -2 && (daily.uv_index_max[0] ?? 0) >= 5) {
-          this.weather.wateringStatus = 'High Water Need';
-        } else if (balance < 0) {
-          this.weather.wateringStatus = 'Adequate \u2014 monitor';
-        } else {
-          this.weather.wateringStatus = 'Well Watered';
-        }
-
-        // ── Soil temperature (current hour, 6 cm depth) ───────────────────
-        const currentHour = new Date().getHours();
-        const soilTemp = d.hourly.soil_temperature_6cm[currentHour];
-        this.weather.soil.temp = soilTemp != null ? Math.round(soilTemp * 10) / 10 : null;
-        if (soilTemp == null)      { this.weather.soil.status = ''; }
-        else if (soilTemp < 10)    { this.weather.soil.status = 'Dormant / Too Cold'; }
-        else if (soilTemp <= 18)   { this.weather.soil.status = 'Cool Season (Peas, Lettuce)'; }
-        else                       { this.weather.soil.status = 'Warm Season (Tomatoes, Peppers)'; }
-
-        // Ideal conditions green alert (only if no red/amber)
-        const hasRedAmber = alerts.some(a => a.level === 'red' || a.level === 'amber');
-        if (!hasRedAmber && soilTemp != null && soilTemp >= 10) {
-          alerts.push({ level: 'green', text: 'Good conditions for sowing' });
-        }
-
-        this.weather.alerts = alerts;
-
-        // ── Action text ───────────────────────────────────────────────────
-        const topLevel = alerts[0]?.level;
-        if (topLevel === 'red' && frostIdx === 0) {
-          this.weather.actionText = 'Protect tender plants tonight';
-        } else if (topLevel === 'red') {
-          this.weather.actionText = 'Severe weather forecast \u2014 avoid outdoor work';
-        } else if ((daily.uv_index_max[0] ?? 0) >= 7) {
-          this.weather.actionText = 'Avoid watering foliage today \u2014 high UV';
-        } else if (this.weather.wateringStatus === 'High Water Need') {
-          this.weather.actionText = 'Plants need watering today';
-        } else if (soilTemp != null && soilTemp < 10) {
-          this.weather.actionText = 'Too cold for sowing \u2014 focus on indoor propagation';
-        } else if (soilTemp != null && soilTemp > 18) {
-          this.weather.actionText = 'Ideal conditions for warm-season crops';
-        } else if (soilTemp != null && soilTemp >= 10) {
-          this.weather.actionText = 'Good day for sowing peas or lettuce';
-        } else {
-          this.weather.actionText = 'Good day for general garden maintenance';
-        }
-
-      } catch(e) { /* weather is optional — new fields stay at initial empty state */ }
+    selectForecastDay(i) {
+      this.weather.selectedDay = i;
+      this.weather.statsFlash  = false;
+      this.$nextTick(() => {
+        this.weather.statsFlash = true;
+        setTimeout(() => { this.weather.statsFlash = false; }, 350);
+      });
     },
 
     // Task management
