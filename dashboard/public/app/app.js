@@ -313,7 +313,11 @@ function app() {
     zoneForm: {},
 
     menuCellId: null,
+    menuCellPos: null,
+    menuZoneId: null,
     menuTimeout: null,
+
+    quickTransplant: { show: false, planting: null, zoneId: '', cellId: '' },
 
     showSeedPicker: false,
     sowCellId: null,
@@ -486,12 +490,58 @@ function app() {
       } catch(e) { console.error('Zone delete failed:', e); }
     },
 
-    showMenu(cellId) {
+    showMenu(cellId, zoneId, event) {
       clearTimeout(this.menuTimeout);
       this.menuCellId = cellId;
+      this.menuZoneId = zoneId;
+      const rect = event.currentTarget.getBoundingClientRect();
+      this.menuCellPos = { x: rect.left + rect.width / 2, y: rect.top };
+    },
+    isGerminatorZone(zoneId) {
+      return this.zones.find(z => z.id === Number(zoneId))?.type === 'germinator';
+    },
+    legendStatuses(zone) {
+      const all = ['empty', 'sown', 'germinated', 'harvested', 'failed'];
+      return zone.type === 'germinator' ? all.filter(s => s !== 'harvested') : all;
+    },
+    openQuickTransplant(cellId) {
+      const p = this.activePlanting(cellId);
+      if (!p) return;
+      this.menuCellId = null;
+      this.quickTransplant = {
+        show: true,
+        planting: p,
+        zoneId: this.defaultTransplantZoneId(p),
+        cellId: ''
+      };
+    },
+    closeQuickTransplant() {
+      this.quickTransplant = { show: false, planting: null, zoneId: '', cellId: '' };
+    },
+    async confirmQuickTransplant() {
+      const { planting, zoneId, cellId } = this.quickTransplant;
+      if (!planting || !zoneId) return;
+      const targetZoneId = Number(zoneId);
+      const targetCellId = this.isGridZone(targetZoneId) ? Number(cellId || 0) : null;
+      if (this.isGridZone(targetZoneId) && !targetCellId) return;
+      try {
+        const r = await fetch(`/api/plant-lifecycle/${planting.id}`, {
+          method: 'PATCH',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            moved_date: new Date().toISOString().slice(0,10),
+            zone_id: targetZoneId,
+            cell_id: targetCellId,
+            status: planting.germinated_date ? 'germinated' : 'sown'
+          })
+        });
+        if (!r.ok) throw new Error(await r.text());
+        this.closeQuickTransplant();
+        await this.refresh();
+      } catch(e) { console.error('Quick transplant failed:', e); }
     },
     hideMenu() {
-      this.menuTimeout = setTimeout(() => { this.menuCellId = null; }, 150);
+      this.menuTimeout = setTimeout(() => { this.menuCellId = null; }, 400);
     },
     keepMenu() { clearTimeout(this.menuTimeout); },
 
@@ -574,6 +624,13 @@ function app() {
         });
         await this.refresh();
       } catch(e) { console.error('Mark dead failed:', e); await this.refresh(); }
+    },
+    async resetLoosePlanting(plantingId) {
+      try {
+        const r = await fetch(`/api/plant-lifecycle/${plantingId}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(await r.text());
+        await this.refresh();
+      } catch(e) { console.error('Reset soil failed:', e); }
     },
     async markLoosePlantingHarvest(plantingId) {
       try {
@@ -725,6 +782,16 @@ function app() {
         });
         if (!r.ok) throw new Error(await r.text());
         this.closeCellModal();
+        await this.refresh();
+      } catch(e) { console.error('Reset soil failed:', e); }
+    },
+    async resetSoil(cellId) {
+      const p = this.activePlanting(cellId);
+      if (!p) return;
+      this.menuCellId = null;
+      try {
+        const r = await fetch(`/api/plant-lifecycle/${p.id}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(await r.text());
         await this.refresh();
       } catch(e) { console.error('Reset soil failed:', e); }
     },

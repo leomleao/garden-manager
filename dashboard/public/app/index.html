@@ -245,42 +245,16 @@
                       :class="getCellStatus(cell.id)"
                       :title="cell.label + ': ' + getCellDesc(cell.id)"
                       x-text="cell.label"
-                      @mouseenter="showMenu(cell.id)"
+                      @mouseenter="activePlanting(cell.id) ? showMenu(cell.id, zone.id, $event) : null"
                       @mouseleave="hideMenu()"
-                      @click="openCellModal(cell.id, zone.id)"
-                      style="position:relative">
-                      <!-- Hover menu -->
-                      <div x-show="menuCellId === cell.id && activePlanting(cell.id) !== null"
-                           @mousedown.stop
-                           @click.stop
-                           @mouseenter="keepMenu()"
-                           @mouseleave="hideMenu()"
-                           class="cell-hover-menu">
-                        <div class="cell-hover-menu-actions">
-                          <button @mousedown.stop @click.stop="markOk(cell.id)" title="OK"
-                            x-show="canMarkOk(activePlanting(cell.id))"
-                            class="cell-hover-action cell-hover-action-ok">
-                            <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Ok%20hand/Light/Color/ok_hand_color_light.svg" width="18" height="18" alt="OK">
-                          </button>
-                          <button @mousedown.stop @click.stop="markHarvest(cell.id)" title="Harvest"
-                            x-show="canMarkHarvest(activePlanting(cell.id))"
-                            class="cell-hover-action cell-hover-action-harvest">
-                            <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Sheaf%20of%20rice/Color/sheaf_of_rice_color.svg" width="18" height="18" alt="Harvest">
-                          </button>
-                          <button @mousedown.stop @click.stop="markDead(cell.id)" title="Dead"
-                            x-show="activePlanting(cell.id) !== null"
-                            class="cell-hover-action cell-hover-action-dead">
-                            <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Skull%20and%20crossbones/Color/skull_and_crossbones_color.svg" width="18" height="18" alt="Dead">
-                          </button>
-                        </div>
-                      </div>
+                      @click="openCellModal(cell.id, zone.id)">
                     </div>
                   </template>
                 </div>
                 </div>
                 <!-- Legend -->
                 <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
-                  <template x-for="s in ['empty','sown','germinated','harvested','failed']" :key="s">
+                  <template x-for="s in legendStatuses(zone)" :key="s">
                     <span style="font-size:.75rem;display:flex;align-items:center;gap:.25rem">
                       <span class="grid-cell" :class="s==='empty'?'':s" style="width:12px;height:12px;display:inline-block"></span>
                       <span x-text="s" class="text-muted"></span>
@@ -306,8 +280,13 @@
                       x-show="canMarkHarvest(p)">
                       <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Sheaf%20of%20rice/Color/sheaf_of_rice_color.svg" width="14" height="14" alt="Harvest">
                     </button>
-                    <button @click.stop="markLoosePlantingDead(p.id)" class="btn btn-secondary btn-sm" title="Dead">
+                    <button @click.stop="markLoosePlantingDead(p.id)" class="btn btn-secondary btn-sm" title="Dead"
+                      x-show="p.status !== 'failed'">
                       <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Skull%20and%20crossbones/Color/skull_and_crossbones_color.svg" width="14" height="14" alt="Dead">
+                    </button>
+                    <button @click.stop="resetLoosePlanting(p.id)" class="btn btn-secondary btn-sm" title="Reset Soil"
+                      x-show="p.status === 'failed'">
+                      🪣
                     </button>
                   </span>
                 </div>
@@ -317,6 +296,46 @@
             </div>
           </div>
         </template>
+        </div>
+
+        <!-- Global cell hover menu (fixed, shared across all grid cells) -->
+        <div x-show="menuCellId !== null && activePlanting(menuCellId) !== null"
+             x-cloak
+             @mouseenter="keepMenu()"
+             @mouseleave="hideMenu()"
+             @mousedown.stop
+             @click.stop
+             class="cell-hover-menu"
+             :style="menuCellPos ? 'left:' + menuCellPos.x + 'px;top:' + menuCellPos.y + 'px' : 'display:none'">
+          <div class="cell-hover-menu-actions">
+            <button @mousedown.stop @click.stop="markOk(menuCellId)" title="OK"
+              x-show="canMarkOk(activePlanting(menuCellId))"
+              class="cell-hover-action cell-hover-action-ok">
+              <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Ok%20hand/Light/Color/ok_hand_color_light.svg" width="18" height="18" alt="OK">
+            </button>
+            <button @mousedown.stop @click.stop="markHarvest(menuCellId)" title="Harvest"
+              x-show="!isGerminatorZone(menuZoneId) && canMarkHarvest(activePlanting(menuCellId))"
+              class="cell-hover-action cell-hover-action-harvest">
+              <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Sheaf%20of%20rice/Color/sheaf_of_rice_color.svg" width="18" height="18" alt="Harvest">
+            </button>
+            <button @mousedown.stop @click.stop="openQuickTransplant(menuCellId)" title="Transplant"
+              x-show="isGerminatorZone(menuZoneId) && activePlanting(menuCellId)?.status === 'germinated'"
+              class="cell-hover-action cell-hover-action-transplant">
+              🌿
+            </button>
+            <button @mousedown.stop @click.stop="markDead(menuCellId)" title="Dead"
+              x-show="activePlanting(menuCellId) !== null && activePlanting(menuCellId)?.status !== 'failed'"
+              class="cell-hover-action cell-hover-action-dead">
+              <img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Skull%20and%20crossbones/Color/skull_and_crossbones_color.svg" width="18" height="18" alt="Dead">
+            </button>
+            <button @mousedown.stop @click.stop="resetSoil(menuCellId)" title="Reset Soil"
+              x-show="activePlanting(menuCellId)?.status === 'failed'"
+              class="cell-hover-action cell-hover-action-reset">
+              <img
+                src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/refs/heads/main/assets/Bucket/Color/bucket_color.svg"
+                width="18" height="18" alt="Reset Soil">
+            </button>
+          </div>
         </div>
 
         <!-- Seed Picker Modal -->
@@ -428,6 +447,41 @@
                 </div>
               </div>
             </template>
+          </div>
+        </div>
+
+        <!-- Quick Transplant Modal -->
+        <div class="modal-overlay" x-show="quickTransplant.show" @click.self="closeQuickTransplant()" @keydown.escape.window="closeQuickTransplant()">
+          <div class="modal-card" style="max-width:360px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <h2>🌿 Transplant</h2>
+              <button class="btn btn-secondary btn-sm" @click="closeQuickTransplant()" aria-label="Close">&times;</button>
+            </div>
+            <p class="text-muted" style="font-size:.875rem;margin-bottom:.75rem"
+               x-text="quickTransplant.planting ? (quickTransplant.planting.seed_name + (quickTransplant.planting.seed_variety ? ' · ' + quickTransplant.planting.seed_variety : '')) : ''"></p>
+            <div style="margin-bottom:.75rem">
+              <label>Target Zone</label>
+              <select x-model.number="quickTransplant.zoneId">
+                <option value="">Select a zone</option>
+                <template x-for="z in transplantZoneOptions(quickTransplant.planting)" :key="z.id">
+                  <option :value="z.id" x-text="z.name"></option>
+                </template>
+              </select>
+            </div>
+            <div style="margin-bottom:.75rem" x-show="isGridZone(quickTransplant.zoneId)">
+              <label>Target Cell</label>
+              <select x-model.number="quickTransplant.cellId">
+                <option value="">Select a cell</option>
+                <template x-for="cell in transplantCellOptions(quickTransplant.zoneId, quickTransplant.planting?.id)" :key="cell.id">
+                  <option :value="cell.id" x-text="cell.label"></option>
+                </template>
+              </select>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:.5rem">
+              <button class="btn btn-secondary" @click="closeQuickTransplant()">Cancel</button>
+              <button class="btn btn-primary" @click="confirmQuickTransplant()"
+                :disabled="!quickTransplant.zoneId || (isGridZone(quickTransplant.zoneId) && !quickTransplant.cellId)">Move</button>
+            </div>
           </div>
         </div>
 

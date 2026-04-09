@@ -311,6 +311,16 @@ router.delete('/plant-lifecycle/:id', (req, res) => {
   db.prepare('DELETE FROM plant_lifecycle WHERE id=?').run([req.params.id]);
   db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES('reset-soil',?,?,?)")
     .run([existing.zone_id, null, `Reset soil for plant lifecycle #${req.params.id}`]);
+  // Auto-complete any pending cleanup task for this planting
+  const pendingTasks = db.prepare(`SELECT id, callback_payload FROM tasks WHERE status='pending' AND callback_type='clear_failed_plant'`).all();
+  for (const task of pendingTasks) {
+    try {
+      const payload = task.callback_payload ? JSON.parse(task.callback_payload) : {};
+      if (Number(payload.plant_lifecycle_id) === Number(req.params.id)) {
+        db.prepare(`UPDATE tasks SET status='done' WHERE id=?`).run([task.id]);
+      }
+    } catch (_) {}
+  }
   res.json({ ok: true });
 });
 

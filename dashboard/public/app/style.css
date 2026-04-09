@@ -486,17 +486,16 @@ main {
 .grid-cell:hover { transform: scale(1.22); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
 
 .cell-hover-menu {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 40;
+  position: fixed;
+  transform: translate(-50%, -100%);
+  margin-top: -4px;
+  z-index: 200;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: .3rem;
   min-width: 86px;
-  padding: .35rem;
+  padding: .35rem .35rem .6rem;
   border: 1px solid var(--border);
   border-radius: .65rem;
   background: var(--bg-surface);
@@ -546,6 +545,22 @@ main {
 .cell-hover-action-dead:hover {
   border-color: var(--red);
   color: var(--red);
+}
+
+.cell-hover-action-transplant {
+  font-size: 1rem;
+}
+
+.cell-hover-action-transplant:hover {
+  border-color: var(--green);
+}
+
+.cell-hover-action-reset {
+  font-size: 1rem;
+}
+
+.cell-hover-action-reset:hover {
+  border-color: var(--yellow-ochre);
 }
 
 [data-theme="dark"] .grid-cell.sown        { background: #0b1e3a; border-color: #173a70; }
