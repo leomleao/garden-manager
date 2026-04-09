@@ -5,7 +5,7 @@ const {
   computeGreenhouseAlert, computePotCheck, gddBaseline,
   computeSeasonGauge, computeInsights, computeAlerts,
   computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
-  computeDualGDD,
+  computeDualGDD, computeFrostEnsemble,
 } = require('../public/app/weather-helpers');
 
 // ── codeToIcon / codeToDesc ───────────────────────────────────────────────────
@@ -478,5 +478,92 @@ describe('computeDualGDD', () => {
       ratio:       expect.any(Number),
       daysDiff:    expect.any(Number),
     });
+  });
+});
+
+// ── computeFrostEnsemble ──────────────────────────────────────────────────────
+describe('computeFrostEnsemble', () => {
+  function makeEnsemble(numMembers, memberTemps) {
+    // memberTemps: array of 72 values per member (3 days × 24h)
+    // If memberTemps has fewer entries than numMembers, remaining members get 5°C
+    const hourly = { time: [] };
+    const base = new Date('2026-04-09T00:00:00');
+    for (let h = 0; h < 72; h++) {
+      const d = new Date(base.getTime() + h * 3600000);
+      hourly.time.push(d.toISOString().slice(0, 16));
+    }
+    for (let m = 1; m <= numMembers; m++) {
+      const key = `temperature_2m_member${String(m).padStart(2, '0')}`;
+      hourly[key] = memberTemps[m - 1] || Array(72).fill(5);
+    }
+    return { hourly };
+  }
+
+  test('returns empty array when null passed', () => {
+    expect(computeFrostEnsemble(null)).toEqual([]);
+  });
+
+  test('returns empty array when no hourly data', () => {
+    expect(computeFrostEnsemble({})).toEqual([]);
+  });
+
+  test('returns empty array when no member keys found', () => {
+    expect(computeFrostEnsemble({ hourly: { time: Array(72).fill('2026-04-09T00:00') } })).toEqual([]);
+  });
+
+  test('0% frost when all members warm overnight', () => {
+    const data = makeEnsemble(4, Array(4).fill(Array(72).fill(5)));
+    const result = computeFrostEnsemble(data);
+    expect(result[0].prob).toBe(0);
+    expect(result[0].level).toBe('low');
+  });
+
+  test('100% frost when all members sub-zero overnight', () => {
+    const data = makeEnsemble(4, Array(4).fill(Array(72).fill(-2)));
+    const result = computeFrostEnsemble(data);
+    expect(result[0].prob).toBe(1);
+    expect(result[0].level).toBe('high');
+  });
+
+  test('50% frost when half members sub-zero → level possible', () => {
+    const coldTemps = Array(72).fill(-2);
+    const warmTemps = Array(72).fill(5);
+    const data = makeEnsemble(4, [coldTemps, coldTemps, warmTemps, warmTemps]);
+    const result = computeFrostEnsemble(data);
+    expect(result[0].prob).toBe(0.5);
+    expect(result[0].level).toBe('possible');
+  });
+
+  test('result includes date, dayName, probPct, freezeCount, totalMembers', () => {
+    const data = makeEnsemble(2, Array(2).fill(Array(72).fill(5)));
+    const result = computeFrostEnsemble(data);
+    expect(result[0]).toMatchObject({
+      date:         expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      dayName:      expect.any(String),
+      probPct:      0,
+      freezeCount:  0,
+      totalMembers: 2,
+    });
+  });
+
+  test('returns up to 3 days', () => {
+    const data = makeEnsemble(2, Array(2).fill(Array(72).fill(5)));
+    expect(computeFrostEnsemble(data).length).toBeLessThanOrEqual(3);
+    expect(computeFrostEnsemble(data).length).toBeGreaterThan(0);
+  });
+
+  test('prob < 0.2 → level low', () => {
+    // 0 of 10 members freeze → prob 0 → low
+    const data = makeEnsemble(10, Array(10).fill(Array(72).fill(5)));
+    expect(computeFrostEnsemble(data)[0].level).toBe('low');
+  });
+
+  test('prob >= 0.5 → level high', () => {
+    const coldTemps = Array(72).fill(-2);
+    const warmTemps = Array(72).fill(5);
+    // 6 cold, 4 warm = 60% → high
+    const members = [...Array(6).fill(coldTemps), ...Array(4).fill(warmTemps)];
+    const data = makeEnsemble(10, members);
+    expect(computeFrostEnsemble(data)[0].level).toBe('high');
   });
 });

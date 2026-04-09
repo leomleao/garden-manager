@@ -210,6 +210,60 @@ function computeDualGDD(daily) {
   };
 }
 
+// ── Ensemble frost probability ────────────────────────────────────────────────
+// Input: raw Open-Meteo ensemble API response.
+// Finds all member keys matching /^temperature_2m_member\d+$/ and checks
+// overnight hours (20:00–06:00 next day) for sub-zero minimums per day.
+// Returns array of up to 3 day objects:
+//   { date, dayName, prob, probPct, label, level, freezeCount, totalMembers }
+// Returns [] when input is missing or has no member keys.
+
+function computeFrostEnsemble(ensembleData) {
+  if (!ensembleData || !ensembleData.hourly) return [];
+
+  const hourly      = ensembleData.hourly;
+  const times       = hourly.time || [];
+  const memberKeys  = Object.keys(hourly).filter(k => /^temperature_2m_member\d+$/.test(k));
+  const totalMembers = memberKeys.length;
+  if (totalMembers === 0) return [];
+
+  const numDays = Math.min(3, Math.floor(times.length / 24));
+  const result  = [];
+
+  for (let dayIdx = 0; dayIdx < numDays; dayIdx++) {
+    const dateStr = (times[dayIdx * 24] || '').slice(0, 10);
+    if (!dateStr) continue;
+
+    // overnight = hours 20–23 of this day + hours 0–6 of next day
+    const overnight = [];
+    for (let h = 20; h < 24; h++) overnight.push(dayIdx * 24 + h);
+    for (let h = 0;  h <  7; h++) {
+      const idx = (dayIdx + 1) * 24 + h;
+      if (idx < times.length) overnight.push(idx);
+    }
+
+    let freezeCount = 0;
+    for (const key of memberKeys) {
+      const temps  = hourly[key] || [];
+      const oTemps = overnight.map(i => temps[i] ?? Infinity);
+      if (Math.min(...oTemps) < 0) freezeCount++;
+    }
+
+    const prob    = freezeCount / totalMembers;
+    const probPct = Math.round(prob * 100);
+    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' });
+
+    let level, label;
+    if (prob < 0.2)       { level = 'low';      label = 'Low risk'; }
+    else if (prob <= 0.5) { level = 'possible'; label = 'Possible — cover tender plants'; }
+    else                  { level = 'high';     label = 'High risk — protect everything'; }
+
+    result.push({ date: dateStr, dayName, prob, probPct, label, level, freezeCount, totalMembers });
+  }
+
+  return result;
+}
+
 // ── Watering status from water balance ────────────────────────────────────────
 
 function wateringFromBalance(precipSum, et0, uvMax) {
@@ -602,6 +656,6 @@ if (typeof module !== 'undefined') {
     computeGreenhouseAlert, computePotCheck, computeSeasonGauge,
     gddBaseline, computeInsights, computeAlerts, computeActionText,
     computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
-    computeDualGDD,
+    computeDualGDD, computeFrostEnsemble,
   };
 }
