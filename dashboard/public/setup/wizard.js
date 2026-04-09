@@ -9,6 +9,7 @@ function wizard() {
       units: 'metric', latitude: null, longitude: null
     },
     zones: [],
+    originalZoneIds: [],
     seedOption: 'keep',   // keep | clear | skip
     openclawEnabled: false,
     map: null, marker: null,
@@ -23,7 +24,11 @@ function wizard() {
       if (cfg.location_name) this.config.location_name = cfg.location_name;
       if (cfg.timezone) this.config.timezone = cfg.timezone;
       if (cfg.units) this.config.units = cfg.units;
-
+      // Load existing zones from DB into the zones array so user can edit/delete them
+      const zonesRes = await fetch('/api/zones');
+      const existing = await zonesRes.json();
+      this.zones = existing;
+      this.originalZoneIds = existing.map(z => z.id);
     },
 
     async initMap() {
@@ -101,18 +106,37 @@ function wizard() {
     },
 
     async launch() {
-      // Handle seed option
+      // Handle seed inventory
       if (this.seedOption === 'clear') {
         await fetch('/api/setup/example-data', { method: 'DELETE' });
+        // example-data wipes all zones too, so skip individual zone ops
+        this.originalZoneIds = [];
+        this.zones = this.zones.filter(z => !z.id);
       }
 
-      // Save zones
+      // Delete any original DB zones the user removed
+      const keptIds = new Set(this.zones.filter(z => z.id).map(z => z.id));
+      for (const id of this.originalZoneIds) {
+        if (!keptIds.has(id)) {
+          await fetch(`/api/zones/${id}`, { method: 'DELETE' });
+        }
+      }
+
+      // PATCH existing zones (edits), POST new zones
       for (const zone of this.zones) {
-        await fetch('/api/setup/zone', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(zone)
-        });
+        if (zone.id) {
+          await fetch(`/api/zones/${zone.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(zone)
+          });
+        } else {
+          await fetch('/api/setup/zone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(zone)
+          });
+        }
       }
 
       // Save OpenClaw preference

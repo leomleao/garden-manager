@@ -293,7 +293,7 @@
           <p style="font-size:.875rem;color:var(--text-3)" x-text="config.timezone + ' · ' + config.units"></p>
         </div>
         <p style="font-weight:600;margin-bottom:.5rem" x-text="'Zones (' + zones.length + ')'"></p>
-        <template x-for="z in zones" :key="z.name">
+        <template x-for="z in zones" :key="z.id || z.name">
           <div class="review-zone">
             <strong x-text="z.name"></strong>
             <span style="color:var(--text-3);font-size:.875rem;margin-left:.5rem" x-text="z.type + ' · ' + z.view_type"></span>
