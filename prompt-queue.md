@@ -1,45 +1,5 @@
 ## First
 
-I want to create a new seed-inventory.sql inside the db section. Along with the respective seed-inventory.js
-This is my actual seed inventory, and for this I want you to extract the actual info from the website where I got my seeds.
-For this task do not infer any information without confirming with me. It should as accurate as possible and get all the info available in the link for each seed.
-
-It should make use of all the available fields:
-INSERT INTO seeds (
-  name, variety, type, quantity, supplier, purchase_year, 
-  sow_by_year, notes, purchase_link, days_to_germinate, 
-  optimum_soil_temp, optimum_soil_type, plant_height, 
-  light_requirements, growing_instructions,
-  sow_indoors_start, sow_indoors_end, sow_outdoors_start, 
-  sow_outdoors_end, plant_out_start, plant_out_end, 
-  harvest_start, harvest_end
-)
-
-
-4 April 2026: https://premierseedsdirect.com
-Lettuce Gourmet Looseleaf Cutting Mix × 1	£1.39	https://premierseedsdirect.com/product/lettuce-gourmet-looseleaf-cutting-mix/
-Lettuce Crispy Mix × 1	£1.39	https://premierseedsdirect.com/product/lettuce-crispy-mix/
-Mustard Salad Leaf 'Tasty Mix' Seed Count: 1000 Seeds × 1	£1.39	https://premierseedsdirect.com/product/mustard-salad-leaf-tasty-mix/
-Carrot Resistafly Seed Count: 1300 × 1	https://premierseedsdirect.com/product/carrot-resistafly/
-Carrot Sweet Candle F1 - 220 × 1	https://premierseedsdirect.com/product/carrot-sweet-candle-f1/?attribute_pa_seed-count=220
-Carrot Rainbow Mix - 1500 × 1	https://premierseedsdirect.com/product/carrot-rainbow-mix/?attribute_pa_seed-count=1500
-Pepper 'Habanero Chocolate' - 15 Seeds × 1	https://premierseedsdirect.com/product/pepper-habanero-chocolate/?attribute_pa_seed-count=15-seeds
-Pepper 'Habanero Orange' - 15 Seeds × 1	https://premierseedsdirect.com/product/pepper-habanero-orange/?attribute_pa_seed-count=15-seeds
-Tomato Sweet Million F1 - 20 × 1	£1.59	https://premierseedsdirect.com/product/tomato-cherry-sweet-million-f1/
-Tomato Sweet Aperitif - 20 × 1	£1.59	https://premierseedsdirect.com/product/tomato-cherry-sweet-aperitif
-Tomato Nagina F1 (Blight Resistant) - 10 × 1	£1.49	https://premierseedsdirect.com/product/tomato-plum-nagina-f1/
-Tomato Riesling F1 - 10 Seeds × 1	£1.89	https://premierseedsdirect.com/product/tomato-rielsing-f1/?attribute_pa_seed-count=10-seeds
-Tomato Supersweet 100 F1 - 10 Seeds × 1	£1.89	https://premierseedsdirect.com/product/tomato-supersweet-100-f1/
-Tomato 'Romello' F1 - 6 Seeds × 1	£1.59	https://premierseedsdirect.com/product/tomato-romello-f1/?attribute_pa_seed-count=6-seeds
-Cucumber Gherkin - Anulka F1 Size: 4gm × 1	£1.89	https://premierseedsdirect.com/product/cucumber-gherkin-anulka-f1-4-gram/
-Hot Chilli Pepper Jalapeno M - 25 × 1	£1.39	https://premierseedsdirect.com/product/hot-chilli-pepper-jalapeno-m/
-Hot Pepper 'Large Red Cherry' - 75 Seeds × 1	£1.29	https://premierseedsdirect.com/product/hot-chilli-pepper-large-red-cherry/?attribute_pa_seed-count=75-seeds
-
-
-
-
-
-
 
 ## Second
 In the calendar view I want to enhance the section Sow Indoors Now and Sow Outdoors Now. Show more information about the seeds. Following the style in how a plant appears in a zone in the zone tab, I want to add the following info:

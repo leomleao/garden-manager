@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS seeds (
 CREATE TABLE IF NOT EXISTS plant_lifecycle (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
   seed_id          INTEGER REFERENCES seeds(id),
-  zone_id          INTEGER NOT NULL REFERENCES zones(id),
+  zone_id          INTEGER REFERENCES zones(id),
   cell_id          INTEGER REFERENCES zone_cells(id),
   sown_date        TEXT,
   germinated_date  TEXT,

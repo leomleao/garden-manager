@@ -33,18 +33,11 @@ function clearPlantLifecycleFromZone(plantingId, context = {}) {
 
   if (!planting) return { ok: true, action: 'noop' };
 
-  const viewType = context.view_type || planting.view_type;
-  if (viewType === 'grid') {
-    db.prepare('DELETE FROM activity_log WHERE plant_lifecycle_id=?').run([plantingId]);
-    db.prepare('DELETE FROM plant_lifecycle WHERE id=?').run([plantingId]);
-    db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES('reset-soil',?,?,?)")
-      .run([planting.zone_id, null, `Reset soil for ${getPlantingDisplayName(planting)} from ${context.cell_label || 'grid cell'}`]);
-    return { ok: true, action: 'reset-soil' };
-  }
-
+  const zoneId = planting.zone_id;
+  const zoneName = planting.zone_name || 'zone';
   db.prepare('UPDATE plant_lifecycle SET zone_id=NULL, cell_id=NULL WHERE id=?').run([plantingId]);
   db.prepare("INSERT INTO activity_log(action_type,zone_id,plant_lifecycle_id,description) VALUES('clear-plant',?,?,?)")
-    .run([planting.zone_id, plantingId, `Cleared ${getPlantingDisplayName(planting)} from ${planting.zone_name || 'zone'}`]);
+    .run([zoneId, plantingId, `Cleared ${getPlantingDisplayName(planting)} from ${zoneName}`]);
   return { ok: true, action: 'remove-from-zone' };
 }
 
