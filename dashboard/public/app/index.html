@@ -714,9 +714,25 @@
             <p class="text-muted" style="font-size:.875rem">Nothing to sow outdoors right now.</p>
           </template>
           <template x-for="s in sowOutdoorsNow" :key="s.id">
-            <div @click="openSeedEdit(s)" style="display:flex;align-items:center;gap:.5rem;padding:.375rem 0;border-bottom:1px solid var(--border);cursor:pointer">
-              <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
-              <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
+            <div @click="openSeedEdit(s)" class="sow-now-row">
+              <div class="sow-now-top">
+                <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
+                <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
+                <span x-show="weatherForecastBadge(s, true)"
+                      class="sow-now-badge"
+                      :class="weatherForecastBadge(s, true) ? 'sow-now-badge--' + weatherForecastBadge(s, true).cls : ''"
+                      :title="weatherForecastBadge(s, true)?.title"
+                      x-text="weatherForecastBadge(s, true)?.label">
+                </span>
+              </div>
+              <div class="sow-now-meta" x-show="s.purchase_year || s.sow_by_year || s.days_to_germinate || s.optimum_soil_temp || s.optimum_soil_type || s.light_requirements">
+                <template x-if="s.purchase_year"><span x-text="'📅 ' + s.purchase_year"></span></template>
+                <template x-if="s.sow_by_year"><span x-text="'Sow by: ' + s.sow_by_year"></span></template>
+                <template x-if="s.days_to_germinate"><span x-text="'🌱 ' + s.days_to_germinate + 'd'"></span></template>
+                <template x-if="s.optimum_soil_temp"><span x-text="'🌡 ' + s.optimum_soil_temp"></span></template>
+                <template x-if="s.optimum_soil_type"><span x-text="'🪨 ' + s.optimum_soil_type"></span></template>
+                <template x-if="s.light_requirements"><span x-text="'☀ ' + s.light_requirements"></span></template>
+              </div>
             </div>
           </template>
         </div>
