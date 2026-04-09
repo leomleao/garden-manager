@@ -803,30 +803,35 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
   border-top: 1px solid var(--border);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  padding: .75rem 1.125rem;
-  gap: .5rem;
+  padding: 0;
+  gap: 0;
 }
 
 .weather-stat {
   display: flex;
   flex-direction: column;
   gap: .125rem;
+  padding: .625rem .875rem;
+  border-right: 1px solid var(--border);
 }
 
+.weather-stat:last-child { border-right: none; }
+
 .weather-stat-label {
-  font-size: .65rem;
+  font-size: .58rem;
   text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: .08em;
   color: var(--text-3);
+  margin-bottom: 2px;
 }
 
 .weather-stat-value {
-  font-size: 1rem;
+  font-size: .92rem;
   font-weight: 600;
 }
 
 .weather-stat-sub {
-  font-size: .7rem;
+  font-size: .65rem;
   color: var(--text-3);
 }
 
@@ -842,6 +847,139 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
 .weather-action--red   { color: var(--red); }
 .weather-action--amber { color: var(--yellow-ochre); }
 .weather-action--green { color: var(--green); }
+
+/* ── Weather widget — section labels ─────────────────────────────────── */
+.weather-section-label {
+  font-size: .58rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text-3);
+  padding: .5rem 1.125rem 0;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.weather-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  opacity: .5;
+}
+
+/* ── Weather widget — header H/L ─────────────────────────────────────── */
+.weather-header-right {
+  margin-left: auto;
+  text-align: right;
+}
+.weather-header-day {
+  font-size: .88rem;
+  font-weight: 600;
+}
+.weather-header-hilo {
+  font-size: .72rem;
+  color: var(--text-2);
+}
+
+/* ── Weather widget — stats bar ───────────────────────────────────────── */
+@keyframes weather-flash {
+  0%   { opacity: .3; }
+  100% { opacity: 1; }
+}
+.weather-stats--flash { animation: weather-flash .3s ease-out; }
+
+/* ── Weather widget — 7-day strip ────────────────────────────────── */
+.weather-7day {
+  border-top: 1px solid var(--border);
+  display: flex;
+  overflow-x: auto;
+  padding: .375rem .25rem;
+}
+.weather-day-cell {
+  flex: 1;
+  min-width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: .5rem .25rem;
+  border-radius: .5rem;
+  cursor: pointer;
+  transition: background .12s;
+}
+.weather-day-cell:hover { background: color-mix(in srgb, var(--text-1) 4%, transparent); }
+.weather-day-cell--active {
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
+}
+.wdc-name {
+  font-size: .6rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-3);
+}
+.wdc-name--today { color: var(--green); font-weight: 700; }
+.wdc-icon { font-size: 1.1rem; }
+.wdc-hilo { font-size: .75rem; font-weight: 600; }
+.wdc-lo   { font-weight: 400; color: var(--text-2); }
+.wdc-rain { font-size: .58rem; color: #5a9ab5; }
+.wdc-soil { font-size: .55rem; color: var(--text-3); }
+.wdc-tag  { font-size: .48rem; border-radius: 3px; padding: 1px 4px; margin-top: 1px; }
+.wdc-tag--frost { background: color-mix(in srgb, #6a88d0 20%, transparent); color: #7a9dd0; }
+.wdc-tag--uv    { background: color-mix(in srgb, var(--yellow-ochre) 20%, transparent); color: var(--yellow-ochre); }
+
+/* ── Weather widget — gardening insights ─────────────────────────────── */
+.weather-insights { border-top: 1px solid var(--border); }
+
+.weather-insight {
+  display: flex;
+  align-items: flex-start;
+  gap: .625rem;
+  padding: .625rem 1.125rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-left: 3px solid transparent;
+  font-size: .78rem;
+}
+.weather-insight:first-child { border-top: none; }
+.weather-insight-icon   { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.weather-insight-body   { flex: 1; }
+.weather-insight-label  {
+  font-size: .56rem; text-transform: uppercase; letter-spacing: .08em;
+  font-weight: 600; margin-bottom: 1px;
+}
+.weather-insight-title  { font-weight: 600; font-size: .78rem; margin-bottom: 2px; }
+.weather-insight-desc   { color: var(--text-2); font-size: .71rem; line-height: 1.4; }
+.weather-insight-meta   { font-size: .6rem; color: var(--text-3); margin-top: 3px; font-style: italic; }
+
+/* GDD progress bar */
+.gdd-bar { display: flex; align-items: center; gap: .5rem; margin-top: 4px; }
+.gdd-track {
+  flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
+}
+.gdd-fill { height: 100%; background: #8a70b0; border-radius: 2px; transition: width .4s; }
+.gdd-labels { display: flex; justify-content: space-between; font-size: .52rem; color: var(--text-3); margin-top: 2px; }
+
+/* Insight colour variants */
+.weather-insight--work    { border-left-color: #5a9ab5; }
+.weather-insight--work    .weather-insight-label { color: #5a9ab5; }
+.weather-insight--disease { border-left-color: var(--yellow-ochre); }
+.weather-insight--disease .weather-insight-label { color: var(--yellow-ochre); }
+.weather-insight--glass   { border-left-color: #c4a030; }
+.weather-insight--glass   .weather-insight-label { color: #c4a030; }
+.weather-insight--wind    { border-left-color: #7a90a0; }
+.weather-insight--wind    .weather-insight-label { color: #7a90a0; }
+.weather-insight--season  { border-left-color: #8a70b0; }
+.weather-insight--season  .weather-insight-label { color: #8a70b0; }
+
+/* ── Weather widget — alert body text ────────────────────────────────── */
+.weather-alert-title { font-weight: 600; display: block; font-size: .78rem; }
+.weather-alert-body  { font-size: .71rem; color: var(--text-2); }
+
+/* ── Responsive tweaks ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .weather-stats { grid-template-columns: repeat(2, 1fr); }
+  .weather-day-cell { min-width: 44px; }
+}
 
 /* ── Calendar tab ─────────────────────────────────────────────────── */
 .calendar-grid {
@@ -1089,7 +1227,6 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
   header { padding: .625rem 1rem; }
   header h1 { font-size: 1.2rem; }
   .stats { grid-template-columns: repeat(2, 1fr); }
-  .weather-stats { grid-template-columns: repeat(2, 1fr); }
   nav button { padding: .6rem .875rem; font-size: .68rem; }
   .zones-grid { grid-template-columns: 1fr; }
   .zone-card-wide { grid-column: auto; }
