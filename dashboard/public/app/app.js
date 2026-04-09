@@ -79,17 +79,25 @@ function app() {
     // Seed edit modal (shared: accessible from seeds tab, calendar, etc.)
     seedModal: {
       show: false, editingId: null,
-      form: { name:'', variety:'', type:'', quantity:0, box_id:null, supplier:'', purchase_year:null, sow_by_year:null, purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'', picture:null }
+      form: { name:'', variety:'', type:'', quantity:0, box_id:null, supplier:'', purchase_year:null, sow_by_year:null, notes:'', purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'', picture:null }
     },
 
     openSeedEdit(seed) {
-      const { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture } = seed;
+      const { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, notes, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture } = seed;
       const pictureDataUrl = picture ? `data:image/jpeg;base64,${picture}` : null;
-      this.seedModal = { show: true, editingId: seed.id, form: { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture: pictureDataUrl } };
+      this.seedModal = { show: true, editingId: seed.id, form: { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, notes, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture: pictureDataUrl } };
+      this.$nextTick(() => {
+        ['Notes...', 'Growing instructions...'].forEach(placeholder => {
+          const textarea = document.querySelector(`textarea[placeholder="${placeholder}"]`);
+          if (textarea) {
+            this.expandTextarea(textarea);
+          }
+        });
+      });
     },
 
     openSeedAdd() {
-      this.seedModal = { show: true, editingId: null, form: { name:'', variety:'', type:'', quantity:0, box_id:null, supplier:'', purchase_year:null, sow_by_year:null, purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'', picture:null } };
+      this.seedModal = { show: true, editingId: null, form: { name:'', variety:'', type:'', quantity:0, box_id:null, supplier:'', purchase_year:null, sow_by_year:null, notes:'', purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'', picture:null } };
     },
 
     closeSeedModal() { this.seedModal.show = false; },
@@ -99,9 +107,63 @@ function app() {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (e) => {
-        this.seedModal.form.picture = e.target.result;
+        const img = new Image();
+        img.onload = () => {
+          // Create a 170x170 canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = 170;
+          canvas.height = 170;
+          const ctx = canvas.getContext('2d');
+          
+          // Fill with white background
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, 170, 170);
+          
+          // Calculate scaling to fit image while maintaining aspect ratio
+          const scale = Math.max(170 / img.width, 170 / img.height);
+          const scaledWidth = img.width * scale;
+          const scaledHeight = img.height * scale;
+          
+          // Center the image
+          const x = (170 - scaledWidth) / 2;
+          const y = (170 - scaledHeight) / 2;
+          
+          ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+          
+          // Convert to jpeg base64
+          this.seedModal.form.picture = canvas.toDataURL('image/jpeg', 0.9);
+        };
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
+    },
+
+    autoExpandTextarea(event) {
+      const textarea = event.target;
+      this.expandTextarea(textarea);
+    },
+
+    expandTextarea(textarea) {
+      // Remove height style to allow rows to control size
+      textarea.style.height = '';
+      
+      // Get computed styles
+      const style = window.getComputedStyle(textarea);
+      const lineHeight = parseFloat(style.lineHeight);
+      const borderTop = parseFloat(style.borderTopWidth) || 0;
+      const borderBottom = parseFloat(style.borderBottomWidth) || 0;
+      const paddingTop = parseFloat(style.paddingTop) || 0;
+      const paddingBottom = parseFloat(style.paddingBottom) || 0;
+      
+      // Get scrollHeight to determine content size
+      const scrollHeight = textarea.scrollHeight;
+      
+      // Calculate rows needed
+      const contentHeight = scrollHeight - borderTop - borderBottom - paddingTop - paddingBottom;
+      const rows = Math.max(3, Math.min(10, Math.ceil(contentHeight / lineHeight)));
+      
+      // Set the rows attribute
+      textarea.rows = rows;
     },
 
     async saveSeed() {

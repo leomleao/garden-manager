@@ -2,6 +2,9 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('seedsTab', () => ({
     search: '',
     typeFilter: '',
+    hoveredSeedId: null,
+    mouseX: 0,
+    mouseY: 0,
 
     get filteredSeeds() {
       let list = this.seeds;

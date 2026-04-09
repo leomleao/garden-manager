@@ -229,38 +229,38 @@ router.get('/seeds', (req, res) => {
 
 router.post('/seeds', (req, res) => {
   const {
-    name, variety, type, quantity = 0, supplier, purchase_year, sow_by_year, notes,
+    name, variety, type, quantity = 0, box_id, emoji, supplier, purchase_year, sow_by_year, notes,
     purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type,
     plant_height, light_requirements, growing_instructions,
     sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end,
-    plant_out_start, plant_out_end, harvest_start, harvest_end
+    plant_out_start, plant_out_end, harvest_start, harvest_end, picture
   } = req.body;
   if (!name) return res.status(400).json({ error: 'name required' });
   const info = db.prepare(
     `INSERT INTO seeds(
-      name,variety,type,quantity,supplier,purchase_year,sow_by_year,notes,
+      name,variety,type,quantity,box_id,emoji,supplier,purchase_year,sow_by_year,notes,
       purchase_link,days_to_germinate,optimum_soil_temp,optimum_soil_type,
       plant_height,light_requirements,growing_instructions,
       sow_indoors_start,sow_indoors_end,sow_outdoors_start,sow_outdoors_end,
-      plant_out_start,plant_out_end,harvest_start,harvest_end
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+      plant_out_start,plant_out_end,harvest_start,harvest_end,picture
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run([
-    name, variety, type, quantity, supplier, purchase_year, sow_by_year, notes,
+    name, variety, type, quantity, box_id, emoji, supplier, purchase_year, sow_by_year, notes,
     purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type,
     plant_height, light_requirements, growing_instructions,
     sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end,
-    plant_out_start, plant_out_end, harvest_start, harvest_end
+    plant_out_start, plant_out_end, harvest_start, harvest_end, picture
   ]);
   res.status(201).json({ id: info.lastInsertRowid });
 });
 
 router.patch('/seeds/:id', (req, res) => {
   const allowed = [
-    'name','variety','type','quantity','supplier','purchase_year','sow_by_year','notes',
+    'name','variety','type','quantity','box_id','emoji','supplier','purchase_year','sow_by_year','notes',
     'purchase_link','days_to_germinate','optimum_soil_temp','optimum_soil_type',
     'plant_height','light_requirements','growing_instructions',
     'sow_indoors_start','sow_indoors_end','sow_outdoors_start','sow_outdoors_end',
-    'plant_out_start','plant_out_end','harvest_start','harvest_end'
+    'plant_out_start','plant_out_end','harvest_start','harvest_end','picture'
   ];
   const fields = Object.keys(req.body).filter(k => allowed.includes(k));
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
