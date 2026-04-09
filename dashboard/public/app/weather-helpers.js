@@ -175,6 +175,41 @@ function computeLightQuality(hourly) {
   };
 }
 
+// ── Dual-base GDD (cool + warm season) ───────────────────────────────────────
+// Returns { cool, warm } each { accumulated, baseline, ratio, daysDiff } or null.
+// Uses the existing gddBaseline() curve for the cool track (base 5).
+// Warm (base 10) baseline is 55% of cool — typical for Scotland in spring.
+// ratio is capped at 1.5 to prevent extreme bars.
+
+function computeDualGDD(daily) {
+  function sumArr(arr) {
+    if (!arr || !arr.length) return null;
+    return Math.round(arr.reduce((s, v) => s + (v ?? 0), 0));
+  }
+
+  const coolAcc = sumArr(daily.growing_degree_days_base_5);
+  const warmAcc = sumArr(daily.growing_degree_days_base_10);
+
+  if (coolAcc === null && warmAcc === null) return { cool: null, warm: null };
+
+  const now = new Date();
+  const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  const coolBase = gddBaseline(doy);
+  const warmBase = Math.round(coolBase * 0.55);
+
+  function makeTrack(acc, baseline) {
+    if (acc === null) return null;
+    const ratio    = baseline > 0 ? Math.min(acc / baseline, 1.5) : 1;
+    const daysDiff = baseline > 0 ? Math.round((ratio - 1) * 7) : 0;
+    return { accumulated: acc, baseline, ratio, daysDiff };
+  }
+
+  return {
+    cool: makeTrack(coolAcc, coolBase),
+    warm: makeTrack(warmAcc, warmBase),
+  };
+}
+
 // ── Watering status from water balance ────────────────────────────────────────
 
 function wateringFromBalance(precipSum, et0, uvMax) {
@@ -400,27 +435,34 @@ function computeInsights(d, zones) {
     });
   }
 
-  // 5. Season Gauge — shown when GDD data available
-  const gauge = computeSeasonGauge(d.daily);
-  if (gauge) {
-    const absDiff = Math.abs(gauge.daysDiff);
-    const dirLabel = gauge.daysDiff < -3 ? `~${absDiff} days behind average`
-                   : gauge.daysDiff > 3  ? `~${absDiff} days ahead of average`
+  // 5. Season Gauge — dual GDD (cool + warm)
+  const dual = computeDualGDD(d.daily);
+  const hasGDD = dual.cool || dual.warm;
+  if (hasGDD) {
+    const coolDiff = dual.cool?.daysDiff ?? 0;
+    const dirLabel = coolDiff < -3 ? `~${Math.abs(coolDiff)} days behind average`
+                   : coolDiff > 3  ? `~${Math.abs(coolDiff)} days ahead of average`
                    : 'on track with average';
     insights.push({
-      type:     'season',
-      icon:     '📅',
-      label:    'Season Progress · GDD',
-      title:    `Spring is ${dirLabel}`,
-      desc:     gauge.daysDiff < -3
-        ? `Accumulated ${gauge.accumulated} GDD (base 5°C) vs typical ${gauge.baseline} GDD. Conditions are equivalent to ~${absDiff} days earlier in the season — hold off on tender seeds.`
-        : gauge.daysDiff > 3
-        ? `Accumulated ${gauge.accumulated} GDD (base 5°C) vs typical ${gauge.baseline} GDD — season is running warm.`
-        : `Accumulated ${gauge.accumulated} GDD (base 5°C) — right on track with the seasonal average.`,
-      meta:     `${gauge.accumulated} GDD accumulated · typical ${gauge.baseline} GDD by this date`,
-      gddRatio: gauge.ratio,
+      type:      'season',
+      icon:      '📅',
+      label:     'Season Progress · GDD',
+      title:     `Spring is ${dirLabel}`,
+      desc:      coolDiff < -3
+        ? `Cool-season crops accumulating less heat than typical — hold off on tender seeds.`
+        : coolDiff > 3
+        ? `Season running warm — cool-season crops ahead of schedule.`
+        : `Heat accumulation on track for this time of year.`,
+      meta:      [
+        dual.cool ? `Cool: ${dual.cool.accumulated} GDD (base 5)` : null,
+        dual.warm ? `Warm: ${dual.warm.accumulated} GDD (base 10)` : null,
+      ].filter(Boolean).join(' · '),
+      coolRatio: dual.cool?.ratio ?? 0,
+      warmRatio: dual.warm?.ratio ?? 0,
+      coolAcc:   dual.cool?.accumulated ?? 0,
+      warmAcc:   dual.warm?.accumulated ?? 0,
     });
-  }   // end if (gauge)
+  }
 
   // 6. Light Quality
   const lq = computeLightQuality(d.hourly);
@@ -560,5 +602,6 @@ if (typeof module !== 'undefined') {
     computeGreenhouseAlert, computePotCheck, computeSeasonGauge,
     gddBaseline, computeInsights, computeAlerts, computeActionText,
     computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
+    computeDualGDD,
   };
 }

@@ -4,8 +4,8 @@ const {
   buildForecastDays, findWorkWindow, computeDiseaseRisk,
   computeGreenhouseAlert, computePotCheck, gddBaseline,
   computeSeasonGauge, computeInsights, computeAlerts,
-  computeSoilLayers, computePrecipTypeAlerts,
-  computeLightQuality,
+  computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
+  computeDualGDD,
 } = require('../public/app/weather-helpers');
 
 // ── codeToIcon / codeToDesc ───────────────────────────────────────────────────
@@ -418,5 +418,65 @@ describe('computeLightQuality', () => {
     const r = computeLightQuality(makeHourly(20, 80));
     expect(typeof r.diffuseFraction).toBe('number');
     expect(typeof r.peakDirect).toBe('number');
+  });
+});
+
+// ── computeDualGDD ────────────────────────────────────────────────────────────
+describe('computeDualGDD', () => {
+  function makeDaily(base5, base10) {
+    return {
+      growing_degree_days_base_5:  base5,
+      growing_degree_days_base_10: base10,
+    };
+  }
+
+  test('returns null cool and warm when arrays absent', () => {
+    const r = computeDualGDD({});
+    expect(r.cool).toBeNull();
+    expect(r.warm).toBeNull();
+  });
+
+  test('sums 7-day base_5 array correctly', () => {
+    const r = computeDualGDD(makeDaily([5, 5, 5, 5, 5, 5, 5], [2, 2, 2, 2, 2, 2, 2]));
+    expect(r.cool.accumulated).toBe(35);
+  });
+
+  test('sums 7-day base_10 array correctly', () => {
+    const r = computeDualGDD(makeDaily([5, 5, 5, 5, 5, 5, 5], [2, 2, 2, 2, 2, 2, 2]));
+    expect(r.warm.accumulated).toBe(14);
+  });
+
+  test('handles null values in GDD arrays gracefully', () => {
+    const r = computeDualGDD(makeDaily([5, null, 5, null, 5], [null, 2, null, 2, null]));
+    expect(r.cool.accumulated).toBe(15);
+    expect(r.warm.accumulated).toBe(4);
+  });
+
+  test('cool ratio is a number between 0 and 1.5', () => {
+    const r = computeDualGDD(makeDaily([5, 5, 5, 5, 5, 5, 5], [2, 2, 2, 2, 2, 2, 2]));
+    expect(r.cool.ratio).toBeGreaterThanOrEqual(0);
+    expect(r.cool.ratio).toBeLessThanOrEqual(1.5);
+  });
+
+  test('when only base_5 present, warm is null', () => {
+    const r = computeDualGDD({ growing_degree_days_base_5: [5, 5, 5] });
+    expect(r.cool).not.toBeNull();
+    expect(r.warm).toBeNull();
+  });
+
+  test('when only base_10 present, cool is null', () => {
+    const r = computeDualGDD({ growing_degree_days_base_10: [3, 3, 3] });
+    expect(r.warm).not.toBeNull();
+    expect(r.cool).toBeNull();
+  });
+
+  test('each track includes accumulated, baseline, ratio, daysDiff', () => {
+    const r = computeDualGDD(makeDaily([5, 5, 5], [2, 2, 2]));
+    expect(r.cool).toMatchObject({
+      accumulated: expect.any(Number),
+      baseline:    expect.any(Number),
+      ratio:       expect.any(Number),
+      daysDiff:    expect.any(Number),
+    });
   });
 });
