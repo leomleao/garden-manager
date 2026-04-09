@@ -1,16 +1,11 @@
 ## First
-
+I've added someone changes to the weather overview and API call, this means we will have even more information available in the app. Can we use this in the calendar tab? Specifically we have the sow indoors now and sow outdoors now, I want to add tooltips based on the weather info we have. Examples here:
+1. "Sow Outdoors Now" Tooltip (The Soil Gatekeeper)This is the most critical logic. Just because it is "April" (within the sow_outdoors_start window) doesn't mean the soil is ready.Logic: Compare optimum_soil_temp from your DB to the API’s soil_temperature_6cm.The Tooltip Content:Condition A (Too Cold): "Calendar says YES, but Soil says NO. Soil is 7.4°C; {seed.name} needs {seed.optimum_soil_temp} to germinate. Wait for a warmer spell to avoid seed rot."Condition B (Frost Risk): "Soil is warm enough, but a frost alert is active for Monday. If these germinate in {seed.days_to_germinate} days, they might hit a late freeze. Consider cloche protection."Condition C (Perfect): "Perfect conditions! Soil temp is ideal and rain today will help settle the seeds."
+2. "Sow Indoors Now" Tooltip (The Light & Heat Logic)Indoor sowing is less about the weather outside and more about the growing conditions the user can provide.Logic: Use shortwave_radiation and uv_index to determine if windowsill light is enough.The Tooltip Content:Condition (Low Light): "Sow now, but use grow lights. Next 4 days are 90% overcast; windowsill light won't be enough to prevent 'leggy' (weak) seedlings."Condition (Season Lag): "Season Progress (GDD) is 50% behind average. Sowing now is fine, but don't expect to plant out until {adjusted_date} based on current warming trends."
+3. "Plant Out" Tooltip (The Hardening Off Logic)When the user moves a plant from sow_indoors to the garden, this is the highest risk of plant death.Logic: Compare temperature_2m_min and uv_index.The Tooltip Content:Condition (UV Shock): "Danger: High UV (6) today. Do not move indoor seedlings directly into the sun. Start 'hardening off' in a shaded spot for 2 hours only."Condition (Wind Stress): "High wind gusts (38 km/h). Newly transplanted {seed.name} will struggle with windburn. Wait for Tuesday’s calm window."Suggested Database & Logic MappingSince your optimum_soil_temp is currently TEXT, you’ll likely want to parse it to an integer for comparison.DB FieldAPI MatchLogic / Tooltip Triggeroptimum_soil_tempsoil_temperature_6cmIf soil_temp < optimum_temp, show "Soil Too Cold" warning.days_to_germinatedaily_min_temp (7-day)If min_temp < 0°C inside the germination window, show "Late Frost Risk".light_requirementscloud_cover / radiationIf "Full Sun" required but 100% cloud cover forecast, show "Grow Light Recommended".typevapor_pressure_deficitIf type is "Vegetable" (like Tomatoes) and VPD is low, show "Blight Alert".
 
 ## Second
-In the calendar view I want to enhance the section Sow Indoors Now and Sow Outdoors Now. Show more information about the seeds. Following the style in how a plant appears in a zone in the zone tab, I want to add the following info:
-Purchased year, Sow by year, days to germinate, Optimum soil temp, soil type, light requirements.
 
-I added some info in the overview related to weather. I want you analyse what was added and infer what can be determined, eg, if soil temp today and for the next week are ideal, then add a tooltip for the plant that the weather forecast is good for this seed. Make sure this doesn't break if the api didn't load yet or failed. At the moment this is stored here:
-this.weatherData is now on the root app() scope, so every tab component inherits it via Alpine's scope chain. It holds the full Open-Meteo response:
-
-weatherData.current — current temp, weathercode
-weatherData.daily — 7-day arrays: time, weather_code, temperature_2m_min/max, precipitation_sum, uv_index_max, et0_fao_evapotranspiration
-weatherData.hourly — time + soil_temperature_6cm (168 values, 7 days × 24h)
 
 
 ## Third 
@@ -40,6 +35,7 @@ VALUES
 
 
 9 Apr 2025: https://yorkshire-seeds.co.uk/?country=GB
+
 Lychnis Arkwright S Campion - 250x Seeds - lychnis - Flower £1.49 https://yorkshire-seeds.co.uk/products/lychnis-arkwright-s-campion-250x-seeds-lychnis-flower?_pos=1&_psq=Lychnis+Arkwright+S+Campion+-+250x+Seeds+-+lychnis+-+Flower&_ss=e&_v=1.0
 Red California Poppy Chief Eschscholzia Californica - 2100x - Flower £1.29 https://yorkshire-seeds.co.uk/products/red-california-poppy-chief-eschscholzia-californica-2100x-flower?_pos=1&_psq=Red+California+Poppy+Chief+Eschscholzia+Californica+-+2100x+-+Flower&_ss=e&_v=1.0
 Giant Pak Choi Chinese Cabbage White Stem Canton - 100x Seeds - Vegetable £1.59 https://yorkshire-seeds.co.uk/products/giant-pak-choi-chinese-cabbage-white-stem-canton-100x-seeds-vegetable?_pos=1&_psq=Giant+Pak+Choi+Chinese+Cabbage+White+Stem+Canton+-+100x+Seeds+-+Vegetable&_ss=e&_v=1.0

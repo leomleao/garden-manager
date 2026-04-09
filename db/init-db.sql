@@ -122,10 +122,10 @@ INSERT OR IGNORE INTO app_config(key, value) VALUES ('example_data_loaded', '1')
 INSERT INTO zones(name,type,latitude,longitude,covered,cover_type,view_type,grid_rows,grid_cols,cell_width_cm,cell_height_cm,sort_order)
 VALUES
   ('Germinator 1','germinator',56.1667,-4.2833,1,'glass','grid',8,5,2.5,2.5,1),
-  ('Germinator 2','germinator',56.1667,-4.2833,1,'glass','grid',8,5,2.5,2.5,1),
-  ('Greenhouse','greenhouse',56.1667,-4.2833,1,'glass','loose',NULL,NULL,NULL,NULL,2),
-  ('Polytunnel','polytunnel',56.1667,-4.2833,1,'polytunnel','grid',5,4,25,25,3),
-  ('Outdoor Veg Plot','outdoor',56.1667,-4.2833,0,NULL,'loose',NULL,NULL,NULL,NULL,4);
+  ('Germinator 2','germinator',56.1667,-4.2833,1,'glass','grid',8,5,2.5,2.5,2),
+  ('Greenhouse','greenhouse',56.1667,-4.2833,1,'glass','loose',NULL,NULL,NULL,NULL,3),
+  ('Polytunnel','polytunnel',56.1667,-4.2833,1,'polytunnel','grid',5,4,25,25,4),
+  ('Outdoor Veg Plot','outdoor',56.1667,-4.2833,0,NULL,'loose',NULL,NULL,NULL,NULL,5);
 
 -- Generate cells for grid zones (mirrors the logic in PATCH /zones/:id)
 WITH RECURSIVE

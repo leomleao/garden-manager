@@ -169,19 +169,20 @@ function computePotCheck(hourly, daily) {
 }
 
 // ── Season gauge (GDD) ────────────────────────────────────────────────────────
-// Approximate cumulative GDD (base 5°C) seasonal baseline for ~56°N.
+// Typical 7-day GDD (base 0°C, limit 50°C) for ~56°N — used as baseline for
+// the current forecast window. Values represent expected GDD over 7 days.
 // Returns { accumulated, baseline, ratio, daysDiff }
 
 function gddBaseline(dayOfYear) {
   if (dayOfYear < 60)  return 0;
-  if (dayOfYear < 91)  return Math.round((dayOfYear - 60) * 0.6);
-  if (dayOfYear < 121) return Math.round(18 + (dayOfYear - 91) * 2.4);
-  if (dayOfYear < 152) return Math.round(90 + (dayOfYear - 121) * 2.3);
-  return Math.round(161 + (dayOfYear - 152) * 2.2);
+  if (dayOfYear < 91)  return Math.round(30 + (dayOfYear - 60) * 0.5);  // Mar: ~30–45
+  if (dayOfYear < 121) return Math.round(49 + (dayOfYear - 91) * 0.7);  // Apr: ~49–70
+  if (dayOfYear < 152) return Math.round(70 + (dayOfYear - 121) * 0.47); // May: ~70–84
+  return Math.round(84 + (dayOfYear - 152) * 0.47);                      // Jun+: ~84–98
 }
 
 function computeSeasonGauge(daily) {
-  const gddArr = daily.growing_degree_days_base_5_limit_30;
+  const gddArr = daily.growing_degree_days_base_0_limit_50;
   if (!gddArr || !gddArr.length) return null;
   const accumulated = Math.round(gddArr.reduce((s, v) => s + (v ?? 0), 0));
   const now = new Date();
@@ -189,8 +190,8 @@ function computeSeasonGauge(daily) {
   const dayOfYear = Math.floor((now - start) / 86400000);
   const baseline = gddBaseline(dayOfYear);
   const ratio    = baseline > 0 ? accumulated / baseline : 1;
-  // Each ~0.5 GDD ≈ 1 calendar day at this latitude in spring
-  const daysDiff = baseline > 0 ? Math.round((accumulated - baseline) / 0.5) : 0;
+  // daysDiff: how many days ahead/behind typical pace over the 7-day window
+  const daysDiff = baseline > 0 ? Math.round((ratio - 1) * 7) : 0;
   return { accumulated, baseline, ratio: Math.min(ratio, 1.5), daysDiff };
 }
 

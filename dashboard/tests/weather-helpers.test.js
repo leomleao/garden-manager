@@ -179,7 +179,7 @@ describe('computePotCheck', () => {
 // ── gddBaseline ───────────────────────────────────────────────────────────────
 describe('gddBaseline', () => {
   test('returns 0 before day 60', () => expect(gddBaseline(50)).toBe(0));
-  test('returns 0 on day 60', () => expect(gddBaseline(60)).toBe(0));
+  test('returns positive from day 60 onward (base 0°C)', () => expect(gddBaseline(60)).toBeGreaterThan(0));
   test('returns positive by April (day 99)', () => expect(gddBaseline(99)).toBeGreaterThan(0));
   test('increases over time', () => expect(gddBaseline(121)).toBeGreaterThan(gddBaseline(99)));
 });
@@ -187,12 +187,12 @@ describe('gddBaseline', () => {
 // ── computeSeasonGauge ────────────────────────────────────────────────────────
 describe('computeSeasonGauge', () => {
   test('returns null when GDD field absent', () => {
-    expect(computeSeasonGauge({ growing_degree_days_base_5_limit_30: undefined })).toBeNull();
-    expect(computeSeasonGauge({ growing_degree_days_base_5_limit_30: [] })).toBeNull();
+    expect(computeSeasonGauge({ growing_degree_days_base_0_limit_50: undefined })).toBeNull();
+    expect(computeSeasonGauge({ growing_degree_days_base_0_limit_50: [] })).toBeNull();
   });
 
   test('returns object with accumulated, baseline, ratio when data present', () => {
-    const result = computeSeasonGauge({ growing_degree_days_base_5_limit_30: [2, 3, 1, 2, 4, 3, 2] });
+    const result = computeSeasonGauge({ growing_degree_days_base_0_limit_50: [2, 3, 1, 2, 4, 3, 2] });
     expect(result).not.toBeNull();
     expect(result.accumulated).toBe(17);
     expect(result.ratio).toBeGreaterThanOrEqual(0);

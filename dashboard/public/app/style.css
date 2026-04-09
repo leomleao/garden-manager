@@ -818,7 +818,7 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
 .weather-stat:last-child { border-right: none; }
 
 .weather-stat-label {
-  font-size: .58rem;
+  font-size: .90rem;
   text-transform: uppercase;
   letter-spacing: .08em;
   color: var(--text-3);
@@ -831,7 +831,7 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
 }
 
 .weather-stat-sub {
-  font-size: .65rem;
+  font-size: 1rem;
   color: var(--text-3);
 }
 
@@ -850,7 +850,7 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
 
 /* ── Weather widget — section labels ─────────────────────────────────── */
 .weather-section-label {
-  font-size: .58rem;
+  font-size: .80rem;
   text-transform: uppercase;
   letter-spacing: .1em;
   color: var(--text-3);
@@ -877,7 +877,7 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 .weather-header-hilo {
-  font-size: .72rem;
+  font-size: 1rem;
   color: var(--text-2);
 }
 
@@ -913,18 +913,18 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
   outline: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
 }
 .wdc-name {
-  font-size: .6rem;
+  font-size: .9rem;
   text-transform: uppercase;
   letter-spacing: .05em;
   color: var(--text-3);
 }
 .wdc-name--today { color: var(--green); font-weight: 700; }
-.wdc-icon { font-size: 1.1rem; }
-.wdc-hilo { font-size: .75rem; font-weight: 600; }
+.wdc-icon { font-size: 3rem; }
+.wdc-hilo { font-size: 1rem; font-weight: 600; }
 .wdc-lo   { font-weight: 400; color: var(--text-2); }
-.wdc-rain { font-size: .58rem; color: #5a9ab5; }
-.wdc-soil { font-size: .55rem; color: var(--text-3); }
-.wdc-tag  { font-size: .48rem; border-radius: 3px; padding: 1px 4px; margin-top: 1px; }
+.wdc-rain { font-size: .9rem; color: #5a9ab5; }
+.wdc-soil { font-size: .85rem; color: var(--text-3); }
+.wdc-tag  { font-size: .9rem; border-radius: 3px; padding: 1px 4px; margin-top: 1px; }
 .wdc-tag--frost { background: color-mix(in srgb, #6a88d0 20%, transparent); color: #7a9dd0; }
 .wdc-tag--uv    { background: color-mix(in srgb, var(--yellow-ochre) 20%, transparent); color: var(--yellow-ochre); }
 
@@ -938,7 +938,7 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
   padding: .625rem 1.125rem;
   border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   border-left: 3px solid transparent;
-  font-size: .78rem;
+  font-size: .9rem;
 }
 .weather-insight:first-child { border-top: none; }
 .weather-insight-icon   { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
@@ -947,9 +947,9 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
   font-size: .56rem; text-transform: uppercase; letter-spacing: .08em;
   font-weight: 600; margin-bottom: 1px;
 }
-.weather-insight-title  { font-weight: 600; font-size: .78rem; margin-bottom: 2px; }
-.weather-insight-desc   { color: var(--text-2); font-size: .71rem; line-height: 1.4; }
-.weather-insight-meta   { font-size: .6rem; color: var(--text-3); margin-top: 3px; font-style: italic; }
+.weather-insight-title  { font-weight: 600; font-size: .9rem; margin-bottom: 2px; }
+.weather-insight-desc   { color: var(--text-2); font-size: .85rem; line-height: 1.4; }
+.weather-insight-meta   { font-size: .75rem; color: var(--text-3); margin-top: 3px; font-style: italic; }
 
 /* GDD progress bar */
 .gdd-bar { display: flex; align-items: center; gap: .5rem; margin-top: 4px; }
@@ -957,7 +957,7 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
   flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
 }
 .gdd-fill { height: 100%; background: #8a70b0; border-radius: 2px; transition: width .4s; }
-.gdd-labels { display: flex; justify-content: space-between; font-size: .52rem; color: var(--text-3); margin-top: 2px; }
+.gdd-labels { display: flex; justify-content: space-between; font-size: .8rem; color: var(--text-3); margin-top: 2px; }
 
 /* Insight colour variants */
 .weather-insight--work    { border-left-color: #5a9ab5; }
@@ -972,8 +972,8 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
 .weather-insight--season  .weather-insight-label { color: #8a70b0; }
 
 /* ── Weather widget — alert body text ────────────────────────────────── */
-.weather-alert-title { font-weight: 600; display: block; font-size: .78rem; }
-.weather-alert-body  { font-size: .71rem; color: var(--text-2); }
+.weather-alert-title { font-weight: 600; display: block; font-size: 1rem; }
+.weather-alert-body  { font-size: .90rem; color: var(--text-2); }
 
 /* ── Responsive tweaks ───────────────────────────────────────────────── */
 @media (max-width: 600px) {

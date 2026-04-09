@@ -184,7 +184,7 @@ function app() {
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
           `&current=temperature_2m,weathercode` +
           `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,` +
-          `uv_index_max,et0_fao_evapotranspiration,growing_degree_days_base_5_limit_30` +
+          `uv_index_max,et0_fao_evapotranspiration,growing_degree_days_base_0_limit_50` +
           `&hourly=soil_temperature_6cm,temperature_2m,precipitation_probability,precipitation,` +
           `relative_humidity_2m,leaf_wetness_probability,direct_radiation,wind_gusts_10m,dewpoint_2m` +
           `&timezone=auto&forecast_days=7`
