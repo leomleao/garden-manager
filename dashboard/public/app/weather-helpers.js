@@ -10,6 +10,7 @@ function codeToIcon(code) {
   if (code <= 48)       return '🌫️';
   if (code <= 67)       return '🌧️';
   if (code <= 77)       return '🌨️';
+  if (code <= 82)       return '🌧️';
   return '⛈️';
 }
 
@@ -19,6 +20,7 @@ function codeToDesc(code) {
   if (code <= 48)       return 'Foggy';
   if (code <= 67)       return 'Rainy';
   if (code <= 77)       return 'Snowy';
+  if (code <= 82)       return 'Showers';
   return 'Stormy';
 }
 
@@ -298,9 +300,10 @@ function computeAlerts(d, soilTemp) {
     const body      = minDew < 0
       ? 'Dewpoint below 0°C — dehydrating frost, more damaging to leaves. Cover tender plants the evening before.'
       : 'Dewpoint above 0°C — soft frost or heavy dew. Cover dahlias and tender seedlings to be safe.';
+    const frostDayLabel = frostIdx === 0 ? 'Today' : dayNames[frostIdx];
     alerts.push({
       level: 'red',
-      text:  `Frost Alert · ${dayNames[frostIdx]}, ${Math.round(daily.temperature_2m_min[frostIdx])}°C (${frostType})`,
+      text:  `Frost Alert · ${frostDayLabel}, ${Math.round(daily.temperature_2m_min[frostIdx])}°C (${frostType})`,
       body,
     });
   }
@@ -368,7 +371,7 @@ function computeAlerts(d, soilTemp) {
 function computeActionText(alerts, soilTemp, workWindow) {
   const topLevel = alerts[0]?.level;
   const topText  = alerts[0]?.text || '';
-  if (topLevel === 'red' && topText.includes('Frost') && topText.includes('today')) {
+  if (topLevel === 'red' && topText.includes('Frost') && topText.includes('Today')) {
     return 'Protect tender plants tonight';
   }
   if (topLevel === 'red' && topText.includes('Frost')) {
