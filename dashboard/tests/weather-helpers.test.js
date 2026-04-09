@@ -3,7 +3,7 @@ const {
   codeToIcon, codeToDesc, soilStatus, wateringFromBalance,
   buildForecastDays, findWorkWindow, computeDiseaseRisk,
   computeGreenhouseAlert, computePotCheck, gddBaseline,
-  computeInsights, computeAlerts,
+  computeSeasonGauge, computeInsights, computeAlerts,
 } = require('../public/app/weather-helpers');
 
 // ── codeToIcon / codeToDesc ───────────────────────────────────────────────────
@@ -182,6 +182,22 @@ describe('gddBaseline', () => {
   test('returns 0 on day 60', () => expect(gddBaseline(60)).toBe(0));
   test('returns positive by April (day 99)', () => expect(gddBaseline(99)).toBeGreaterThan(0));
   test('increases over time', () => expect(gddBaseline(121)).toBeGreaterThan(gddBaseline(99)));
+});
+
+// ── computeSeasonGauge ────────────────────────────────────────────────────────
+describe('computeSeasonGauge', () => {
+  test('returns null when GDD field absent', () => {
+    expect(computeSeasonGauge({ growing_degree_days_base_5_limit_30: undefined })).toBeNull();
+    expect(computeSeasonGauge({ growing_degree_days_base_5_limit_30: [] })).toBeNull();
+  });
+
+  test('returns object with accumulated, baseline, ratio when data present', () => {
+    const result = computeSeasonGauge({ growing_degree_days_base_5_limit_30: [2, 3, 1, 2, 4, 3, 2] });
+    expect(result).not.toBeNull();
+    expect(result.accumulated).toBe(17);
+    expect(result.ratio).toBeGreaterThanOrEqual(0);
+    expect(result.ratio).toBeLessThanOrEqual(1.5);
+  });
 });
 
 // ── computeAlerts — frost dewpoint classification ─────────────────────────────

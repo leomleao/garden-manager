@@ -181,7 +181,8 @@ function gddBaseline(dayOfYear) {
 }
 
 function computeSeasonGauge(daily) {
-  const gddArr = daily.growing_degree_days_base_5_limit_30 || [];
+  const gddArr = daily.growing_degree_days_base_5_limit_30;
+  if (!gddArr || !gddArr.length) return null;
   const accumulated = Math.round(gddArr.reduce((s, v) => s + (v ?? 0), 0));
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 0);
@@ -210,9 +211,9 @@ function computeInsights(d, zones) {
       type:  'work',
       icon:  '🪟',
       label: 'Work Window',
-      title: `Clear gap ${win.day} ${fmt(win.startHour)}–${fmt((win.endHour + 1) % 24 || 24)}`,
+      title: `Clear gap ${win.day} ${fmt(win.startHour)}–${fmt((win.endHour + 1) % 24)}`,
       desc:  `${len}-hour dry window with <20% rain chance. Good time for outdoor planting or bed prep.`,
-      meta:  `Precipitation probability stays below 20% through ${fmt((win.endHour + 1) % 24 || 24)}`,
+      meta:  `Precipitation probability stays below 20% through ${fmt((win.endHour + 1) % 24)}`,
     });
   }
 
@@ -256,25 +257,27 @@ function computeInsights(d, zones) {
     });
   }
 
-  // 5. Season Gauge — always shown
+  // 5. Season Gauge — shown when GDD data available
   const gauge = computeSeasonGauge(d.daily);
-  const absDiff = Math.abs(gauge.daysDiff);
-  const dirLabel = gauge.daysDiff < -3 ? `~${absDiff} days behind average`
-                 : gauge.daysDiff > 3  ? `~${absDiff} days ahead of average`
-                 : 'on track with average';
-  insights.push({
-    type:     'season',
-    icon:     '📅',
-    label:    'Season Progress · GDD',
-    title:    `Spring is ${dirLabel}`,
-    desc:     gauge.daysDiff < -3
-      ? `Accumulated ${gauge.accumulated} GDD (base 5°C) vs typical ${gauge.baseline} GDD. Conditions are equivalent to ~${absDiff} days earlier in the season — hold off on tender seeds.`
-      : gauge.daysDiff > 3
-      ? `Accumulated ${gauge.accumulated} GDD (base 5°C) vs typical ${gauge.baseline} GDD — season is running warm.`
-      : `Accumulated ${gauge.accumulated} GDD (base 5°C) — right on track with the seasonal average.`,
-    meta:     `${gauge.accumulated} GDD accumulated · typical ${gauge.baseline} GDD by this date`,
-    gddRatio: gauge.ratio,
-  });
+  if (gauge) {
+    const absDiff = Math.abs(gauge.daysDiff);
+    const dirLabel = gauge.daysDiff < -3 ? `~${absDiff} days behind average`
+                   : gauge.daysDiff > 3  ? `~${absDiff} days ahead of average`
+                   : 'on track with average';
+    insights.push({
+      type:     'season',
+      icon:     '📅',
+      label:    'Season Progress · GDD',
+      title:    `Spring is ${dirLabel}`,
+      desc:     gauge.daysDiff < -3
+        ? `Accumulated ${gauge.accumulated} GDD (base 5°C) vs typical ${gauge.baseline} GDD. Conditions are equivalent to ~${absDiff} days earlier in the season — hold off on tender seeds.`
+        : gauge.daysDiff > 3
+        ? `Accumulated ${gauge.accumulated} GDD (base 5°C) vs typical ${gauge.baseline} GDD — season is running warm.`
+        : `Accumulated ${gauge.accumulated} GDD (base 5°C) — right on track with the seasonal average.`,
+      meta:     `${gauge.accumulated} GDD accumulated · typical ${gauge.baseline} GDD by this date`,
+      gddRatio: gauge.ratio,
+    });
+  }   // end if (gauge)
 
   return insights;
 }
@@ -378,7 +381,10 @@ function computeActionText(alerts, soilTemp, workWindow) {
     return `Cover tender plants before ${alerts[0].text.split('·')[1]?.trim().split(',')[0] || 'the frost'}`;
   }
   if (topLevel === 'red') return 'Severe weather forecast — avoid outdoor work';
-  if (workWindow)         return `Work window available ${workWindow.day} — ${workWindow.startHour}:00–${workWindow.endHour + 1}:00`;
+  if (workWindow) {
+    const endDisplay = workWindow.endHour === 23 ? '00:00' : `${workWindow.endHour + 1}:00`;
+    return `Work window available ${workWindow.day} — ${workWindow.startHour}:00–${endDisplay}`;
+  }
   if (soilTemp != null && soilTemp < 10) return 'Too cold for sowing — focus on indoor propagation';
   if (soilTemp != null && soilTemp > 18) return 'Ideal conditions for warm-season crops';
   if (soilTemp != null && soilTemp >= 10) return 'Good day for sowing peas or lettuce';
