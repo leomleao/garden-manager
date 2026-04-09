@@ -1,7 +1,7 @@
 // ── Pure helpers — exported for Jest when running in Node ─────────
 function parseSoilTempRange(str) {
   if (!str) return null;
-  const range = str.match(/(\d+(?:\.\d+)?)\s*[-\u2013]\s*(\d+(?:\.\d+)?)/);
+  const range = str.match(/(\d+(?:\.\d+)?)\s*[-\u2013\u2014]\s*(\d+(?:\.\d+)?)/);
   if (range) return { min: parseFloat(range[1]), max: parseFloat(range[2]) };
   const single = str.match(/(\d+(?:\.\d+)?)/);
   if (single) { const v = parseFloat(single[1]); return { min: v - 3, max: v + 3 }; }
@@ -15,7 +15,7 @@ function arrAvg(arr) {
 }
 
 function getSowNowBadge(weatherData, seed, isOutdoor) {
-  if (!weatherData) return null;
+  if (!weatherData || !seed) return null;
   const range = parseSoilTempRange(seed.optimum_soil_temp);
   if (!range) return null;
   const { min, max } = range;

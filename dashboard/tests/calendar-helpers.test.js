@@ -66,6 +66,11 @@ describe('getSowNowBadge', () => {
     expect(getSowNowBadge(w, {}, true)).toBeNull();
   });
 
+  test('returns null when seed is null', () => {
+    const w = makeWeather({ soilTemps: [20], airTemps: [20] });
+    expect(getSowNowBadge(w, null, true)).toBeNull();
+  });
+
   // ── Outdoor (isOutdoor = true) ──────────────────────────────────
   test('outdoor: good badge when avg soil temp is inside range', () => {
     const w = makeWeather({ soilTemps: [20, 20, 20], airTemps: [20] });
