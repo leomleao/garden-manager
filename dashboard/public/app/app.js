@@ -27,6 +27,7 @@ function app() {
       statsFlash:  false, // triggers CSS flash animation on day change
     },
     lastRefresh: '',
+    currentTime: new Date().toLocaleTimeString(),
     refreshError: null,
     taskFilter: { zone_id: '', status: 'pending', priority: '' },
     newTask: { title:'', due_date:'', priority:'medium', zone_id:'' },
@@ -37,6 +38,7 @@ function app() {
       document.documentElement.setAttribute('data-theme', saved);
       await this.refresh();
       setInterval(() => this.refresh(), 60000);
+      setInterval(() => { this.currentTime = new Date().toLocaleTimeString(); }, 1000);
     },
 
     toggleTheme() {

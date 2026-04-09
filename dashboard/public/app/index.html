@@ -26,8 +26,11 @@
   <div class="layout" x-data="app()" x-init="init()">
     <header>
       <h1>&#x1F331; Garden Manager</h1>
+      <span class="header-weather" x-show="weather.temp !== null" x-cloak>
+        <span class="header-weather-icon" x-text="weather.icon"></span><span class="header-weather-temp" x-text="weather.temp + '°C'"></span><span class="header-weather-desc" x-text="weather.desc"></span>
+      </span>
       <span class="header-location" x-text="config.location_name || ''"></span>
-      <span class="header-time" x-text="lastRefresh"></span>
+      <span class="header-time" x-text="currentTime"></span>
       <span x-show="refreshError" class="header-error" x-text="refreshError"></span>
       <button class="theme-toggle" @click="toggleTheme()"
         :title="darkMode ? 'Switch to light mode' : 'Switch to dark mode'"

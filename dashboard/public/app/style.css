@@ -135,14 +135,36 @@ header h1 {
   background-clip: text;
 }
 
+.header-weather {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .8rem;
+  color: var(--text-2);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.header-weather-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.header-weather-temp {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-1);
+}
+.header-weather-desc {
+  color: var(--text-3);
+}
+
 .header-location {
-  font-size: .75rem;
+  font-size: .8rem;
   color: var(--text-2);
   font-weight: 500;
 }
 
 .header-time {
-  font-size: .7rem;
+  font-size: .8rem;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
