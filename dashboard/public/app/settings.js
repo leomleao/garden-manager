@@ -55,8 +55,9 @@ document.addEventListener('alpine:init', () => {
       }).addTo(this.mapInstance);
       this.mapMarker = window.L.marker([this.pendingLat, this.pendingLng]).addTo(this.mapInstance);
       this.mapInstance.on('click', (e) => {
-        this.pendingLat = e.latlng.lat;
-        this.pendingLng = e.latlng.lng;
+        const wrapped = e.latlng.wrap();
+        this.pendingLat = parseFloat(wrapped.lat.toFixed(4));
+        this.pendingLng = parseFloat(wrapped.lng.toFixed(4));
         if (this.mapMarker) this.mapMarker.setLatLng(e.latlng);
         else this.mapMarker = window.L.marker(e.latlng).addTo(this.mapInstance);
       });

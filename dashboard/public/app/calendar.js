@@ -63,6 +63,7 @@ if (typeof document !== 'undefined') {
     Alpine.data('calendarTab', () => ({
       calYear: new Date().getFullYear(),
       hoveredSeed: null,
+      calTypeFilter: null,
 
       get sowIndoorsNow() {
         const m = new Date().getMonth() + 1;
@@ -74,11 +75,18 @@ if (typeof document !== 'undefined') {
         return this.seeds.filter(s => monthInWindow(m, s.sow_outdoors_start, s.sow_outdoors_end));
       },
 
+      get calendarTypes() {
+        const types = [...new Set(this.seeds.map(s => s.type).filter(Boolean))].sort();
+        return types;
+      },
+
       get calendarSeeds() {
-        return [...this.seeds].sort((a, b) => {
-          const t = (a.type||'').localeCompare(b.type||'');
-          return t !== 0 ? t : a.name.localeCompare(b.name);
-        });
+        return [...this.seeds]
+          .filter(s => !this.calTypeFilter || s.type === this.calTypeFilter)
+          .sort((a, b) => {
+            const t = (a.type||'').localeCompare(b.type||'');
+            return t !== 0 ? t : a.name.localeCompare(b.name);
+          });
       },
 
       // Returns inline style for a spanning Gantt-style bar.

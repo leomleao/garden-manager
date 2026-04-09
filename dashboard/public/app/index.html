@@ -154,7 +154,7 @@
               <div>
                 <h2 x-text="zone.name"></h2>
                 <span class="text-muted" style="font-size:.75rem"
-                  x-text="zone.type + (zone.covered?' · covered':'') + (zone.has_auto_watering?' · auto-water':'')">
+                  x-text="[zone.type, zone.covered?'covered':null, zone.has_auto_watering?'auto-water':null, zone.has_heating&&zone.heating_type?zone.heating_type+' heat':zone.has_heating?'heated':null, zone.has_lighting&&zone.lighting_type?zone.lighting_type+' light':zone.has_lighting?'lit':null, zone.orientation?zone.orientation+' facing':null, zone.soil_type?zone.soil_type:null].filter(Boolean).join(' · ')">
                 </span>
               </div>
               <div style="display:flex;gap:.5rem;align-items:center">
@@ -743,6 +743,14 @@
         <div class="card" style="overflow-x:auto">
           <h2 style="text-align:center;margin-bottom:1rem" x-text="'Sowing Calendar ' + calYear"></h2>
 
+          <!-- Type filter -->
+          <div style="display:flex;gap:.375rem;flex-wrap:wrap;margin-bottom:.75rem;justify-content:center">
+            <button class="badge cal-type-btn" :class="calTypeFilter === null ? 'cal-type-btn--active' : ''" @click="calTypeFilter = null" style="background:var(--bg-hover);color:var(--text-2)">All</button>
+            <template x-for="t in calendarTypes" :key="t">
+              <button class="badge cal-type-btn" :class="[`badge-${t}`, calTypeFilter === t ? 'cal-type-btn--active' : '']" @click="calTypeFilter = t" x-text="typeEmoji(t) + '\u00a0' + t.charAt(0).toUpperCase() + t.slice(1)"></button>
+            </template>
+          </div>
+
           <div class="cal-grid">
             <!-- Header row: empty name cell + 12 month labels -->
             <div class="cal-cell cal-header"></div>
@@ -757,9 +765,9 @@
                      @click="openSeedEdit(seed)"
                      @mouseenter="hoveredSeed = seed.id"
                      @mouseleave="hoveredSeed = null">
-                  <span x-text="getSeedEmoji(seed) + ' ' + seed.name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block"></span>
+                  <span x-text="getSeedEmoji(seed) + ' ' + seed.name + (seed.variety ? ' - ' + seed.variety : '')" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block"></span>
                   <div class="cal-tooltip" x-show="hoveredSeed === seed.id">
-                    <div style="font-weight:600;margin-bottom:.25rem" x-text="seed.name"></div>
+                    <div style="font-weight:600;margin-bottom:.25rem" x-text="seed.name + (seed.variety ? ' - ' + seed.variety : '')"></div>
                     <div style="color:var(--text-3);font-size:.7rem" x-text="tooltipText(seed)"></div>
                   </div>
                 </div>

@@ -24,34 +24,52 @@ function wizard() {
       if (cfg.timezone) this.config.timezone = cfg.timezone;
       if (cfg.units) this.config.units = cfg.units;
 
-      // Init map after DOM is ready
-      this.$nextTick(() => this.initMap());
     },
 
-    initMap() {
+    async initMap() {
+      if (this.map) return;
       const lat = parseFloat(this.config.latitude) || 54.5;
       const lng = parseFloat(this.config.longitude) || -3.5;
-      this.map = L.map('map', { preferCanvas: true }).setView([lat, lng], 6);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Lazy-load Leaflet if not already loaded
+      if (!window.L) {
+        await Promise.all([
+          new Promise(resolve => {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            link.onload = resolve;
+            document.head.appendChild(link);
+          }),
+          new Promise(resolve => {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.onload = resolve;
+            document.body.appendChild(script);
+          })
+        ]);
+      }
+      this.map = window.L.map('map', { preferCanvas: true }).setView([lat, lng], 6);
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         updateWhenIdle: true,
         updateWhenZooming: false
       }).addTo(this.map);
       if (this.config.latitude) {
-        this.marker = L.marker([lat, lng]).addTo(this.map);
+        this.marker = window.L.marker([lat, lng]).addTo(this.map);
       }
       this.map.on('click', (e) => {
-        this.config.latitude  = parseFloat(e.latlng.lat.toFixed(4));
-        this.config.longitude = parseFloat(e.latlng.lng.toFixed(4));
+        const wrapped = e.latlng.wrap();
+        this.config.latitude  = parseFloat(wrapped.lat.toFixed(4));
+        this.config.longitude = parseFloat(wrapped.lng.toFixed(4));
         if (this.marker) this.map.removeLayer(this.marker);
-        this.marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(this.map);
+        this.marker = window.L.marker([e.latlng.lat, e.latlng.lng]).addTo(this.map);
       });
     },
 
     updateMapPin() {
       if (!this.map || !this.config.latitude || !this.config.longitude) return;
       if (this.marker) this.map.removeLayer(this.marker);
-      this.marker = L.marker([this.config.latitude, this.config.longitude]).addTo(this.map);
+      this.marker = window.L.marker([this.config.latitude, this.config.longitude]).addTo(this.map);
       this.map.setView([this.config.latitude, this.config.longitude], 12);
     },
 
