@@ -745,7 +745,7 @@
 
           <!-- Type filter -->
           <div style="display:flex;gap:.375rem;flex-wrap:wrap;margin-bottom:.75rem;justify-content:center">
-            <button class="badge cal-type-btn" :class="calTypeFilter === null ? 'cal-type-btn--active' : ''" @click="calTypeFilter = null" style="background:var(--bg-hover);color:var(--text-2)">All</button>
+            <button class="badge badge-all cal-type-btn" :class="calTypeFilter === null ? 'cal-type-btn--active' : ''" @click="calTypeFilter = null">All</button>
             <template x-for="t in calendarTypes" :key="t">
               <button class="badge cal-type-btn" :class="[`badge-${t}`, calTypeFilter === t ? 'cal-type-btn--active' : '']" @click="calTypeFilter = t" x-text="typeEmoji(t) + '\u00a0' + t.charAt(0).toUpperCase() + t.slice(1)"></button>
             </template>

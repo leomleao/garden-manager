@@ -121,17 +121,25 @@ INSERT OR IGNORE INTO app_config(key, value) VALUES ('example_data_loaded', '1')
 
 INSERT INTO zones(name,type,latitude,longitude,covered,cover_type,view_type,grid_rows,grid_cols,cell_width_cm,cell_height_cm,sort_order)
 VALUES
-  ('Germinator 1','germinator',56.1667,-4.2833,1,'glass','grid',5,8,2.5,2.5,1),
+  ('Germinator 1','germinator',56.1667,-4.2833,1,'glass','grid',8,5,2.5,2.5,1),
+  ('Germinator 2','germinator',56.1667,-4.2833,1,'glass','grid',8,5,2.5,2.5,1),
   ('Greenhouse','greenhouse',56.1667,-4.2833,1,'glass','loose',NULL,NULL,NULL,NULL,2),
   ('Polytunnel','polytunnel',56.1667,-4.2833,1,'polytunnel','grid',5,4,25,25,3),
   ('Outdoor Veg Plot','outdoor',56.1667,-4.2833,0,NULL,'loose',NULL,NULL,NULL,NULL,4);
 
 -- Generate cells for grid zones (mirrors the logic in PATCH /zones/:id)
 WITH RECURSIVE
-  rows(r) AS (SELECT 1 UNION ALL SELECT r+1 FROM rows WHERE r < 5),
-  cols(c) AS (SELECT 1 UNION ALL SELECT c+1 FROM cols WHERE c < 8)
+  rows(r) AS (SELECT 1 UNION ALL SELECT r+1 FROM rows WHERE r < 8),
+  cols(c) AS (SELECT 1 UNION ALL SELECT c+1 FROM cols WHERE c < 5)
 INSERT INTO zone_cells(zone_id, row, col, label)
 SELECT (SELECT id FROM zones WHERE name='Germinator 1'), r, c, char(64+r)||c
+FROM rows CROSS JOIN cols;
+
+WITH RECURSIVE
+  rows(r) AS (SELECT 1 UNION ALL SELECT r+1 FROM rows WHERE r < 8),
+  cols(c) AS (SELECT 1 UNION ALL SELECT c+1 FROM cols WHERE c < 5)
+INSERT INTO zone_cells(zone_id, row, col, label)
+SELECT (SELECT id FROM zones WHERE name='Germinator 2'), r, c, char(64+r)||c
 FROM rows CROSS JOIN cols;
 
 WITH RECURSIVE

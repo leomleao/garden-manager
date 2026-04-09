@@ -432,6 +432,7 @@ main {
 [data-theme="dark"] .badge-flower      { background: #5d1344;            color: var(--pink); }
 [data-theme="dark"] .badge-fruit       { background: #3f0f12;            color: #f87171; }
 [data-theme="dark"] .badge-salad       { background: #0f3a2c;            color: #6ee7b7; }
+[data-theme="dark"] .badge-all         { background: var(--bg-elevated); color: var(--text-2); }
 
 /* Light badges */
 [data-theme="light"] .badge-sown        { background: var(--blue-dim);   color: #1e40af; }
@@ -450,6 +451,7 @@ main {
 [data-theme="light"] .badge-flower      { background: #fbcfe8;           color: #be185d; }
 [data-theme="light"] .badge-fruit       { background: #fee2e2;           color: #991b1b; }
 [data-theme="light"] .badge-salad       { background: #ccfbf1;           color: #045e52; }
+[data-theme="light"] .badge-all         { background: var(--bg-elevated); color: var(--text-2); }
 
 /* ── Grid view ────────────────────────────────────────────────────── */
 .grid-zone-scroll {

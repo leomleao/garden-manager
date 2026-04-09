@@ -9,3 +9,4 @@ data/*.db
 .playwright-mcp/
 dashboard/package-lock.json
 docs/*
+.superpowers/
