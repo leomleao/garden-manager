@@ -17,7 +17,7 @@ function arrAvg(arr) {
 function parseGerminationDays(str) {
   // "7-10" → 10 (use max), "7" → 7, null/missing → 14 (safe default)
   if (!str) return 14;
-  const range = str.match(/(\d+)\s*[-\u2013]\s*(\d+)/);
+  const range = str.match(/(\d+)\s*[-\u2013\u2014]\s*(\d+)/);
   if (range) return parseInt(range[2]);
   const single = str.match(/(\d+)/);
   return single ? parseInt(single[1]) : 14;
@@ -51,8 +51,112 @@ function getSowNowBadge(weatherData, seed, isOutdoor) {
   }
 }
 
+function getSowNowBadges(weatherData, seed, mode, confidence) {
+  if (!weatherData || !seed) return [];
+  const badges = [];
+  const daily  = weatherData.daily  || {};
+  const hourly = weatherData.hourly || {};
+
+  // ── OUTDOOR ──────────────────────────────────────────────────────────────
+  if (mode === 'outdoor') {
+    // 1. Soil temperature vs optimum range
+    const range = parseSoilTempRange(seed.optimum_soil_temp);
+    if (range) {
+      const avg = arrAvg(hourly.soil_temperature_6cm);
+      if (avg !== null) {
+        const avgStr = avg.toFixed(1);
+        const optStr = isFinite(range.max)
+          ? `${range.min}\u2013${range.max}\u00b0C`
+          : `${range.min}\u00b0C+`;
+        if (avg < range.min) {
+          badges.push({
+            label: '❄ Too Cold', cls: 'cold',
+            title: `Calendar says YES, but Soil says NO. Soil is ${avgStr}\u00b0C; ${seed.name} needs ${seed.optimum_soil_temp} to germinate. Wait for a warmer spell to avoid seed rot.`,
+          });
+        } else if (avg > range.max) {
+          badges.push({
+            label: '🔥 Too Warm', cls: 'warm',
+            title: `Soil is ${avgStr}\u00b0C \u2014 above the ${optStr} optimum. Seeds may fail to germinate or bolt prematurely.`,
+          });
+        } else {
+          badges.push({
+            label: '🌡 Soil Good', cls: 'good',
+            title: `Avg soil temp ${avgStr}\u00b0C over next 7 days \u2014 ideal for ${seed.name}.`,
+          });
+        }
+      }
+    }
+
+    // 2. Frost risk within germination window
+    const frostDays = (confidence && confidence.frostProbability) || [];
+    if (frostDays.length) {
+      const germDays = parseGerminationDays(seed.days_to_germinate);
+      const atRisk = frostDays.find(d => {
+        const diff = (new Date(d.date + 'T12:00:00') - new Date()) / 86400000;
+        return diff >= 0 && diff <= germDays && d.prob > 0.2;
+      });
+      if (atRisk) {
+        badges.push({
+          label: '🧊 Frost Risk', cls: 'cold',
+          title: `Frost expected ${atRisk.dayName} (${atRisk.probPct}% chance). Seeds germinate in ${seed.days_to_germinate || '7\u201314'} days \u2014 they may surface during a late freeze. Use cloche protection.`,
+        });
+      }
+    }
+
+    // 3. Rain helps (only when soil is good)
+    const soilGood = badges.some(b => b.cls === 'good' && b.label.includes('Soil Good'));
+    const todayRain = (daily.precipitation_sum || [])[0] ?? 0;
+    if (soilGood && todayRain > 2) {
+      badges.push({
+        label: '🌧 Rain Helps', cls: 'good',
+        title: `Rain today (${todayRain.toFixed(1)}mm) will help settle seeds into the soil.`,
+      });
+    }
+
+    // 4. High winds
+    const gustsToday = (hourly.wind_gusts_10m || []).slice(0, 24);
+    const maxGust = gustsToday.length ? Math.max(...gustsToday.map(v => v ?? 0)) : 0;
+    if (maxGust > 35) {
+      badges.push({
+        label: '💨 High Winds', cls: 'caution',
+        title: `Wind gusts of ${Math.round(maxGust)} km/h today. Newly sown seeds may dry out faster \u2014 consider watering after sowing or adding a light cover.`,
+      });
+    }
+
+    // 5. Thirsty soil (3-day ET0 vs precipitation)
+    const et0   = daily.et0_fao_evapotranspiration || [];
+    const precip = daily.precipitation_sum || [];
+    if (et0.length >= 3 && precip.length >= 3) {
+      const et0_3d    = et0.slice(0, 3).reduce((s, v) => s + (v ?? 0), 0);
+      const precip_3d = precip.slice(0, 3).reduce((s, v) => s + (v ?? 0), 0);
+      if (et0_3d > precip_3d) {
+        badges.push({
+          label: '💧 Thirsty Soil', cls: 'warn',
+          title: `Evaporation (ET\u2080 ${et0_3d.toFixed(1)}mm) exceeds rainfall (${precip_3d.toFixed(1)}mm) over 3 days. Soil moisture is dropping \u2014 water before or after sowing.`,
+        });
+      }
+    }
+
+    // 6. Fungal risk (high humidity + mild temperature)
+    const rh24 = (hourly.relative_humidity_2m || []).slice(0, 24);
+    const t24  = (hourly.temperature_2m || []).slice(0, 24);
+    if (rh24.length && t24.length) {
+      const avgRh = arrAvg(rh24);
+      const avgT  = arrAvg(t24);
+      if (avgRh !== null && avgT !== null && avgRh > 80 && avgT >= 15 && avgT <= 22) {
+        badges.push({
+          label: '🍄 Fungal Risk', cls: 'caution',
+          title: `Humidity is ${Math.round(avgRh)}% with mild temps (${avgT.toFixed(1)}\u00b0C) \u2014 prime conditions for downy mildew. Ensure good airflow and avoid overhead watering.`,
+        });
+      }
+    }
+  }
+
+  return badges;
+}
+
 // Allow Jest to require this file in Node (Alpine is absent there)
-if (typeof module !== 'undefined') module.exports = { parseSoilTempRange, arrAvg, parseGerminationDays, getSowNowBadge };
+if (typeof module !== 'undefined') module.exports = { parseSoilTempRange, arrAvg, parseGerminationDays, getSowNowBadges, getSowNowBadge };
 
 // ── Alpine component ──────────────────────────────────────────────
 // Only initialize Alpine component in browser environment (not in Node/Jest)
