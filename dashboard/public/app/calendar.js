@@ -181,10 +181,13 @@ function getSowNowBadges(weatherData, seed, mode, confidence) {
     if (seed.light_requirements && /sun|light/i.test(seed.light_requirements)) {
       const direct  = hourly.direct_radiation  || [];
       const diffuse = hourly.diffuse_radiation || [];
+      const sliceD = direct.slice(0, 96);
+      const sliceF = diffuse.slice(0, 96);
+      const radHours = Math.max(sliceD.length, 1);
       const totalRad = (
-        direct.slice(0, 96).reduce((s, v) => s + (v ?? 0), 0) +
-        diffuse.slice(0, 96).reduce((s, v) => s + (v ?? 0), 0)
-      ) / 96;
+        sliceD.reduce((s, v) => s + (v ?? 0), 0) +
+        sliceF.reduce((s, v) => s + (v ?? 0), 0)
+      ) / radHours;
       if (totalRad < 150) {
         badges.push({
           label: '☁ Grow Light Needed', cls: 'cold',
