@@ -142,6 +142,20 @@
               </template>
             </div>
 
+            <!-- Layer 3: Weather alerts -->
+            <div class="weather-section-label" x-show="weather.alerts.length > 0">Weather alerts</div>
+            <div class="weather-alerts" x-show="weather.alerts.length > 0">
+              <template x-for="alert in weather.alerts" :key="alert.text">
+                <div class="weather-alert" :class="'weather-alert--' + alert.level">
+                  <span x-text="alert.level === 'green' ? '✅' : '⚠️'"></span>
+                  <div>
+                    <span class="weather-alert-title" x-text="alert.text"></span>
+                    <span class="weather-alert-body" x-show="!!alert.body" x-text="alert.body"></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+
             <!-- Layer 4: Gardening insights -->
             <div class="weather-section-label" x-show="weather.insights.length > 0">Gardening insights</div>
             <div class="weather-insights" x-show="weather.insights.length > 0">
@@ -163,20 +177,6 @@
                       <div class="gdd-labels"><span>0</span><span>Typical GDD</span></div>
                     </div>
                     <div class="weather-insight-meta" x-text="insight.meta"></div>
-                  </div>
-                </div>
-              </template>
-            </div>
-
-            <!-- Layer 5: Weather alerts (with body text) -->
-            <div class="weather-section-label" x-show="weather.alerts.length > 0">Weather alerts</div>
-            <div class="weather-alerts" x-show="weather.alerts.length > 0">
-              <template x-for="alert in weather.alerts" :key="alert.text">
-                <div class="weather-alert" :class="'weather-alert--' + alert.level">
-                  <span x-text="alert.level === 'green' ? '✅' : '⚠️'"></span>
-                  <div>
-                    <span class="weather-alert-title" x-text="alert.text"></span>
-                    <span class="weather-alert-body" x-show="!!alert.body" x-text="alert.body"></span>
                   </div>
                 </div>
               </template>
