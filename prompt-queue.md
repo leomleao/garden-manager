@@ -8,11 +8,7 @@ Specifically we have the sow indoors now and sow outdoors now, I want to add too
 3. "Plant Out" Tooltip (The Hardening Off Logic)When the user moves a plant from sow_indoors to the garden, this is the highest risk of plant death.Logic: Compare temperature_2m_min and uv_index.The Tooltip Content:Condition (UV Shock): "Danger: High UV (6) today. Do not move indoor seedlings directly into the sun. Start 'hardening off' in a shaded spot for 2 hours only."Condition (Wind Stress): "High wind gusts (38 km/h). Newly transplanted {seed.name} will struggle with windburn. Wait for Tuesday’s calm window."Suggested Database & Logic MappingSince your optimum_soil_temp is currently TEXT, you’ll likely want to parse it to an integer for comparison.DB FieldAPI MatchLogic / Tooltip Triggeroptimum_soil_tempsoil_temperature_6cmIf soil_temp < optimum_temp, show "Soil Too Cold" warning.days_to_germinatedaily_min_temp (7-day)If min_temp < 0°C inside the germination window, show "Late Frost Risk".light_requirementscloud_cover / radiationIf "Full Sun" required but 100% cloud cover forecast, show "Grow Light Recommended".typevapor_pressure_deficitIf type is "Vegetable" (like Tomatoes) and VPD is low, show "Blight Alert".
 
 ## Second
-There is an alawmwith the alarm:
-No irrigation needed this week
-33mm forecast — skip watering until Tuesday at earliest.
-Increment a logic:
-Water Balance (Rain vs. Thirst)Gardeners often overwater after a light rain, not realizing the wind and sun "stole" all that water back.API Variables: daily -> precipitation_sum and et0_fao_evapotranspiration.Logic: $Net\ Water = Rain - ET_0$.UI Element: A "Water Tank" or "Soil Battery" visual.Display: If $ET_0$ is higher than Rain, the battery drains.Action: "Even though it rained 2mm, your plants 'breathed out' 4mm today. The net deficit is 2mm. Water your pots tonight."
+Add gardening insights to plant lifecicly, combining data from seeds and weather API.
 
 3. The "Blight & Mildew" Pressure GaugeFungal issues are the #1 cause of crop failure in wet climates like Stirling.API Variables: hourly -> leaf_wetness_probability and relative_humidity_2m.Logic: If leaf wetness is $>50\%$ for more than 10 hours and temps are between $12^{\circ}\text{C}$ and $20^{\circ}\text{C}$, trigger a high-risk alert.UI Element: A "Bio-Hazard" or "Fungal Risk" meter (Green → Yellow → Red).Warning: "Red Alert: Perfect conditions for Potato Blight over the next 48 hours. If you haven't sprayed your copper/organic treatment, do it now."
 

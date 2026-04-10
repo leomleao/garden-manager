@@ -504,6 +504,45 @@ function computeDiseaseRisk(hourly) {
   return { highRisk: count >= 6, hours: count, maxHumidity: Math.round(maxHumidity), leafWetness };
 }
 
+// ── Blight & Mildew Pressure Gauge ───────────────────────────────────────────
+// Scans the next 48 h of hourly data for simultaneous high leaf wetness and
+// fungal-favourable temperatures (12–20 °C) — the classic conditions for Late
+// Blight (Phytophthora infestans) and Downy Mildew.
+// Returns { level, hours48, maxLeafWetness, maxHumidity, gaugePct } or null
+// when API data is unavailable.
+
+function computeBlightPressure(hourly) {
+  const lw = hourly.leaf_wetness_probability || [];
+  const rh = hourly.relative_humidity_2m     || [];
+  const t  = hourly.temperature_2m           || [];
+  if (!lw.length && !rh.length) return null;
+
+  let hours48        = 0;
+  let maxLeafWetness = 0;
+  let maxHumidity    = 0;
+
+  const limit = Math.min(48, Math.max(lw.length, rh.length, t.length));
+  for (let h = 0; h < limit; h++) {
+    const lv   = lw[h] ?? 0;
+    const temp = t[h]  ?? 0;
+    maxLeafWetness = Math.max(maxLeafWetness, lv);
+    maxHumidity    = Math.max(maxHumidity, rh[h] ?? 0);
+    if (lv > 50 && temp >= 12 && temp <= 20) hours48++;
+  }
+
+  // Scale to 0–100 %: 10 qualifying hours maps to 100 %
+  const gaugePct = Math.min(Math.round(hours48 / 10 * 100), 100);
+  const level    = hours48 > 10 ? 'high' : hours48 >= 4 ? 'medium' : 'low';
+
+  return {
+    level,
+    hours48,
+    maxLeafWetness: Math.round(maxLeafWetness),
+    maxHumidity:    Math.round(maxHumidity),
+    gaugePct,
+  };
+}
+
 // ── Greenhouse ventilation alert ──────────────────────────────────────────────
 // Returns { day, ventHour, peakRad, tMax, zoneNames } or null.
 // Only runs if zones contains greenhouse or polytunnel types.
@@ -518,12 +557,17 @@ function computeGreenhouseAlert(hourly, daily, zones) {
     const peakH   = slice.findIndex(v => (v ?? 0) === peakRad);
     const tMax    = daily.temperature_2m_max[dayIdx] ?? 20;
     if (peakRad > 400 && tMax < 15) {
+      // ~2.5°C rise per 100 W/m² — empirical unventilated greenhouse formula
+      const spike        = Math.round(peakRad * 0.025);
+      const projectedMax = Math.round(tMax + spike);
       return {
-        day:       dayIdx === 0 ? 'today' : 'tomorrow',
-        ventHour:  Math.max(6, (peakH - 2 + 24) % 24),
-        peakRad:   Math.round(peakRad),
-        tMax:      Math.round(tMax),
-        zoneNames: relevant.map(z => z.name).join(' · '),
+        day:          dayIdx === 0 ? 'today' : 'tomorrow',
+        ventHour:     Math.max(6, (peakH - 2 + 24) % 24),
+        peakRad:      Math.round(peakRad),
+        tMax:         Math.round(tMax),
+        spike,
+        projectedMax,
+        zoneNames:    relevant.map(z => z.name).join(' · '),
       };
     }
   }
@@ -616,7 +660,7 @@ function computeInsights(d, zones) {
       icon:  '🌡️',
       label: 'Greenhouse · Ventilation',
       title: `Open vents by ${String(gh.ventHour).padStart(2,'0')}:00 ${gh.day}`,
-      desc:  `Air temp only ${gh.tMax}°C but direct radiation peaks at ${gh.peakRad} W/m² — greenhouse can spike 15–20°C above ambient. Heat stress risk for seedlings.`,
+      desc:  `Air temp only ${gh.tMax}°C but direct radiation peaks at ${gh.peakRad} W/m² — unventilated greenhouse could reach ~${gh.projectedMax}°C (+${gh.spike}°C above ambient). Heat stress risk for seedlings.`,
       meta:  `Applies to: ${gh.zoneNames}`,
     });
   }
@@ -696,6 +740,32 @@ function computeInsights(d, zones) {
       desc:  lq.advice,
       meta:  `Diffuse ${Math.round(lq.diffuseFraction * 100)}% · Peak direct ${Math.round(lq.peakDirect)} W/m²`,
       level: lq.level,
+    });
+  }
+
+  // 7. Blight & Mildew Pressure Gauge
+  const blight = computeBlightPressure(d.hourly);
+  if (blight) {
+    const levelLabel = blight.level === 'high' ? 'High' : blight.level === 'medium' ? 'Elevated' : 'Low';
+    const blightTitle = blight.level === 'high'
+      ? 'Red Alert: Perfect conditions for Potato Blight'
+      : blight.level === 'medium'
+      ? `Elevated fungal pressure — ${blight.hours48}h of risk in the next 48h`
+      : 'Fungal pressure low — conditions unfavourable for disease';
+    const blightDesc = blight.level === 'high'
+      ? `Perfect conditions for Potato Blight over the next 48 hours. If you haven't sprayed your copper or organic treatment, do it now.`
+      : blight.level === 'medium'
+      ? `${blight.hours48} hours of high-risk conditions forecast. Monitor potatoes, tomatoes, and brassicas closely. Avoid wetting foliage and ensure good airflow.`
+      : 'Leaf wetness and temperature are unfavourable for fungal disease this week. No treatment needed.';
+    insights.push({
+      type:        'blight',
+      icon:        blight.level === 'high' ? '☣️' : '🍄',
+      label:       `Fungal Risk · ${levelLabel}`,
+      title:       blightTitle,
+      desc:        blightDesc,
+      meta:        `48h window · ${blight.hours48}h at-risk · Leaf wetness ${blight.maxLeafWetness}% · Humidity ${blight.maxHumidity}%`,
+      blightLevel: blight.level,
+      gaugePct:    blight.gaugePct,
     });
   }
 
@@ -825,6 +895,121 @@ function computeActionText(alerts, soilTemp, workWindow) {
   return 'Good day for general garden maintenance';
 }
 
+// ── Frost Probability Curve (weekly historical chart) ────────────────────────
+// Input: historical archive API response (daily temperature_2m_min) covering
+// at least March–June across multiple years.
+// For each calendar week (month + week-within-month) from Mar to Jun, computes
+// the fraction of years that recorded at least one frost (≤ 0°C) in that week.
+// Returns { weeks, safeLabel, currentWeekPct, maxPct } or null.
+
+function computeFrostCurve(climateData) {
+  if (!climateData || !climateData.daily) return null;
+  const { time, temperature_2m_min } = climateData.daily;
+  if (!time || !temperature_2m_min || time.length === 0) return null;
+
+  const MONTH_SHORT = { 2: 'Mar', 3: 'Apr', 4: 'May', 5: 'Jun' };
+
+  // Build (month, weekOfMonth) buckets  →  yearsWithFrost, allYears
+  const buckets = new Map();
+  time.forEach((dateStr, i) => {
+    const d = new Date(dateStr + 'T12:00:00');
+    const m = d.getMonth();               // 2=Mar … 5=Jun
+    if (m < 2 || m > 5) return;
+    const wk   = Math.floor((d.getDate() - 1) / 7) + 1;  // 1–5
+    const year = d.getFullYear();
+    const temp = temperature_2m_min[i];
+    const key  = `${m}-${wk}`;
+    if (!buckets.has(key)) buckets.set(key, { yearsWithFrost: new Set(), allYears: new Set() });
+    const b = buckets.get(key);
+    b.allYears.add(year);
+    if (temp != null && temp <= 0) b.yearsWithFrost.add(year);
+  });
+
+  if (buckets.size === 0) return null;
+
+  // Ordered keys: Mar W1 → Jun W5
+  const orderedKeys = [];
+  for (let m = 2; m <= 5; m++) {
+    for (let wk = 1; wk <= 5; wk++) {
+      const key = `${m}-${wk}`;
+      if (buckets.has(key)) orderedKeys.push(key);
+    }
+  }
+
+  // Current week key (null if we are outside Mar–Jun)
+  const now   = new Date();
+  const nowM  = now.getMonth();
+  const nowWk = Math.floor((now.getDate() - 1) / 7) + 1;
+  const nowKey = (nowM >= 2 && nowM <= 5) ? `${nowM}-${nowWk}` : null;
+
+  // Max frost% across all weeks (used to scale bars)
+  const maxPct = Math.max(...orderedKeys.map(k => {
+    const b = buckets.get(k);
+    return b.allYears.size > 0 ? (b.yearsWithFrost.size / b.allYears.size) * 100 : 0;
+  }));
+
+  // Safe zone: first week where frost probability drops below 10%
+  // (search after the season peak to avoid early-March anomalies)
+  let safeKey = null;
+  let peakPct = 0;
+  let pastPeak = false;
+  for (const key of orderedKeys) {
+    const b   = buckets.get(key);
+    const pct = b.allYears.size > 0 ? (b.yearsWithFrost.size / b.allYears.size) * 100 : 0;
+    if (pct > peakPct) peakPct = pct;
+  }
+  for (const key of orderedKeys) {
+    const b   = buckets.get(key);
+    const pct = b.allYears.size > 0 ? (b.yearsWithFrost.size / b.allYears.size) * 100 : 0;
+    if (pct >= peakPct * 0.75) pastPeak = true;
+    if (pastPeak && pct < 10 && !safeKey) safeKey = key;
+  }
+  // Fallback: first week anywhere below 10%
+  if (!safeKey) {
+    for (const key of orderedKeys) {
+      const b   = buckets.get(key);
+      const pct = b.allYears.size > 0 ? (b.yearsWithFrost.size / b.allYears.size) * 100 : 0;
+      if (pct < 10) { safeKey = key; break; }
+    }
+  }
+
+  // Derive a human-readable safe date (first day of the safe week, current year)
+  let safeLabel = null;
+  if (safeKey) {
+    const [sm, swk] = safeKey.split('-').map(Number);
+    const sd = new Date(now.getFullYear(), sm, (swk - 1) * 7 + 1);
+    safeLabel = sd.toLocaleDateString('en', { month: 'long', day: 'numeric' });
+  }
+
+  // Current-week frost probability
+  const currentWeekPct = nowKey && buckets.has(nowKey)
+    ? Math.round((buckets.get(nowKey).yearsWithFrost.size / buckets.get(nowKey).allYears.size) * 100)
+    : null;
+
+  // Build result week objects
+  const nowIdx = nowKey ? orderedKeys.indexOf(nowKey) : -1;
+  const weeks  = orderedKeys.map((key, idx) => {
+    const b        = buckets.get(key);
+    const frostPct = b.allYears.size > 0
+      ? Math.round((b.yearsWithFrost.size / b.allYears.size) * 100)
+      : 0;
+    const level = frostPct >= 40 ? 'high' : frostPct >= 20 ? 'med' : frostPct >= 10 ? 'low' : 'safe';
+    const [m, wk] = key.split('-').map(Number);
+    return {
+      key,
+      label:     `${MONTH_SHORT[m]} W${wk}`,
+      frostPct,
+      barWidth:  maxPct > 0 ? Math.round((frostPct / maxPct) * 100) : 0,
+      level,
+      isSafeZone: key === safeKey,
+      isCurrent:  key === nowKey,
+      isPast:     nowIdx >= 0 ? idx < nowIdx : false,
+    };
+  });
+
+  return { weeks, safeLabel, currentWeekPct, maxPct: Math.round(maxPct) };
+}
+
 // ── CommonJS export (for Jest tests) ─────────────────────────────────────────
 if (typeof module !== 'undefined') {
   module.exports = {
@@ -834,6 +1019,6 @@ if (typeof module !== 'undefined') {
     gddBaseline, computeInsights, computeAlerts, computeActionText,
     computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
     computeDualGDD, computeFrostEnsemble, computeSpringReadiness,
-    computeWaterBalance,
+    computeWaterBalance, computeBlightPressure, computeFrostCurve,
   };
 }

@@ -30,6 +30,7 @@ function app() {
         loading:          false,
         frostProbability: [],
         springReadiness:  null,
+        frostCurve:       null,
       },
     },
     lastRefresh: '',
@@ -272,13 +273,14 @@ function app() {
         this.weather.confidence.loading = true;
         this.weather.confidence.frostProbability = [];
         this.weather.confidence.springReadiness  = null;
+        this.weather.confidence.frostCurve       = null;
 
         const ensembleUrl =
           `https://api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lng}` +
           `&hourly=temperature_2m&models=icon_seamless&forecast_days=3&timezone=auto`;
 
         const archiveNow   = new Date();
-        const yearStart    = `${archiveNow.getFullYear() - 10}-03-01`;
+        const yearStart    = `${archiveNow.getFullYear() - 20}-03-01`;
         const yearEnd      = `${archiveNow.getFullYear() - 1}-06-30`;
         const archiveUrl   =
           `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}` +
@@ -293,7 +295,7 @@ function app() {
             this.weather.confidence.frostProbability = computeFrostEnsemble(ensRes.value);
           }
 
-          // Spring Readiness Index
+          // Spring Readiness Index + Frost Curve
           if (archRes.status === 'fulfilled' && archRes.value?.daily) {
             const now2      = new Date();
             const currentDoy = Math.floor((now2 - new Date(now2.getFullYear(), 0, 0)) / 86400000);
@@ -303,6 +305,7 @@ function app() {
             this.weather.confidence.springReadiness = computeSpringReadiness(
               archRes.value, currentDoy, maxProb7d
             );
+            this.weather.confidence.frostCurve = computeFrostCurve(archRes.value);
           }
 
           this.weather.confidence.loading = false;

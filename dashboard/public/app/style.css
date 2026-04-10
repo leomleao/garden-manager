@@ -1020,12 +1020,10 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
   justify-content: center;
   width: .85em;
   height: .85em;
-  border-radius: 50%;
-  font-size: .7rem;
+  font-size: 1rem;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 100;
   color: var(--text-3);
-  border: 1px solid currentColor;
   cursor: help;
   position: relative;
   vertical-align: middle;
@@ -1067,6 +1065,30 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
 .weather-insight--light   .weather-insight-label { color: #f5a623; }
 [data-theme="dark"]  .weather-insight--light { background: color-mix(in srgb, #f5a623 6%, transparent); }
 [data-theme="light"] .weather-insight--light { background: color-mix(in srgb, #f5a623 7%, transparent); }
+
+.weather-insight--blight { border-left-color: #a16207; }
+.weather-insight--blight .weather-insight-label { color: #a16207; }
+[data-theme="dark"]  .weather-insight--blight { background: color-mix(in srgb, #a16207 6%, transparent); }
+[data-theme="light"] .weather-insight--blight { background: color-mix(in srgb, #a16207 7%, transparent); }
+
+/* Blight meter — Green → Yellow → Red tricolor gauge */
+.blight-meter { margin-top: 5px; }
+.blight-meter-label {
+  font-size: .75rem; color: var(--text-3); margin-bottom: 3px;
+  display: flex; align-items: center; gap: .25rem;
+}
+.blight-track {
+  display: flex; border-radius: 4px; overflow: hidden; height: 22px; gap: 1px;
+}
+.blight-segment {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: .68rem; font-weight: 600; opacity: .22;
+  letter-spacing: .04em; text-transform: uppercase; transition: opacity .3s, transform .2s;
+}
+.blight-segment.active { opacity: 1; }
+.blight-segment--low    { background: #4ade80; color: #052e16; }
+.blight-segment--medium { background: #fbbf24; color: #451a03; }
+.blight-segment--high   { background: #ef4444; color: #fef2f2; }
 
 .weather-insight--waterbalance { border-left-color: #3ea8c8; }
 .weather-insight--waterbalance .weather-insight-label { color: #3ea8c8; }
@@ -1437,6 +1459,51 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
 .spring-readiness--safe    { border-left-color: #4ade80; }
 .spring-readiness--caution { border-left-color: #fbbf24; }
 .spring-readiness--warning { border-left-color: #f87171; }
+
+/* ── Last Frost Probability Curve ─────────────────────────────────── */
+.frost-curve-row {
+  display: grid;
+  grid-template-columns: 3.6rem 1fr 2.5rem;
+  align-items: center;
+  gap: .3rem;
+  margin-bottom: .22rem;
+  border-radius: 3px;
+  padding: 1px 3px;
+  transition: background .2s;
+}
+.frost-curve-row--current { background: rgba(99,102,241,.13); }
+.frost-curve-row--past    { opacity: .42; }
+.frost-curve-label  { font-size: .7rem; color: var(--text-3); white-space: nowrap; }
+.frost-curve-fill--high { height: 100%; background: #f87171; border-radius: 2px; transition: width .5s ease; }
+.frost-curve-fill--med  { height: 100%; background: #fbbf24; border-radius: 2px; transition: width .5s ease; }
+.frost-curve-fill--low  { height: 100%; background: #a3e635; border-radius: 2px; transition: width .5s ease; }
+.frost-curve-fill--safe { height: 100%; background: #4ade80; border-radius: 2px; transition: width .5s ease; }
+
+.frost-curve-badge {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .6rem;
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1;
+}
+.frost-curve-badge--safe { color: #4ade80; }
+.frost-curve-badge--now  { color: #818cf8; }
+
+/* Safe Sowing Countdown */
+.safe-sowing-countdown {
+  margin-top: .75rem;
+  padding-top: .6rem;
+  border-top: 1px dashed var(--border);
+}
+.safe-sowing-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #f87171 0%, #fbbf24 50%, #4ade80 100%);
+  transition: width .6s ease;
+}
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 600px) {

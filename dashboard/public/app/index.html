@@ -170,13 +170,19 @@
                     <div style="display:flex;align-items:center;gap:.3rem">
                       <div class="weather-insight-title" x-text="insight.title"></div>
                       <span class="tip" x-show="insight.type === 'season'"
-                            data-tip="Compares how much heat this season has accumulated vs. a 7-year historical average. Negative days = the season is running cooler than usual, hold off on tender seeds. Positive days = warmer than usual, you can sow earlier.">ⓘ</span>
+                            data-tip="Compares how much heat this season has accumulated vs. a 7-year historical average. Negative days = the season is running cooler than usual, hold off on tender seeds. Positive days = warmer than usual, you can sow earlier.">🛈︎</span>
+                      <span class="tip" x-show="insight.type === 'glass'"
+                            data-tip="Calculated using the empirical greenhouse heat-gain formula: ~2.5°C rise per 100 W/m² of direct solar radiation. At peak radiation the glass envelope traps heat faster than it can escape — an unventilated greenhouse can reach dangerous temperatures even on a cool day.">🛈︎</span>
+                      <span class="tip" x-show="insight.type === 'wind'"
+                            data-tip="Triggered when gusts exceed 30 km/h and ET₀ is above 1.5 mm. Wind dramatically speeds up evaporation from pots and hanging baskets — the windward side can dry out completely even after rain. ET₀ (evapotranspiration) measures how much water plants and soil 'breathe out' in a day.">🛈︎</span>
+                      <span class="tip" x-show="insight.type === 'light'"
+                            data-tip="Light is split into direct (beam from the sun) and diffuse (scattered by clouds and atmosphere). When diffuse fraction exceeds 60% of total radiation, light is even and non-scorching — ideal for seedlings. When direct radiation peaks above 500 W/m², shade-sensitive plants risk leaf scorch. Peak direct radiation is the single highest hourly value recorded today.">🛈︎</span>
                     </div>
                     <div class="weather-insight-desc" x-text="insight.desc"></div>
                     <div x-show="insight.type === 'waterbalance'" style="margin-top:6px;">
                       <div class="soil-battery">
                         <div class="soil-battery-label">Soil Tank
-                          <span class="tip" data-tip="Net water in the soil this week: total rain minus evapotranspiration (ET₀). Plants 'breathe out' water even on rainy days — this tracks the true balance.">&#9432;</span>
+                          <span class="tip" data-tip="Net water in the soil this week: total rain minus evapotranspiration (ET₀). Plants 'breathe out' water even on rainy days — this tracks the true balance.">🛈︎</span>
                         </div>
                         <div class="soil-battery-track">
                           <div class="soil-battery-midline"></div>
@@ -195,7 +201,7 @@
                       <div class="gdd-dual">
                         <div class="gdd-dual-row">
                           <span class="gdd-dual-label">Cool (Peas, Lettuce)
-                            <span class="tip" data-tip="Tracks daily degrees above 5°C — the growth threshold for cool-season crops like peas and lettuce. The bar shows this season's total vs. the historical average for today's date. 100% = right on track.">ⓘ</span>
+                            <span class="tip" data-tip="Tracks daily degrees above 5°C — the growth threshold for cool-season crops like peas and lettuce. The bar shows this season's total vs. the historical average for today's date. 100% = right on track.">🛈︎</span>
                           </span>
                           <div class="gdd-track">
                             <div class="gdd-fill--cool" :style="'width:' + Math.min((insight.coolRatio || 0) * 100, 100) + '%'"></div>
@@ -204,7 +210,7 @@
                         </div>
                         <div class="gdd-dual-row">
                           <span class="gdd-dual-label">Warm (Tomatoes)
-                            <span class="tip" data-tip="Tracks daily degrees above 10°C — the threshold for warm-season crops like tomatoes and peppers. They need more warmth to thrive. 100% = this season has accumulated its typical heat total for this date.">ⓘ</span>
+                            <span class="tip" data-tip="Tracks daily degrees above 10°C — the threshold for warm-season crops like tomatoes and peppers. They need more warmth to thrive. 100% = this season has accumulated its typical heat total for this date.">🛈︎</span>
                           </span>
                           <div class="gdd-track">
                             <div class="gdd-fill--warm" :style="'width:' + Math.min((insight.warmRatio || 0) * 100, 100) + '%'"></div>
@@ -213,10 +219,23 @@
                         </div>
                       </div>
                     </div>
+                    <div x-show="insight.type === 'blight'" style="margin-top:6px;">
+                      <div class="blight-meter">
+                        <div class="blight-meter-label">
+                          Fungal Pressure
+                          <span class="tip" data-tip="Based on the next 48 hours of forecast data. Counts hours where leaf wetness probability exceeds 50% and air temperature is between 12–20°C — the classic conditions for Potato Blight and Downy Mildew.">🛈︎</span>
+                        </div>
+                        <div class="blight-track">
+                          <div class="blight-segment blight-segment--low"    :class="{'active': insight.blightLevel === 'low'}">Low</div>
+                          <div class="blight-segment blight-segment--medium" :class="{'active': insight.blightLevel === 'medium'}">Elevated</div>
+                          <div class="blight-segment blight-segment--high"   :class="{'active': insight.blightLevel === 'high'}">High</div>
+                        </div>
+                      </div>
+                    </div>
                     <div style="display:flex;align-items:center;gap:.3rem">
                       <div class="weather-insight-meta" x-text="insight.meta"></div>
                       <span class="tip" x-show="insight.type === 'season'"
-                            data-tip="GDD = Growing Degree Days accumulated so far this season. Base 5°C is the growth threshold for cool-season crops (peas, lettuce). Base 10°C is the threshold for warm-season crops (tomatoes, peppers).">ⓘ</span>
+                            data-tip="GDD = Growing Degree Days accumulated so far this season. Base 5°C is the growth threshold for cool-season crops (peas, lettuce). Base 10°C is the threshold for warm-season crops (tomatoes, peppers).">🛈︎</span>
                     </div>
                   </div>
                 </div>
@@ -306,6 +325,54 @@
                      style="margin-top:.75rem">
                   <div style="font-weight:600;margin-bottom:.25rem" x-text="weather.confidence.springReadiness.headline"></div>
                   <div style="font-size:.85rem;color:var(--text-2)" x-text="weather.confidence.springReadiness.body"></div>
+                </div>
+              </template>
+
+              <!-- Last Frost Probability Curve -->
+              <template x-if="!weather.confidence.loading && weather.confidence.frostCurve">
+                <div style="margin-top:1rem">
+                  <div style="font-size:.8rem;color:var(--text-3);margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:baseline">
+                    <span>❄️ Last frost probability curve</span>
+                    <span style="font-size:.68rem;color:var(--text-4)">20-yr history · Mar–Jun</span>
+                  </div>
+
+                  <!-- Weekly bar chart -->
+                  <template x-for="week in weather.confidence.frostCurve.weeks" :key="week.key">
+                    <div class="frost-curve-row"
+                         :class="week.isCurrent ? 'frost-curve-row--current' : (week.isPast ? 'frost-curve-row--past' : '')">
+                      <span class="frost-curve-label" x-text="week.label"></span>
+                      <div class="gdd-track frost-prob-track" style="position:relative">
+                        <div :class="'frost-curve-fill--' + week.level"
+                             :style="'width:' + week.barWidth + '%'"></div>
+                        <span x-show="week.isSafeZone && !week.isCurrent && !week.isPast"
+                              class="frost-curve-badge frost-curve-badge--safe">? safe zone</span>
+                        <span x-show="week.isCurrent"
+                              class="frost-curve-badge frost-curve-badge--now">? now</span>
+                      </div>
+                      <span class="frost-prob-pct" x-text="week.frostPct + '%'"></span>
+                    </div>
+                  </template>
+
+                  <!-- Safe Sowing Countdown -->
+                  <div class="safe-sowing-countdown">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+                      <span style="font-size:.8rem;font-weight:600">🌱 Safe Sowing Countdown</span>
+                      <span style="font-size:.72rem;color:var(--text-3)"
+                            x-text="weather.confidence.frostCurve.currentWeekPct !== null ? 'Risk: ' + weather.confidence.frostCurve.currentWeekPct + '%' : ''"></span>
+                    </div>
+                    <div class="gdd-track" style="height:10px;margin-bottom:.4rem">
+                      <div class="safe-sowing-fill"
+                           :style="'width:' + (weather.confidence.frostCurve.currentWeekPct !== null ? Math.max(0, 100 - weather.confidence.frostCurve.currentWeekPct) : 0) + '%'"></div>
+                    </div>
+                    <div style="font-size:.78rem;color:var(--text-2)"
+                         x-text="weather.confidence.frostCurve.currentWeekPct === null ? '' :
+                                  weather.confidence.frostCurve.currentWeekPct < 10
+                                    ? '✓ You are in the Safe Zone — low frost risk for outdoor sowing.'
+                                    : weather.confidence.frostCurve.safeLabel
+                                        ? 'Risk is currently ' + weather.confidence.frostCurve.currentWeekPct + '%. Wait until ' + weather.confidence.frostCurve.safeLabel + ' for the Safe Zone (sub-10% risk).'
+                                        : 'Risk is currently ' + weather.confidence.frostCurve.currentWeekPct + '%. Monitor weekly frost data before sowing outdoors.'">
+                    </div>
+                  </div>
                 </div>
               </template>
             </div>
