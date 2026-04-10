@@ -167,19 +167,45 @@
                   <div class="weather-insight-icon" x-text="insight.icon"></div>
                   <div class="weather-insight-body">
                     <div class="weather-insight-label" x-text="insight.label"></div>
-                    <div class="weather-insight-title" x-text="insight.title"></div>
+                    <div style="display:flex;align-items:center;gap:.3rem">
+                      <div class="weather-insight-title" x-text="insight.title"></div>
+                      <span class="tip" x-show="insight.type === 'season'"
+                            data-tip="Compares how much heat this season has accumulated vs. a 7-year historical average. Negative days = the season is running cooler than usual, hold off on tender seeds. Positive days = warmer than usual, you can sow earlier.">ⓘ</span>
+                    </div>
                     <div class="weather-insight-desc" x-text="insight.desc"></div>
+                    <div x-show="insight.type === 'waterbalance'" style="margin-top:6px;">
+                      <div class="soil-battery">
+                        <div class="soil-battery-label">Soil Tank
+                          <span class="tip" data-tip="Net water in the soil this week: total rain minus evapotranspiration (ET₀). Plants 'breathe out' water even on rainy days — this tracks the true balance.">&#9432;</span>
+                        </div>
+                        <div class="soil-battery-track">
+                          <div class="soil-battery-midline"></div>
+                          <div class="soil-battery-fill"
+                               :class="'soil-battery-fill--' + insight.level"
+                               :style="'width:' + (insight.batteryPct || 0) + '%'"></div>
+                        </div>
+                        <div class="soil-battery-labels">
+                          <span>Dry</span>
+                          <span x-text="(insight.batteryPct || 0) + '%'"></span>
+                          <span>Full</span>
+                        </div>
+                      </div>
+                    </div>
                     <div x-show="insight.type === 'season'">
                       <div class="gdd-dual">
                         <div class="gdd-dual-row">
-                          <span class="gdd-dual-label">Cool (Peas, Lettuce)</span>
+                          <span class="gdd-dual-label">Cool (Peas, Lettuce)
+                            <span class="tip" data-tip="Tracks daily degrees above 5°C — the growth threshold for cool-season crops like peas and lettuce. The bar shows this season's total vs. the historical average for today's date. 100% = right on track.">ⓘ</span>
+                          </span>
                           <div class="gdd-track">
                             <div class="gdd-fill--cool" :style="'width:' + Math.min((insight.coolRatio || 0) * 100, 100) + '%'"></div>
                           </div>
                           <span class="gdd-dual-pct" x-text="Math.round((insight.coolRatio || 0) * 100) + '%'"></span>
                         </div>
                         <div class="gdd-dual-row">
-                          <span class="gdd-dual-label">Warm (Tomatoes)</span>
+                          <span class="gdd-dual-label">Warm (Tomatoes)
+                            <span class="tip" data-tip="Tracks daily degrees above 10°C — the threshold for warm-season crops like tomatoes and peppers. They need more warmth to thrive. 100% = this season has accumulated its typical heat total for this date.">ⓘ</span>
+                          </span>
                           <div class="gdd-track">
                             <div class="gdd-fill--warm" :style="'width:' + Math.min((insight.warmRatio || 0) * 100, 100) + '%'"></div>
                           </div>
@@ -187,7 +213,11 @@
                         </div>
                       </div>
                     </div>
-                    <div class="weather-insight-meta" x-text="insight.meta"></div>
+                    <div style="display:flex;align-items:center;gap:.3rem">
+                      <div class="weather-insight-meta" x-text="insight.meta"></div>
+                      <span class="tip" x-show="insight.type === 'season'"
+                            data-tip="GDD = Growing Degree Days accumulated so far this season. Base 5°C is the growth threshold for cool-season crops (peas, lettuce). Base 10°C is the threshold for warm-season crops (tomatoes, peppers).">ⓘ</span>
+                    </div>
                   </div>
                 </div>
               </template>
@@ -281,11 +311,11 @@
             </div>
 
             <!-- Layer 7: Action footer -->
-            <div class="weather-action"
+            <!-- <div class="weather-action"
                  x-show="!!weather.actionText"
                  :class="weather.alerts[0] ? 'weather-action--' + weather.alerts[0].level : ''"
                  x-text="weather.actionText">
-            </div>
+            </div> -->
 
           </div>
         </div>

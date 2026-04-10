@@ -1,6 +1,6 @@
 ## First
 I've added someone changes to the weather overview and API call, this means we will have even more information available in the app. Can we use this in the calendar tab? 
-I want you to check all the fields we're pulling from the weather API calls and add information to the seeds sow-now-meta
+I want you to check all the fields we're pulling from the weather API calls and add information to the seeds, this is stored on the sow-now-meta
 
 Specifically we have the sow indoors now and sow outdoors now, I want to add tooltips based on the weather info we have. Examples here:
 1. "Sow Outdoors Now" Tooltip (The Soil Gatekeeper)This is the most critical logic. Just because it is "April" (within the sow_outdoors_start window) doesn't mean the soil is ready.Logic: Compare optimum_soil_temp from your DB to the API’s soil_temperature_6cm.The Tooltip Content:Condition A (Too Cold): "Calendar says YES, but Soil says NO. Soil is 7.4°C; {seed.name} needs {seed.optimum_soil_temp} to germinate. Wait for a warmer spell to avoid seed rot."Condition B (Frost Risk): "Soil is warm enough, but a frost alert is active for Monday. If these germinate in {seed.days_to_germinate} days, they might hit a late freeze. Consider cloche protection."Condition C (Perfect): "Perfect conditions! Soil temp is ideal and rain today will help settle the seeds."
@@ -8,10 +8,19 @@ Specifically we have the sow indoors now and sow outdoors now, I want to add too
 3. "Plant Out" Tooltip (The Hardening Off Logic)When the user moves a plant from sow_indoors to the garden, this is the highest risk of plant death.Logic: Compare temperature_2m_min and uv_index.The Tooltip Content:Condition (UV Shock): "Danger: High UV (6) today. Do not move indoor seedlings directly into the sun. Start 'hardening off' in a shaded spot for 2 hours only."Condition (Wind Stress): "High wind gusts (38 km/h). Newly transplanted {seed.name} will struggle with windburn. Wait for Tuesday’s calm window."Suggested Database & Logic MappingSince your optimum_soil_temp is currently TEXT, you’ll likely want to parse it to an integer for comparison.DB FieldAPI MatchLogic / Tooltip Triggeroptimum_soil_tempsoil_temperature_6cmIf soil_temp < optimum_temp, show "Soil Too Cold" warning.days_to_germinatedaily_min_temp (7-day)If min_temp < 0°C inside the germination window, show "Late Frost Risk".light_requirementscloud_cover / radiationIf "Full Sun" required but 100% cloud cover forecast, show "Grow Light Recommended".typevapor_pressure_deficitIf type is "Vegetable" (like Tomatoes) and VPD is low, show "Blight Alert".
 
 ## Second
+There is an alawmwith the alarm:
+No irrigation needed this week
+33mm forecast — skip watering until Tuesday at earliest.
+Increment a logic:
+Water Balance (Rain vs. Thirst)Gardeners often overwater after a light rain, not realizing the wind and sun "stole" all that water back.API Variables: daily -> precipitation_sum and et0_fao_evapotranspiration.Logic: $Net\ Water = Rain - ET_0$.UI Element: A "Water Tank" or "Soil Battery" visual.Display: If $ET_0$ is higher than Rain, the battery drains.Action: "Even though it rained 2mm, your plants 'breathed out' 4mm today. The net deficit is 2mm. Water your pots tonight."
+
+3. The "Blight & Mildew" Pressure GaugeFungal issues are the #1 cause of crop failure in wet climates like Stirling.API Variables: hourly -> leaf_wetness_probability and relative_humidity_2m.Logic: If leaf wetness is $>50\%$ for more than 10 hours and temps are between $12^{\circ}\text{C}$ and $20^{\circ}\text{C}$, trigger a high-risk alert.UI Element: A "Bio-Hazard" or "Fungal Risk" meter (Green → Yellow → Red).Warning: "Red Alert: Perfect conditions for Potato Blight over the next 48 hours. If you haven't sprayed your copper/organic treatment, do it now."
 
 
+## Third
+The "Last Frost" Survival ChartSince you’ve already integrated historical data, you can visualize the Frost Probability Curve.API Source: Open-Meteo Historical API (fetch min_temperature_2m for March–June over the last 20 years).UI Element: A simple line or area chart showing the probability of a frost ($<0^{\circ}\text{C}$) dropping week-by-week.Feature: "Safe Sowing Countdown."Display: A bar that fills as the risk drops.Status: "Risk is currently 45%. Wait until May 15th for the 'Safe Zone' (sub-10% risk)."
 
-## Third 
+## Forth
 
 I have an app that start  with a SQL command to add some example seeds into the database. I want you to analyse the schema, then for each seed that I purchased look into the website and extract the information for each seed. Then in the end generate a SQL command with all the information you gathered.
 

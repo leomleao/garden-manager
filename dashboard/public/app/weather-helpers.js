@@ -287,7 +287,13 @@ function computeSpringReadiness(climateData, currentDayOfYear, ensembleFrostProb
   const { time, temperature_2m_min } = climateData.daily;
   if (!time || !temperature_2m_min || time.length === 0) return null;
 
-  // For each year: did it have a frost on or after currentDayOfYear?
+  // Only search the spring/early-summer window: currentDayOfYear → DOY 181 (end of June).
+  // Without an upper cap, autumn/winter frosts in the historical data (DOY 270–365)
+  // are all ≥ currentDayOfYear, which inflates risk to ~90% and pushes the safe date
+  // into January of the following year.
+  const springWindowEnd = Math.max(currentDayOfYear + 1, 181);
+
+  // For each year: did it have a frost on or after currentDayOfYear (within spring window)?
   const allYears          = new Set();
   const yearsWithLateFrost = new Set();
 
@@ -298,7 +304,7 @@ function computeSpringReadiness(climateData, currentDayOfYear, ensembleFrostProb
     const temp = temperature_2m_min[i];
 
     allYears.add(year);
-    if (doy >= currentDayOfYear && temp != null && temp <= 0) {
+    if (doy >= currentDayOfYear && doy <= springWindowEnd && temp != null && temp <= 0) {
       yearsWithLateFrost.add(year);
     }
   });
@@ -308,8 +314,8 @@ function computeSpringReadiness(climateData, currentDayOfYear, ensembleFrostProb
   const historicalRisk = yearsWithLateFrost.size / allYears.size;
   const forecastRisk   = ensembleFrostProb7d ?? 0;
 
-  // Derive safe date: find the latest date in historical data with a frost after
-  // currentDayOfYear, then add a 14-day buffer.
+  // Derive safe date: find the latest spring-window frost DOY across all historical
+  // years, then add a 14-day buffer.
   let safeDate = null;
   let lastFrostDoy = -1;
   time.forEach((dateStr, i) => {
@@ -317,7 +323,7 @@ function computeSpringReadiness(climateData, currentDayOfYear, ensembleFrostProb
     const year = d.getFullYear();
     const doy  = Math.floor((d - new Date(year, 0, 0)) / 86400000);
     const temp = temperature_2m_min[i];
-    if (doy >= currentDayOfYear && temp != null && temp <= 0 && doy > lastFrostDoy) {
+    if (doy >= currentDayOfYear && doy <= springWindowEnd && temp != null && temp <= 0 && doy > lastFrostDoy) {
       lastFrostDoy = doy;
     }
   });
@@ -347,6 +353,60 @@ function computeSpringReadiness(climateData, currentDayOfYear, ensembleFrostProb
     safeDate,
     status,
     body,
+  };
+}
+
+// ── Water Balance (Rain vs. ET₀) ─────────────────────────────────────────────
+// Computes the net soil water balance over the 7-day forecast window.
+// Net Water = precipitation_sum - et0_fao_evapotranspiration.
+// Returns { weekRain, weekET0, weekNet, todayRain, todayET0, todayNet,
+//           batteryPct, level, action } or null when data is unavailable.
+
+function computeWaterBalance(daily) {
+  const rain7 = (daily.precipitation_sum || []).map(v => v ?? 0);
+  const et0_7 = (daily.et0_fao_evapotranspiration || []).map(v => v ?? 0);
+  if (!rain7.length || !et0_7.length) return null;
+
+  const weekRain = rain7.reduce((s, v) => s + v, 0);
+  const weekET0  = et0_7.reduce((s, v) => s + v, 0);
+  const weekNet  = weekRain - weekET0;
+
+  const todayRain = rain7[0];
+  const todayET0  = et0_7[0];
+  const todayNet  = todayRain - todayET0;
+
+  // Battery: maps [-20mm … +20mm] net balance → 0–100%
+  const batteryPct = Math.round(Math.min(Math.max((weekNet + 20) / 40 * 100, 0), 100));
+
+  let level, action;
+  if (weekNet >= 5) {
+    level  = 'surplus';
+    action = `Rain covers plant needs this week — no irrigation required. The soil tank is replenished.`;
+  } else if (weekNet >= -2) {
+    level  = 'balanced';
+    action = `Rain and evaporation are roughly balanced. Check pot and container moisture by hand.`;
+  } else if (todayRain > 0.5 && todayNet < -0.5) {
+    const nr = (Math.round(todayRain * 10) / 10).toFixed(1);
+    const ne = (Math.round(todayET0 * 10) / 10).toFixed(1);
+    const nd = (Math.round(Math.abs(todayNet) * 10) / 10).toFixed(1);
+    level  = 'deficit';
+    action = `Even though it rained ${nr}mm, your plants 'breathed out' ${ne}mm today. The net deficit is ${nd}mm — water your pots tonight.`;
+  } else {
+    level  = 'deficit';
+    const nd = (Math.round(Math.abs(weekNet) * 10) / 10).toFixed(1);
+    action = `Net water deficit of ${nd}mm this week — your plants need watering today.`;
+  }
+
+  return {
+    weekRain:  Math.round(weekRain * 10) / 10,
+    weekET0:   Math.round(weekET0 * 10) / 10,
+    weekNet:   Math.round(weekNet * 10) / 10,
+    todayRain: Math.round(todayRain * 10) / 10,
+    todayET0:  Math.round(todayET0 * 10) / 10,
+    todayNet:  Math.round(todayNet * 10) / 10,
+    batteryPct,
+    level,
+    action,
   };
 }
 
@@ -575,7 +635,28 @@ function computeInsights(d, zones) {
     });
   }
 
-  // 5. Season Gauge — dual GDD (cool + warm)
+  // 5. Water Balance (Soil Battery)
+  const wb = computeWaterBalance(d.daily);
+  if (wb) {
+    const wbIcon       = wb.level === 'surplus' ? '🪣' : wb.level === 'deficit' ? '🏜️' : '⚖️';
+    const wbLevelLabel = wb.level === 'surplus' ? 'Surplus' : wb.level === 'deficit' ? 'Deficit' : 'Balanced';
+    insights.push({
+      type:       'waterbalance',
+      icon:        wbIcon,
+      label:      `Water Balance · ${wbLevelLabel}`,
+      title:      wb.level === 'surplus'
+                    ? 'Soil tank full — skip irrigation'
+                    : wb.level === 'deficit'
+                    ? 'Soil tank draining — check pots'
+                    : 'Soil moisture balanced',
+      desc:       wb.action,
+      meta:       `7-day: Rain ${wb.weekRain}mm · ET\u2080 ${wb.weekET0}mm · Net ${wb.weekNet >= 0 ? '+' : ''}${wb.weekNet}mm`,
+      batteryPct: wb.batteryPct,
+      level:      wb.level,
+    });
+  }
+
+  // 6. Season Gauge — dual GDD (cool + warm)
   const dual = computeDualGDD(d.daily);
   const hasGDD = dual.cool || dual.warm;
   if (hasGDD) {
@@ -692,15 +773,25 @@ function computeAlerts(d, soilTemp) {
     });
   }
 
-  // Watering (green)
+  // Watering (green) — enhanced with water balance (Rain vs. ET₀)
   const totalRain = daily.precipitation_sum.reduce((s, v) => s + (v ?? 0), 0);
   if (totalRain > 10) {
     const firstDryIdx = daily.precipitation_sum.findIndex((r, i) => i > 0 && (r ?? 0) < 1);
     const skipUntil   = firstDryIdx > 0 ? dayNames[firstDryIdx] : 'next week';
+    const wb          = computeWaterBalance(daily);
+    let waterBody     = `${Math.round(totalRain)}mm forecast — skip watering until ${skipUntil} at earliest.`;
+    if (wb) {
+      if (wb.todayRain > 0.5 && wb.todayNet < -0.5) {
+        // Rained today but ET₀ was higher — plants still thirsty
+        waterBody += ` Even though it rained ${wb.todayRain.toFixed(1)}mm, ET\u2080 was ${wb.todayET0.toFixed(1)}mm — net deficit of ${Math.abs(wb.todayNet).toFixed(1)}mm today. Check pot moisture tonight.`;
+      } else if (wb.weekNet >= 0) {
+        waterBody += ` Net balance +${wb.weekNet.toFixed(1)}mm after evaporation — soil tank replenished.`;
+      }
+    }
     alerts.push({
       level: 'green',
       text:  'No irrigation needed this week',
-      body:  `${Math.round(totalRain)}mm forecast — skip watering until ${skipUntil} at earliest.`,
+      body:  waterBody,
     });
   } else if (!alerts.some(a => a.level === 'red' || a.level === 'amber')) {
     if (soilTemp != null && soilTemp >= 10) {
@@ -743,5 +834,6 @@ if (typeof module !== 'undefined') {
     gddBaseline, computeInsights, computeAlerts, computeActionText,
     computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
     computeDualGDD, computeFrostEnsemble, computeSpringReadiness,
+    computeWaterBalance,
   };
 }
