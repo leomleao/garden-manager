@@ -236,14 +236,14 @@ router.post('/seeds', (req, res) => {
       plant_height,light_requirements,growing_instructions,
       sow_indoors_start,sow_indoors_end,sow_outdoors_start,sow_outdoors_end,
       plant_out_start,plant_out_end,harvest_start,harvest_end,picture
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run([
     name, variety, type, quantity, box_id, emoji, supplier, purchase_year, sow_by_year, notes,
     purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type,
     plant_height, light_requirements, growing_instructions,
     sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end,
     plant_out_start, plant_out_end, harvest_start, harvest_end, picture
-  ]);
+  ].map(v => v === undefined ? null : v));
   res.status(201).json({ id: info.lastInsertRowid });
 });
 
@@ -259,6 +259,11 @@ router.patch('/seeds/:id', (req, res) => {
   if (!fields.length) return res.status(400).json({ error: 'no valid fields' });
   const set = fields.map(f => `${f}=?`).join(',');
   db.prepare(`UPDATE seeds SET ${set} WHERE id=?`).run([...fields.map(f => req.body[f]), req.params.id]);
+  res.json({ ok: true });
+});
+
+router.delete('/seeds/:id', (req, res) => {
+  db.prepare('DELETE FROM seeds WHERE id=?').run(req.params.id);
   res.json({ ok: true });
 });
 

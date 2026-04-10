@@ -40,7 +40,13 @@ function rowToSql(item) {
   const vals = COLUMNS.map(col => {
     // 'picture' in SQL comes from 'image' in JSON
     const jsonKey = col === 'picture' ? 'image' : col;
-    return sqlEscape(col, item[jsonKey] !== undefined ? item[jsonKey] : null);
+    let value = item[jsonKey] !== undefined ? item[jsonKey] : null;
+    // The app reads raw base64 from the DB and prepends 'data:image/jpeg;base64,' itself,
+    // so strip that prefix here if it was stored as a full data URL by the scraper.
+    if (col === 'picture' && typeof value === 'string' && value.startsWith('data:')) {
+      value = value.split(',')[1] ?? null;
+    }
+    return sqlEscape(col, value);
   });
   return `(${vals.join(', ')})`;
 }

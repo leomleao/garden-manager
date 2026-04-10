@@ -82,6 +82,22 @@ function app() {
       }
     },
 
+    confirmModal: { show: false, message: '', _resolve: null },
+
+    askConfirm(message) {
+      return new Promise(resolve => {
+        this.confirmModal = { show: true, message, _resolve: resolve };
+      });
+    },
+    confirmOk() {
+      this.confirmModal.show = false;
+      this.confirmModal._resolve(true);
+    },
+    confirmCancel() {
+      this.confirmModal.show = false;
+      this.confirmModal._resolve(false);
+    },
+
     // Seed edit modal (shared: accessible from seeds tab, calendar, etc.)
     seedModal: {
       show: false, editingId: null,
@@ -91,7 +107,7 @@ function app() {
     openSeedEdit(seed) {
       const { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, notes, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture } = seed;
       const pictureDataUrl = picture ? `data:image/jpeg;base64,${picture}` : null;
-      this.seedModal = { show: true, editingId: seed.id, form: { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, notes, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture: pictureDataUrl } };
+      this.seedModal = { show: true, editingId: seed.id, germinationError: false, form: { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, notes, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture: pictureDataUrl } };
       this.$nextTick(() => {
         ['Notes...', 'Growing instructions...'].forEach(placeholder => {
           const textarea = document.querySelector(`textarea[placeholder="${placeholder}"]`);
@@ -103,7 +119,7 @@ function app() {
     },
 
     openSeedAdd() {
-      this.seedModal = { show: true, editingId: null, form: { name:'', variety:'', type:'', quantity:0, box_id:null, supplier:'', purchase_year:null, sow_by_year:null, notes:'', purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'', picture:null } };
+      this.seedModal = { show: true, editingId: null, germinationError: false, form: { name:'', variety:'', type:'', quantity:0, box_id:null, supplier:'', purchase_year:null, sow_by_year:null, notes:'', purchase_link:'', days_to_germinate:null, optimum_soil_temp:'', optimum_soil_type:'', plant_height:'', light_requirements:'', growing_instructions:'', sow_indoors_start:'', sow_indoors_end:'', sow_outdoors_start:'', sow_outdoors_end:'', plant_out_start:'', plant_out_end:'', harvest_start:'', harvest_end:'', picture:null } };
     },
 
     closeSeedModal() { this.seedModal.show = false; },
@@ -160,8 +176,24 @@ function app() {
       textarea.style.height = Math.max(minHeight, Math.min(maxHeight, textarea.scrollHeight)) + 'px';
     },
 
+    async deleteSeed() {
+      if (!this.seedModal.editingId) return;
+      if (!await this.askConfirm('Delete this seed? This cannot be undone.')) return;
+      try {
+        const r = await fetch(`/api/seeds/${this.seedModal.editingId}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(await r.text());
+        this.seedModal.show = false;
+        await this.refresh();
+      } catch(e) { console.error('Delete seed failed:', e); }
+    },
+
     async saveSeed() {
       if (!this.seedModal.form.name) return;
+      const dtg = this.seedModal.form.days_to_germinate;
+      if (dtg !== null && dtg !== '' && !/^\d+(-\d+)?$/.test(String(dtg).trim())) {
+        this.seedModal.germinationError = true;
+        return;
+      }
       try {
         const url = this.seedModal.editingId ? `/api/seeds/${this.seedModal.editingId}` : '/api/seeds';
         const method = this.seedModal.editingId ? 'PATCH' : 'POST';

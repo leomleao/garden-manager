@@ -1090,7 +1090,7 @@
 
           <p style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:.5rem">Growing Info</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
-            <input placeholder="Days to germinate" type="number" x-model.number="seedModal.form.days_to_germinate">
+            <input placeholder="Days to germinate (e.g. 7 or 7-14)" x-model="seedModal.form.days_to_germinate" :class="{ 'input-error': seedModal.germinationError }" @input="seedModal.germinationError = false">
             <input placeholder="Optimum soil temp (e.g. 18-22&#xB0;C)" x-model="seedModal.form.optimum_soil_temp">
             <input placeholder="Soil type (e.g. loamy)" x-model="seedModal.form.optimum_soil_type">
             <input placeholder="Plant height (e.g. 60cm)" x-model="seedModal.form.plant_height">
@@ -1119,14 +1119,25 @@
           </div>
 
           <div style="display:flex;justify-content:flex-end;gap:.5rem">
+            <button class="btn btn-danger" x-show="seedModal.editingId" @click="deleteSeed()">Delete</button>
             <button class="btn btn-secondary" @click="closeSeedModal()">Cancel</button>
             <button class="btn btn-primary" @click="saveSeed()">Save</button>
           </div>
         </div>
       </div>
 
-    </main>
-  </div>
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" x-show="confirmModal.show" @keydown.escape.window="confirmCancel()" style="z-index:1100">
+      <div class="modal-card" style="max-width:380px">
+        <p style="margin-bottom:1.25rem" x-text="confirmModal.message"></p>
+        <div style="display:flex;justify-content:flex-end;gap:.5rem">
+          <button class="btn btn-secondary" @click="confirmCancel()">Cancel</button>
+          <button class="btn btn-danger" @click="confirmOk()">Delete</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end x-data="app()" -->
 </body>
 </html>
 
