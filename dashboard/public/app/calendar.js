@@ -23,6 +23,16 @@ function parseGerminationDays(str) {
   return single ? parseInt(single[1]) : 14;
 }
 
+// Local GDD baseline (mirrors gddBaseline in weather-helpers.js).
+// Kept here to make calendar.js self-contained for Jest tests.
+function _gddBaselineLocal(dayOfYear) {
+  if (dayOfYear < 60)  return 0;
+  if (dayOfYear < 91)  return Math.round(30 + (dayOfYear - 60) * 0.5);
+  if (dayOfYear < 121) return Math.round(49 + (dayOfYear - 91) * 0.7);
+  if (dayOfYear < 152) return Math.round(70 + (dayOfYear - 121) * 0.47);
+  return Math.round(84 + (dayOfYear - 152) * 0.47);
+}
+
 function getSowNowBadge(weatherData, seed, isOutdoor) {
   if (!weatherData || !seed) return null;
   const range = parseSoilTempRange(seed.optimum_soil_temp);
@@ -147,6 +157,59 @@ function getSowNowBadges(weatherData, seed, mode, confidence) {
         badges.push({
           label: '🍄 Fungal Risk', cls: 'caution',
           title: `Humidity is ${Math.round(avgRh)}% with mild temps (${avgT.toFixed(1)}\u00b0C) \u2014 prime conditions for downy mildew. Ensure good airflow and avoid overhead watering.`,
+        });
+      }
+    }
+  }
+
+  // ── INDOOR ───────────────────────────────────────────────────────────────
+  if (mode === 'indoor') {
+    // 1. Air temperature check (good conditions for starting indoors)
+    const range = parseSoilTempRange(seed.optimum_soil_temp);
+    if (range) {
+      const temps = daily.temperature_2m_max || [];
+      const avg = arrAvg(temps);
+      if (avg !== null && avg >= range.min && avg <= range.max) {
+        badges.push({
+          label: '🌤 Good Conditions', cls: 'good',
+          title: `Avg air temp ${avg.toFixed(1)}°C over next 7 days — seasonally ideal for starting ${seed.name} indoors.`,
+        });
+      }
+    }
+
+    // 2. Grow light needed (low 4-day radiation AND seed requires light)
+    if (seed.light_requirements && /sun|light/i.test(seed.light_requirements)) {
+      const direct  = hourly.direct_radiation  || [];
+      const diffuse = hourly.diffuse_radiation || [];
+      const totalRad = (
+        direct.slice(0, 96).reduce((s, v) => s + (v ?? 0), 0) +
+        diffuse.slice(0, 96).reduce((s, v) => s + (v ?? 0), 0)
+      ) / 96;
+      if (totalRad < 150) {
+        badges.push({
+          label: '☁ Grow Light Needed', cls: 'cold',
+          title: `Next 4 days are heavily overcast (avg ${Math.round(totalRad)} W/m²). Windowsill light won't be enough — use grow lights to prevent leggy seedlings.`,
+        });
+      }
+    }
+
+    // 3. GDD season lag / ahead
+    const gddArr = daily.growing_degree_days_base_0_limit_50 || [];
+    if (gddArr.length) {
+      const accumulated = gddArr.reduce((s, v) => s + (v ?? 0), 0);
+      const now      = new Date();
+      const doy      = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+      const baseline = _gddBaselineLocal(doy);
+      const ratio    = baseline > 0 ? accumulated / baseline : 1;
+      if (ratio < 0.7) {
+        badges.push({
+          label: '📉 Season Behind', cls: 'cold',
+          title: `Season is ${Math.round((1 - ratio) * 100)}% behind average GDD. Sowing is fine, but expect a later transplant date than usual.`,
+        });
+      } else if (ratio > 1.3) {
+        badges.push({
+          label: '📈 Season Ahead', cls: 'good',
+          title: `Season is ${Math.round((ratio - 1) * 100)}% ahead of average GDD — warming fast. You may be able to plant out earlier than the calendar suggests.`,
         });
       }
     }
