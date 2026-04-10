@@ -182,13 +182,22 @@ function computeLightQuality(hourly) {
 // ratio is capped at 1.5 to prevent extreme bars.
 
 function computeDualGDD(daily) {
-  function sumArr(arr) {
-    if (!arr || !arr.length) return null;
-    return Math.round(arr.reduce((s, v) => s + (v ?? 0), 0));
+  const tmax = daily.temperature_2m_max;
+  const tmin = daily.temperature_2m_min;
+  if (!tmax || !tmin || !tmax.length) return { cool: null, warm: null };
+
+  // Compute GDD from daily temps — base 5 (cool season) and base 10 (warm season)
+  function gddAccum(base) {
+    return Math.round(
+      tmax.reduce((s, hi, i) => {
+        const lo  = tmin[i] ?? hi;
+        return s + Math.max(0, (hi + lo) / 2 - base);
+      }, 0)
+    );
   }
 
-  const coolAcc = sumArr(daily.growing_degree_days_base_5_limit_30);
-  const warmAcc = sumArr(daily.growing_degree_days_base_10_limit_30);
+  const coolAcc = gddAccum(5);
+  const warmAcc = gddAccum(10);
 
   if (coolAcc === null && warmAcc === null) return { cool: null, warm: null };
 

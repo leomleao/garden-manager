@@ -423,55 +423,50 @@ describe('computeLightQuality', () => {
 
 // ── computeDualGDD ────────────────────────────────────────────────────────────
 describe('computeDualGDD', () => {
-  function makeDaily(base5, base10) {
-    return {
-      growing_degree_days_base_5_limit_30:  base5,
-      growing_degree_days_base_10_limit_30: base10,
-    };
-  }
+  // tmax=15, tmin=5 → avg=10 → cool GDD/day=5, warm GDD/day=0
+  const cool7 = { temperature_2m_max: [15,15,15,15,15,15,15], temperature_2m_min: [5,5,5,5,5,5,5] };
+  // tmax=25, tmin=15 → avg=20 → cool GDD/day=15, warm GDD/day=10
+  const warm7 = { temperature_2m_max: [25,25,25,25,25,25,25], temperature_2m_min: [15,15,15,15,15,15,15] };
 
-  test('returns null cool and warm when arrays absent', () => {
+  test('returns null cool and warm when temperature arrays absent', () => {
     const r = computeDualGDD({});
     expect(r.cool).toBeNull();
     expect(r.warm).toBeNull();
   });
 
-  test('sums 7-day base_5 array correctly', () => {
-    const r = computeDualGDD(makeDaily([5, 5, 5, 5, 5, 5, 5], [2, 2, 2, 2, 2, 2, 2]));
+  test('computes cool GDD (base 5) from daily max/min temperatures', () => {
+    // avg=10, base 5 → 5 GDD/day × 7 days = 35
+    const r = computeDualGDD(cool7);
     expect(r.cool.accumulated).toBe(35);
   });
 
-  test('sums 7-day base_10 array correctly', () => {
-    const r = computeDualGDD(makeDaily([5, 5, 5, 5, 5, 5, 5], [2, 2, 2, 2, 2, 2, 2]));
-    expect(r.warm.accumulated).toBe(14);
+  test('warm GDD (base 10) is zero when avg temp equals base', () => {
+    // avg=10, base 10 → 0 GDD/day
+    const r = computeDualGDD(cool7);
+    expect(r.warm.accumulated).toBe(0);
   });
 
-  test('handles null values in GDD arrays gracefully', () => {
-    const r = computeDualGDD(makeDaily([5, null, 5, null, 5], [null, 2, null, 2, null]));
-    expect(r.cool.accumulated).toBe(15);
-    expect(r.warm.accumulated).toBe(4);
+  test('computes warm GDD (base 10) correctly for warm days', () => {
+    // avg=20, base 10 → 10 GDD/day × 7 = 70
+    const r = computeDualGDD(warm7);
+    expect(r.warm.accumulated).toBe(70);
+  });
+
+  test('clamps negative GDD contribution to zero', () => {
+    // avg=2, base 5 → negative → clamped to 0
+    const cold = { temperature_2m_max: [4,4,4], temperature_2m_min: [0,0,0] };
+    const r = computeDualGDD(cold);
+    expect(r.cool.accumulated).toBe(0);
   });
 
   test('cool ratio is a number between 0 and 1.5', () => {
-    const r = computeDualGDD(makeDaily([5, 5, 5, 5, 5, 5, 5], [2, 2, 2, 2, 2, 2, 2]));
+    const r = computeDualGDD(warm7);
     expect(r.cool.ratio).toBeGreaterThanOrEqual(0);
     expect(r.cool.ratio).toBeLessThanOrEqual(1.5);
   });
 
-  test('when only base_5 present, warm is null', () => {
-    const r = computeDualGDD({ growing_degree_days_base_5_limit_30: [5, 5, 5] });
-    expect(r.cool).not.toBeNull();
-    expect(r.warm).toBeNull();
-  });
-
-  test('when only base_10 present, cool is null', () => {
-    const r = computeDualGDD({ growing_degree_days_base_10_limit_30: [3, 3, 3] });
-    expect(r.warm).not.toBeNull();
-    expect(r.cool).toBeNull();
-  });
-
   test('each track includes accumulated, baseline, ratio, daysDiff', () => {
-    const r = computeDualGDD(makeDaily([5, 5, 5], [2, 2, 2]));
+    const r = computeDualGDD(warm7);
     expect(r.cool).toMatchObject({
       accumulated: expect.any(Number),
       baseline:    expect.any(Number),
