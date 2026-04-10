@@ -187,8 +187,8 @@ function computeDualGDD(daily) {
     return Math.round(arr.reduce((s, v) => s + (v ?? 0), 0));
   }
 
-  const coolAcc = sumArr(daily.growing_degree_days_base_5);
-  const warmAcc = sumArr(daily.growing_degree_days_base_10);
+  const coolAcc = sumArr(daily.growing_degree_days_base_5_limit_30);
+  const warmAcc = sumArr(daily.growing_degree_days_base_10_limit_30);
 
   if (coolAcc === null && warmAcc === null) return { cool: null, warm: null };
 

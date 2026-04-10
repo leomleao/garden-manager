@@ -425,8 +425,8 @@ describe('computeLightQuality', () => {
 describe('computeDualGDD', () => {
   function makeDaily(base5, base10) {
     return {
-      growing_degree_days_base_5:  base5,
-      growing_degree_days_base_10: base10,
+      growing_degree_days_base_5_limit_30:  base5,
+      growing_degree_days_base_10_limit_30: base10,
     };
   }
 
@@ -459,13 +459,13 @@ describe('computeDualGDD', () => {
   });
 
   test('when only base_5 present, warm is null', () => {
-    const r = computeDualGDD({ growing_degree_days_base_5: [5, 5, 5] });
+    const r = computeDualGDD({ growing_degree_days_base_5_limit_30: [5, 5, 5] });
     expect(r.cool).not.toBeNull();
     expect(r.warm).toBeNull();
   });
 
   test('when only base_10 present, cool is null', () => {
-    const r = computeDualGDD({ growing_degree_days_base_10: [3, 3, 3] });
+    const r = computeDualGDD({ growing_degree_days_base_10_limit_30: [3, 3, 3] });
     expect(r.warm).not.toBeNull();
     expect(r.cool).toBeNull();
   });
