@@ -182,6 +182,51 @@
               </template>
             </div>
 
+            <!-- Layer 5: Soil Intelligence -->
+            <template x-if="weather.soilLayers">
+              <div>
+                <div class="weather-section-label">Soil intelligence</div>
+                <div class="soil-intel-table">
+                  <template x-if="weather.soilLayers.surface">
+                    <div class="soil-intel-row">
+                      <div class="soil-intel-depth">Surface<span>0–7 cm</span></div>
+                      <div class="soil-layer-chip"
+                           :class="weather.soilLayers.surface.temp < 5 ? 'chip--red' : weather.soilLayers.surface.temp < 10 ? 'chip--amber' : 'chip--green'"
+                           x-text="weather.soilLayers.surface.temp + '°C'"></div>
+                      <div class="soil-intel-text">
+                        <span class="soil-intel-status" x-text="weather.soilLayers.surface.status"></span>
+                        <span class="soil-intel-advice" x-text="weather.soilLayers.surface.advice"></span>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="weather.soilLayers.root">
+                    <div class="soil-intel-row">
+                      <div class="soil-intel-depth">Root<span>7–28 cm</span></div>
+                      <div class="soil-layer-chip"
+                           :class="weather.soilLayers.root.temp < 10 ? 'chip--amber' : 'chip--green'"
+                           x-text="weather.soilLayers.root.temp + '°C'"></div>
+                      <div class="soil-intel-text">
+                        <span class="soil-intel-status" x-text="weather.soilLayers.root.status"></span>
+                        <span class="soil-intel-advice" x-text="weather.soilLayers.root.advice"></span>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="weather.soilLayers.deep">
+                    <div class="soil-intel-row">
+                      <div class="soil-intel-depth">Deep<span>28–100 cm</span></div>
+                      <div class="soil-layer-chip"
+                           :class="weather.soilLayers.deep.temp < 8 ? 'chip--amber' : 'chip--green'"
+                           x-text="weather.soilLayers.deep.temp + '°C'"></div>
+                      <div class="soil-intel-text">
+                        <span class="soil-intel-status" x-text="weather.soilLayers.deep.status"></span>
+                        <span class="soil-intel-advice" x-text="weather.soilLayers.deep.advice"></span>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+
             <!-- Layer 6: Action footer -->
             <div class="weather-action"
                  x-show="!!weather.actionText"
