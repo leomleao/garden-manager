@@ -220,6 +220,9 @@ function app() {
         this.weather.soil.temp     = today.soilTemp;
         this.weather.soil.status   = today.soilSub;
 
+        // Multi-depth soil layers
+        this.weather.soilLayers = computeSoilLayers(d.hourly);
+
         // Smart insights (greenhouse check uses loaded zones)
         this.weather.insights = computeInsights(d, this.zones);
 
