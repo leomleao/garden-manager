@@ -4,7 +4,7 @@ function parseSoilTempRange(str) {
   const range = str.match(/(\d+(?:\.\d+)?)\s*[-\u2013\u2014]\s*(\d+(?:\.\d+)?)/);
   if (range) return { min: parseFloat(range[1]), max: parseFloat(range[2]) };
   const single = str.match(/(\d+(?:\.\d+)?)/);
-  if (single) { const v = parseFloat(single[1]); return { min: v - 3, max: v + 3 }; }
+  if (single) { const v = parseFloat(single[1]); return { min: v, max: Infinity }; }
   return null;
 }
 
@@ -12,6 +12,15 @@ function arrAvg(arr) {
   const valid = (arr || []).filter(v => v != null && !isNaN(v));
   if (!valid.length) return null;
   return valid.reduce((s, v) => s + v, 0) / valid.length;
+}
+
+function parseGerminationDays(str) {
+  // "7-10" → 10 (use max), "7" → 7, null/missing → 14 (safe default)
+  if (!str) return 14;
+  const range = str.match(/(\d+)\s*[-\u2013]\s*(\d+)/);
+  if (range) return parseInt(range[2]);
+  const single = str.match(/(\d+)/);
+  return single ? parseInt(single[1]) : 14;
 }
 
 function getSowNowBadge(weatherData, seed, isOutdoor) {
@@ -43,7 +52,7 @@ function getSowNowBadge(weatherData, seed, isOutdoor) {
 }
 
 // Allow Jest to require this file in Node (Alpine is absent there)
-if (typeof module !== 'undefined') module.exports = { parseSoilTempRange, arrAvg, getSowNowBadge };
+if (typeof module !== 'undefined') module.exports = { parseSoilTempRange, arrAvg, parseGerminationDays, getSowNowBadge };
 
 // ── Alpine component ──────────────────────────────────────────────
 // Only initialize Alpine component in browser environment (not in Node/Jest)

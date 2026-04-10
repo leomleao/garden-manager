@@ -1,6 +1,6 @@
 // We require calendar.js which will conditionally export helpers via CommonJS.
 // Alpine is not present in Node — the module export guard handles this.
-const { parseSoilTempRange, arrAvg, getSowNowBadge } = require('../public/app/calendar.js');
+const { parseSoilTempRange, arrAvg, parseGerminationDays, getSowNowBadge } = require('../public/app/calendar.js');
 
 describe('parseSoilTempRange', () => {
   test('parses range with hyphen like "18-22°C"', () => {
@@ -12,8 +12,11 @@ describe('parseSoilTempRange', () => {
   test('parses decimal range like "15.5-20.5°C"', () => {
     expect(parseSoilTempRange('15.5-20.5°C')).toEqual({ min: 15.5, max: 20.5 });
   });
-  test('single value applies ±3 tolerance', () => {
-    expect(parseSoilTempRange('20°C')).toEqual({ min: 17, max: 23 });
+  test('single value means min threshold only (max is Infinity)', () => {
+    expect(parseSoilTempRange('20°C')).toEqual({ min: 20, max: Infinity });
+  });
+  test('single digit like "6°C" means 6 or warmer', () => {
+    expect(parseSoilTempRange('6°C')).toEqual({ min: 6, max: Infinity });
   });
   test('returns null for empty string', () => {
     expect(parseSoilTempRange('')).toBeNull();
@@ -41,6 +44,24 @@ describe('arrAvg', () => {
   });
   test('returns null when all values are null', () => {
     expect(arrAvg([null, null, null])).toBeNull();
+  });
+});
+
+describe('parseGerminationDays', () => {
+  test('range "7-10" returns max value 10', () => {
+    expect(parseGerminationDays('7-10')).toBe(10);
+  });
+  test('single "7" returns 7', () => {
+    expect(parseGerminationDays('7')).toBe(7);
+  });
+  test('null returns default 14', () => {
+    expect(parseGerminationDays(null)).toBe(14);
+  });
+  test('undefined returns default 14', () => {
+    expect(parseGerminationDays(undefined)).toBe(14);
+  });
+  test('en-dash range "5–7" returns 7', () => {
+    expect(parseGerminationDays('5\u20137')).toBe(7);
   });
 });
 
