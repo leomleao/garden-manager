@@ -104,7 +104,7 @@ function getSowNowBadges(weatherData, seed, mode, confidence) {
     }
 
     // 3. Rain helps (only when soil is good)
-    const soilGood = badges.some(b => b.cls === 'good' && b.label.includes('Soil Good'));
+    const soilGood = badges.some(b => b.label === '🌡 Soil Good');
     const todayRain = (daily.precipitation_sum || [])[0] ?? 0;
     if (soilGood && todayRain > 2) {
       badges.push({
