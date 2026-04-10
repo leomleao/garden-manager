@@ -235,6 +235,46 @@ function app() {
           this.weather.alerts, today.soilTemp, workWin
         );
 
+        // ── Secondary (non-blocking) fetches: Ensemble + Historical ──────────
+        this.weather.confidence.loading = true;
+        this.weather.confidence.frostProbability = [];
+        this.weather.confidence.springReadiness  = null;
+
+        const ensembleUrl =
+          `https://api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lng}` +
+          `&hourly=temperature_2m&models=icon_seamless&forecast_days=3&timezone=auto`;
+
+        const archiveNow   = new Date();
+        const yearStart    = `${archiveNow.getFullYear() - 10}-03-01`;
+        const yearEnd      = `${archiveNow.getFullYear() - 1}-06-30`;
+        const archiveUrl   =
+          `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}` +
+          `&daily=temperature_2m_min&start_date=${yearStart}&end_date=${yearEnd}&timezone=auto`;
+
+        Promise.allSettled([
+          fetch(ensembleUrl).then(r => r.json()),
+          fetch(archiveUrl).then(r => r.json()),
+        ]).then(([ensRes, archRes]) => {
+          // Ensemble frost probability
+          if (ensRes.status === 'fulfilled' && ensRes.value?.hourly) {
+            this.weather.confidence.frostProbability = computeFrostEnsemble(ensRes.value);
+          }
+
+          // Spring Readiness Index
+          if (archRes.status === 'fulfilled' && archRes.value?.daily) {
+            const now2      = new Date();
+            const currentDoy = Math.floor((now2 - new Date(now2.getFullYear(), 0, 0)) / 86400000);
+            const maxProb7d  = this.weather.confidence.frostProbability.length
+              ? Math.max(...this.weather.confidence.frostProbability.map(p => p.prob))
+              : 0;
+            this.weather.confidence.springReadiness = computeSpringReadiness(
+              archRes.value, currentDoy, maxProb7d
+            );
+          }
+
+          this.weather.confidence.loading = false;
+        });
+
       } catch(e) { /* weather is optional */ }
     },
 
