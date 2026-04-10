@@ -1264,6 +1264,96 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
 [data-theme="light"] .sow-now-badge--cold { background: var(--blue-dim);   color: #1e40af;      }
 [data-theme="light"] .sow-now-badge--warm { background: var(--red-dim);    color: #991b1b;      }
 
+/* ── Soil Intelligence ────────────────────────────────────────────── */
+.soil-intel-table { display: flex; flex-direction: column; gap: .5rem; margin-top: .4rem; }
+.soil-intel-row {
+  display: grid;
+  grid-template-columns: 5rem auto 1fr;
+  gap: .5rem;
+  align-items: start;
+}
+.soil-intel-depth {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-2);
+  line-height: 1.2;
+}
+.soil-intel-depth span {
+  display: block;
+  font-size: .7rem;
+  font-weight: 400;
+  color: var(--text-3);
+}
+.soil-layer-chip {
+  padding: .15rem .4rem;
+  border-radius: 4px;
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.chip--green { background: var(--green-dim); color: #166534; }
+.chip--amber { background: var(--amber-dim, #fef3c7); color: #92400e; }
+.chip--red   { background: var(--red-dim);   color: #991b1b; }
+[data-theme="dark"] .chip--green { background: #14532d44; color: #86efac; }
+[data-theme="dark"] .chip--amber { background: #78350f44; color: #fcd34d; }
+[data-theme="dark"] .chip--red   { background: #7f1d1d44; color: #fca5a5; }
+.soil-intel-text { display: flex; flex-direction: column; gap: .1rem; }
+.soil-intel-status { font-size: .82rem; font-weight: 600; color: var(--text-1); }
+.soil-intel-advice { font-size: .78rem; color: var(--text-3); }
+
+/* ── Dual GDD bars ────────────────────────────────────────────────── */
+.gdd-dual { display: flex; flex-direction: column; gap: .45rem; margin-top: 6px; }
+.gdd-dual-row { display: grid; grid-template-columns: 8.5rem 1fr 2.5rem; align-items: center; gap: .4rem; }
+.gdd-dual-label { font-size: .75rem; color: var(--text-3); white-space: nowrap; }
+.gdd-dual-pct { font-size: .75rem; color: var(--text-3); text-align: right; }
+.gdd-fill--cool { height: 100%; background: #60a5fa; border-radius: 2px; transition: width .4s; }
+.gdd-fill--warm { height: 100%; background: #fb923c; border-radius: 2px; transition: width .4s; }
+
+/* ── Shimmer skeleton ─────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.shimmer-block {
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-input) 50%, var(--bg-elevated) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+/* ── Forecast Confidence panel ────────────────────────────────────── */
+.confidence-panel {
+  padding: .75rem 0 .25rem;
+  border-top: 1px solid var(--border);
+  margin-top: .5rem;
+}
+
+/* Frost probability rows */
+.frost-prob-row {
+  display: grid;
+  grid-template-columns: 2.8rem 1fr 2.5rem;
+  align-items: center;
+  gap: .4rem;
+  margin-bottom: .3rem;
+}
+.frost-prob-date { font-size: .75rem; color: var(--text-3); }
+.frost-prob-track { flex: 1; }
+.frost-prob-pct { font-size: .75rem; color: var(--text-3); text-align: right; }
+.frost-prob-fill--low      { height: 100%; background: #60a5fa; border-radius: 2px; transition: width .4s; }
+.frost-prob-fill--possible { height: 100%; background: #fbbf24; border-radius: 2px; transition: width .4s; }
+.frost-prob-fill--high     { height: 100%; background: #f87171; border-radius: 2px; transition: width .4s; }
+
+/* Spring Readiness card */
+.spring-readiness-card {
+  border-left: 4px solid var(--border);
+  padding: .5rem .65rem;
+  border-radius: 0 6px 6px 0;
+  background: var(--bg-elevated);
+}
+.spring-readiness--safe    { border-left-color: #4ade80; }
+.spring-readiness--caution { border-left-color: #fbbf24; }
+.spring-readiness--warning { border-left-color: #f87171; }
+
 /* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   main { padding: 1rem .875rem; }

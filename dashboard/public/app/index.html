@@ -145,33 +145,7 @@
               </template>
             </div>
 
-            <!-- Layer 4: Gardening insights -->
-            <div class="weather-section-label" x-show="weather.insights.length > 0">Gardening insights</div>
-            <div class="weather-insights" x-show="weather.insights.length > 0">
-              <template x-for="insight in weather.insights" :key="insight.label">
-                <div class="weather-insight" :class="'weather-insight--' + insight.type">
-                  <div class="weather-insight-icon" x-text="insight.icon"></div>
-                  <div class="weather-insight-body">
-                    <div class="weather-insight-label" x-text="insight.label"></div>
-                    <div class="weather-insight-title" x-text="insight.title"></div>
-                    <div class="weather-insight-desc" x-text="insight.desc"></div>
-                    <div x-show="insight.type === 'season'">
-                      <div class="gdd-bar">
-                        <div class="gdd-track">
-                          <div class="gdd-fill" :style="'width:' + Math.min((insight.gddRatio || 0) * 100, 100) + '%'"></div>
-                        </div>
-                        <span style="font-size:.8rem;color:var(--text-3)"
-                              x-text="Math.round((insight.gddRatio || 0) * 100) + '% of avg'"></span>
-                      </div>
-                      <div class="gdd-labels"><span>0</span><span>Typical GDD</span></div>
-                    </div>
-                    <div class="weather-insight-meta" x-text="insight.meta"></div>
-                  </div>
-                </div>
-              </template>
-            </div>
-
-            <!-- Layer 5: Weather alerts (with body text) -->
+            <!-- Layer 3: Weather alerts -->
             <div class="weather-section-label" x-show="weather.alerts.length > 0">Weather alerts</div>
             <div class="weather-alerts" x-show="weather.alerts.length > 0">
               <template x-for="alert in weather.alerts" :key="alert.text">
@@ -185,7 +159,128 @@
               </template>
             </div>
 
-            <!-- Layer 6: Action footer -->
+            <!-- Layer 4: Gardening insights -->
+            <div class="weather-section-label" x-show="weather.insights.length > 0">Gardening insights</div>
+            <div class="weather-insights" x-show="weather.insights.length > 0">
+              <template x-for="insight in weather.insights" :key="insight.label">
+                <div class="weather-insight" :class="'weather-insight--' + insight.type">
+                  <div class="weather-insight-icon" x-text="insight.icon"></div>
+                  <div class="weather-insight-body">
+                    <div class="weather-insight-label" x-text="insight.label"></div>
+                    <div class="weather-insight-title" x-text="insight.title"></div>
+                    <div class="weather-insight-desc" x-text="insight.desc"></div>
+                    <div x-show="insight.type === 'season'">
+                      <div class="gdd-dual">
+                        <div class="gdd-dual-row">
+                          <span class="gdd-dual-label">Cool (Peas, Lettuce)</span>
+                          <div class="gdd-track">
+                            <div class="gdd-fill--cool" :style="'width:' + Math.min((insight.coolRatio || 0) * 100, 100) + '%'"></div>
+                          </div>
+                          <span class="gdd-dual-pct" x-text="Math.round((insight.coolRatio || 0) * 100) + '%'"></span>
+                        </div>
+                        <div class="gdd-dual-row">
+                          <span class="gdd-dual-label">Warm (Tomatoes)</span>
+                          <div class="gdd-track">
+                            <div class="gdd-fill--warm" :style="'width:' + Math.min((insight.warmRatio || 0) * 100, 100) + '%'"></div>
+                          </div>
+                          <span class="gdd-dual-pct" x-text="Math.round((insight.warmRatio || 0) * 100) + '%'"></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="weather-insight-meta" x-text="insight.meta"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Layer 5: Soil Intelligence -->
+            <template x-if="weather.soilLayers">
+              <div>
+                <div class="weather-section-label">Soil intelligence</div>
+                <div class="soil-intel-table">
+                  <template x-if="weather.soilLayers.surface">
+                    <div class="soil-intel-row">
+                      <div class="soil-intel-depth">Surface<span>0–7 cm</span></div>
+                      <div class="soil-layer-chip"
+                           :class="weather.soilLayers.surface.temp < 5 ? 'chip--red' : weather.soilLayers.surface.temp < 10 ? 'chip--amber' : 'chip--green'"
+                           x-text="weather.soilLayers.surface.temp + '°C'"></div>
+                      <div class="soil-intel-text">
+                        <span class="soil-intel-status" x-text="weather.soilLayers.surface.status"></span>
+                        <span class="soil-intel-advice" x-text="weather.soilLayers.surface.advice"></span>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="weather.soilLayers.root">
+                    <div class="soil-intel-row">
+                      <div class="soil-intel-depth">Root<span>7–28 cm</span></div>
+                      <div class="soil-layer-chip"
+                           :class="weather.soilLayers.root.temp < 10 ? 'chip--amber' : 'chip--green'"
+                           x-text="weather.soilLayers.root.temp + '°C'"></div>
+                      <div class="soil-intel-text">
+                        <span class="soil-intel-status" x-text="weather.soilLayers.root.status"></span>
+                        <span class="soil-intel-advice" x-text="weather.soilLayers.root.advice"></span>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="weather.soilLayers.deep">
+                    <div class="soil-intel-row">
+                      <div class="soil-intel-depth">Deep<span>28–100 cm</span></div>
+                      <div class="soil-layer-chip"
+                           :class="weather.soilLayers.deep.temp < 8 ? 'chip--amber' : 'chip--green'"
+                           x-text="weather.soilLayers.deep.temp + '°C'"></div>
+                      <div class="soil-intel-text">
+                        <span class="soil-intel-status" x-text="weather.soilLayers.deep.status"></span>
+                        <span class="soil-intel-advice" x-text="weather.soilLayers.deep.advice"></span>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <!-- Layer 6: Forecast Confidence panel -->
+            <div class="confidence-panel">
+              <div class="weather-section-label">Forecast confidence</div>
+
+              <!-- Shimmer skeleton while loading -->
+              <template x-if="weather.confidence.loading">
+                <div>
+                  <div class="shimmer-block" style="height:1rem;width:60%;margin-bottom:.5rem"></div>
+                  <div class="shimmer-block" style="height:.75rem;width:100%;margin-bottom:.4rem"></div>
+                  <div class="shimmer-block" style="height:.75rem;width:100%;margin-bottom:.4rem"></div>
+                  <div class="shimmer-block" style="height:.75rem;width:80%;margin-bottom:1rem"></div>
+                  <div class="shimmer-block" style="height:3rem;width:100%"></div>
+                </div>
+              </template>
+
+              <!-- Frost Probability Meter -->
+              <template x-if="!weather.confidence.loading && weather.confidence.frostProbability.length > 0">
+                <div>
+                  <div style="font-size:.8rem;color:var(--text-3);margin-bottom:.4rem">7-day frost probability (50 ensemble models)</div>
+                  <template x-for="day in weather.confidence.frostProbability" :key="day.date">
+                    <div class="frost-prob-row">
+                      <span class="frost-prob-date" x-text="day.date"></span>
+                      <div class="gdd-track frost-prob-track">
+                        <div :class="'frost-prob-fill--' + day.level"
+                             :style="'width:' + Math.round(day.prob * 100) + '%'"></div>
+                      </div>
+                      <span class="frost-prob-pct" x-text="Math.round(day.prob * 100) + '%'"></span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+
+              <!-- Spring Readiness Index -->
+              <template x-if="!weather.confidence.loading && weather.confidence.springReadiness">
+                <div :class="'spring-readiness-card spring-readiness--' + weather.confidence.springReadiness.status"
+                     style="margin-top:.75rem">
+                  <div style="font-weight:600;margin-bottom:.25rem" x-text="weather.confidence.springReadiness.headline"></div>
+                  <div style="font-size:.85rem;color:var(--text-2)" x-text="weather.confidence.springReadiness.body"></div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Layer 7: Action footer -->
             <div class="weather-action"
                  x-show="!!weather.actionText"
                  :class="weather.alerts[0] ? 'weather-action--' + weather.alerts[0].level : ''"

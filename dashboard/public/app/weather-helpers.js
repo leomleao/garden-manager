@@ -33,6 +33,323 @@ function soilStatus(soilTemp) {
   return 'Warm Season (Tomatoes, Peppers)';
 }
 
+// ── Multi-depth soil layer analysis ──────────────────────────────────────────
+// Reads three hourly soil temperature arrays at hour 12 (midday).
+// Returns { surface, root, deep } each { temp, status, advice }, or null if
+// no soil data present.
+
+function computeSoilLayers(hourly, now = new Date()) {
+  const a0 = hourly.soil_temperature_0_to_7cm;
+  const a1 = hourly.soil_temperature_7_to_28cm;
+  const a2 = hourly.soil_temperature_28_to_100cm;
+  if (!a0 && !a1 && !a2) return null;
+
+  const pick = arr => arr ? (arr[12] != null ? Math.round(arr[12] * 10) / 10 : null) : null;
+  const s = pick(a0);
+  const r = pick(a1);
+  const d = pick(a2);
+  if (s == null && r == null && d == null) return null;
+
+  const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+
+  function surfaceStatus(t) {
+    if (t == null) return '';
+    if (t < 5)  return 'Frozen';
+    if (t < 10) return 'Too cold for seeds';
+    if (t < 15) return 'Cool-season ready (Peas, Lettuce)';
+    return 'Warm-season ready (Tomatoes)';
+  }
+
+  function surfaceAdvice(t) {
+    if (t == null) return '';
+    if (t < 5)  return 'Soil is frozen — no outdoor sowing.';
+    if (t < 10) return 'Wait until 10°C for cool-season crops, 15°C for tomatoes.';
+    if (t < 15) return 'Good for peas, lettuce, and spinach outdoors.';
+    return 'Ideal for tomatoes, peppers, and basil.';
+  }
+
+  function rootStatus(surf, root) {
+    if (root == null) return '';
+    if (surf != null && surf < 10 && root >= 10) return 'Surface cold — root zone warmer, hold irrigation';
+    if (root < 10) return 'Too cold for transplanting';
+    if (root < 15) return 'Cool zone (perennials OK)';
+    return 'Warm zone (good for transplanting)';
+  }
+
+  function rootAdvice(surf, root) {
+    if (root == null) return '';
+    if (surf != null && surf < 10 && root >= 10)
+      return 'Surface is cold but root zone retains warmth — no need to irrigate yet.';
+    if (root < 10) return 'Avoid transplanting — roots will cold-shock.';
+    if (root < 15) return 'Cool zone — good for perennials, borderline for tender transplants.';
+    return 'Good depth for established perennials and shrubs.';
+  }
+
+  function deepStatus(t, dayOfYear) {
+    if (t == null) return '';
+    if (dayOfYear >= 121 && t < 8) return 'Deep-soil drought risk for fruit trees';
+    if (t < 8) return 'Cold deep soil — dormant conditions';
+    return 'Adequate for established trees';
+  }
+
+  function deepAdvice(t, dayOfYear) {
+    if (t == null) return '';
+    if (dayOfYear >= 121 && t < 8)
+      return 'Monitor fruit trees — deep drought stress can suppress fruiting.';
+    if (t < 8) return 'Deep soil cold — fruit trees still dormant.';
+    return 'Deep zone stable for established fruit trees and perennials.';
+  }
+
+  return {
+    surface: s != null ? { temp: s, status: surfaceStatus(s),    advice: surfaceAdvice(s)    } : null,
+    root:    r != null ? { temp: r, status: rootStatus(s, r),     advice: rootAdvice(s, r)    } : null,
+    deep:    d != null ? { temp: d, status: deepStatus(d, doy),   advice: deepAdvice(d, doy)  } : null,
+  };
+}
+
+// ── Precipitation type alerts ─────────────────────────────────────────────────
+// Scans hourly precipitation_type for the next 48h.
+// Code 3 = Freezing Rain, Code 6 = Wet Snow.
+// Returns array of alert objects { level, text, body } to be merged into
+// computeAlerts output.
+
+function computePrecipTypeAlerts(hourly) {
+  const types = hourly.precipitation_type || [];
+  const alerts = [];
+  const hasCode = code => types.slice(0, 48).some(t => t === code);
+
+  if (hasCode(3)) {
+    alerts.push({
+      level: 'red',
+      text:  'Freezing rain expected',
+      body:  'Ice coating damages leaves and weighs down branches — cover tender plants and shake ice off evergreens.',
+    });
+  }
+  if (hasCode(6)) {
+    alerts.push({
+      level: 'amber',
+      text:  'Heavy wet snow expected',
+      body:  'Brush wet snow off evergreens and your greenhouse roof to prevent structural damage.',
+    });
+  }
+  return alerts;
+}
+
+// ── Light quality / photosynthesis indicator ──────────────────────────────────
+// Compares today's diffuse vs direct radiation (hours 0–23).
+// Returns { diffuseFraction, peakDirect, label, advice, level } or null when
+// total radiation < 50 W/m² (night / heavy overcast — not meaningful).
+
+function computeLightQuality(hourly) {
+  const direct  = hourly.direct_radiation  || [];
+  const diffuse = hourly.diffuse_radiation || [];
+
+  const sumOf = arr => arr.slice(0, 24).reduce((s, v) => s + (v ?? 0), 0);
+  const sumD  = sumOf(direct);
+  const sumDf = sumOf(diffuse);
+  const total = sumD + sumDf;
+
+  if (total < 50) return null;
+
+  const diffuseFraction = sumDf / total;
+  const peakDirect = Math.max(...direct.slice(0, 24).map(v => v ?? 0));
+
+  if (diffuseFraction > 0.6) {
+    return {
+      diffuseFraction,
+      peakDirect,
+      label:  'High Diffuse Light',
+      advice: 'Even, non-scorching light — ideal for indoor seedlings and greenhouse growing today.',
+      level:  'good',
+    };
+  }
+
+  return {
+    diffuseFraction,
+    peakDirect,
+    label:  'High Direct Light',
+    advice: peakDirect > 500
+      ? 'Peak direct radiation exceeds 500 W/m² — ensure greenhouse ventilation and shade netting for sensitive seedlings.'
+      : 'Good direct sunlight today — position full-sun crops to make the most of it.',
+    level: peakDirect > 500 ? 'caution' : 'good',
+  };
+}
+
+// ── Dual-base GDD (cool + warm season) ───────────────────────────────────────
+// Returns { cool, warm } each { accumulated, baseline, ratio, daysDiff } or null.
+// Uses the existing gddBaseline() curve for the cool track (base 5).
+// Warm (base 10) baseline is 55% of cool — typical for Scotland in spring.
+// ratio is capped at 1.5 to prevent extreme bars.
+
+function computeDualGDD(daily) {
+  const tmax = daily.temperature_2m_max;
+  const tmin = daily.temperature_2m_min;
+  if (!tmax || !tmin || !tmax.length) return { cool: null, warm: null };
+
+  // Compute GDD from daily temps — base 5 (cool season) and base 10 (warm season)
+  function gddAccum(base) {
+    return Math.round(
+      tmax.reduce((s, hi, i) => {
+        const lo  = tmin[i] ?? hi;
+        return s + Math.max(0, (hi + lo) / 2 - base);
+      }, 0)
+    );
+  }
+
+  const coolAcc = gddAccum(5);
+  const warmAcc = gddAccum(10);
+
+  if (coolAcc === null && warmAcc === null) return { cool: null, warm: null };
+
+  const now = new Date();
+  const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  const coolBase = gddBaseline(doy);
+  const warmBase = Math.round(coolBase * 0.55);
+
+  function makeTrack(acc, baseline) {
+    if (acc === null) return null;
+    const ratio    = baseline > 0 ? Math.min(acc / baseline, 1.5) : 1;
+    const daysDiff = baseline > 0 ? Math.round((ratio - 1) * 7) : 0;
+    return { accumulated: acc, baseline, ratio, daysDiff };
+  }
+
+  return {
+    cool: makeTrack(coolAcc, coolBase),
+    warm: makeTrack(warmAcc, warmBase),
+  };
+}
+
+// ── Ensemble frost probability ────────────────────────────────────────────────
+// Input: raw Open-Meteo ensemble API response.
+// Finds all member keys matching /^temperature_2m_member\d+$/ and checks
+// overnight hours (20:00–06:00 next day) for sub-zero minimums per day.
+// Returns array of up to 3 day objects:
+//   { date, dayName, prob, probPct, label, level, freezeCount, totalMembers }
+// Returns [] when input is missing or has no member keys.
+
+function computeFrostEnsemble(ensembleData) {
+  if (!ensembleData || !ensembleData.hourly) return [];
+
+  const hourly      = ensembleData.hourly;
+  const times       = hourly.time || [];
+  const memberKeys  = Object.keys(hourly).filter(k => /^temperature_2m_member\d+$/.test(k));
+  const totalMembers = memberKeys.length;
+  if (totalMembers === 0) return [];
+
+  const numDays = Math.min(3, Math.floor(times.length / 24));
+  const result  = [];
+
+  for (let dayIdx = 0; dayIdx < numDays; dayIdx++) {
+    const dateStr = (times[dayIdx * 24] || '').slice(0, 10);
+    if (!dateStr) continue;
+
+    // overnight = hours 20–23 of this day + hours 0–6 of next day
+    const overnight = [];
+    for (let h = 20; h < 24; h++) overnight.push(dayIdx * 24 + h);
+    for (let h = 0;  h <  7; h++) {
+      const idx = (dayIdx + 1) * 24 + h;
+      if (idx < times.length) overnight.push(idx);
+    }
+
+    let freezeCount = 0;
+    for (const key of memberKeys) {
+      const temps  = hourly[key] || [];
+      const oTemps = overnight.map(i => temps[i] ?? Infinity);
+      if (Math.min(...oTemps) < 0) freezeCount++;
+    }
+
+    const prob    = freezeCount / totalMembers;
+    const probPct = Math.round(prob * 100);
+    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' });
+
+    let level, label;
+    if (prob < 0.2)      { level = 'low';      label = 'Low risk'; }
+    else if (prob < 0.5) { level = 'possible'; label = 'Possible — cover tender plants'; }
+    else                 { level = 'high';     label = 'High risk — protect everything'; }
+
+    result.push({ date: dateStr, dayName, prob, probPct, label, level, freezeCount, totalMembers });
+  }
+
+  return result;
+}
+
+// ── Spring Readiness Index ────────────────────────────────────────────────────
+// Input: historical archive API response (daily temperature_2m_min),
+// current day-of-year, and 7-day ensemble frost probability (0–1 fraction).
+//
+// Computes: what % of historical years had a frost on or after currentDayOfYear,
+// and combines with ensemble forecast to produce a safe/caution/warning status.
+//
+// Returns { historicalRisk, forecastRisk, safeDate, status, body } or null.
+
+function computeSpringReadiness(climateData, currentDayOfYear, ensembleFrostProb7d) {
+  if (!climateData || !climateData.daily) return null;
+  const { time, temperature_2m_min } = climateData.daily;
+  if (!time || !temperature_2m_min || time.length === 0) return null;
+
+  // For each year: did it have a frost on or after currentDayOfYear?
+  const allYears          = new Set();
+  const yearsWithLateFrost = new Set();
+
+  time.forEach((dateStr, i) => {
+    const d    = new Date(dateStr + 'T12:00:00');
+    const year = d.getFullYear();
+    const doy  = Math.floor((d - new Date(year, 0, 0)) / 86400000);
+    const temp = temperature_2m_min[i];
+
+    allYears.add(year);
+    if (doy >= currentDayOfYear && temp != null && temp <= 0) {
+      yearsWithLateFrost.add(year);
+    }
+  });
+
+  if (allYears.size === 0) return null;
+
+  const historicalRisk = yearsWithLateFrost.size / allYears.size;
+  const forecastRisk   = ensembleFrostProb7d ?? 0;
+
+  // Derive safe date: find the latest date in historical data with a frost after
+  // currentDayOfYear, then add a 14-day buffer.
+  let safeDate = null;
+  let lastFrostDoy = -1;
+  time.forEach((dateStr, i) => {
+    const d    = new Date(dateStr + 'T12:00:00');
+    const year = d.getFullYear();
+    const doy  = Math.floor((d - new Date(year, 0, 0)) / 86400000);
+    const temp = temperature_2m_min[i];
+    if (doy >= currentDayOfYear && temp != null && temp <= 0 && doy > lastFrostDoy) {
+      lastFrostDoy = doy;
+    }
+  });
+  if (lastFrostDoy > 0) {
+    const safe = new Date(new Date().getFullYear(), 0, lastFrostDoy + 14);
+    safeDate = safe.toLocaleDateString('en', { month: 'long', day: 'numeric' });
+  }
+
+  let status, body;
+  const forecastPct     = Math.round(forecastRisk * 100);
+  const historicalPct   = Math.round(historicalRisk * 100);
+
+  if (forecastRisk >= 0.1) {
+    status = 'warning';
+    body   = `Active frost risk in the 7-day forecast (${forecastPct}% probability). Wait until the forecast clears before planting tender crops outdoors.`;
+  } else if (historicalRisk >= 0.15) {
+    status = 'caution';
+    body   = `Forecast looks clear, but historically this location has a ${historicalPct}% chance of a late frost after this date.${safeDate ? ` Safe window typically opens around ${safeDate}.` : ''}`;
+  } else {
+    status = 'safe';
+    body   = 'Both historical records and the current forecast confirm low frost risk — safe to plant tender seeds outdoors.';
+  }
+
+  return {
+    historicalRisk: historicalPct,
+    forecastRisk:   forecastPct,
+    safeDate,
+    status,
+    body,
+  };
+}
+
 // ── Watering status from water balance ────────────────────────────────────────
 
 function wateringFromBalance(precipSum, et0, uvMax) {
@@ -258,27 +575,48 @@ function computeInsights(d, zones) {
     });
   }
 
-  // 5. Season Gauge — shown when GDD data available
-  const gauge = computeSeasonGauge(d.daily);
-  if (gauge) {
-    const absDiff = Math.abs(gauge.daysDiff);
-    const dirLabel = gauge.daysDiff < -3 ? `~${absDiff} days behind average`
-                   : gauge.daysDiff > 3  ? `~${absDiff} days ahead of average`
+  // 5. Season Gauge — dual GDD (cool + warm)
+  const dual = computeDualGDD(d.daily);
+  const hasGDD = dual.cool || dual.warm;
+  if (hasGDD) {
+    const coolDiff = dual.cool?.daysDiff ?? 0;
+    const dirLabel = coolDiff < -3 ? `~${Math.abs(coolDiff)} days behind average`
+                   : coolDiff > 3  ? `~${Math.abs(coolDiff)} days ahead of average`
                    : 'on track with average';
     insights.push({
-      type:     'season',
-      icon:     '📅',
-      label:    'Season Progress · GDD',
-      title:    `Spring is ${dirLabel}`,
-      desc:     gauge.daysDiff < -3
-        ? `Accumulated ${gauge.accumulated} GDD (base 5°C) vs typical ${gauge.baseline} GDD. Conditions are equivalent to ~${absDiff} days earlier in the season — hold off on tender seeds.`
-        : gauge.daysDiff > 3
-        ? `Accumulated ${gauge.accumulated} GDD (base 5°C) vs typical ${gauge.baseline} GDD — season is running warm.`
-        : `Accumulated ${gauge.accumulated} GDD (base 5°C) — right on track with the seasonal average.`,
-      meta:     `${gauge.accumulated} GDD accumulated · typical ${gauge.baseline} GDD by this date`,
-      gddRatio: gauge.ratio,
+      type:      'season',
+      icon:      '📅',
+      label:     'Season Progress · GDD',
+      title:     `Spring is ${dirLabel}`,
+      desc:      coolDiff < -3
+        ? `Cool-season crops accumulating less heat than typical — hold off on tender seeds.`
+        : coolDiff > 3
+        ? `Season running warm — cool-season crops ahead of schedule.`
+        : `Heat accumulation on track for this time of year.`,
+      meta:      [
+        dual.cool ? `Cool: ${dual.cool.accumulated} GDD (base 5)` : null,
+        dual.warm ? `Warm: ${dual.warm.accumulated} GDD (base 10)` : null,
+      ].filter(Boolean).join(' · '),
+      coolRatio: dual.cool?.ratio ?? 0,
+      warmRatio: dual.warm?.ratio ?? 0,
+      coolAcc:   dual.cool?.accumulated ?? 0,
+      warmAcc:   dual.warm?.accumulated ?? 0,
     });
-  }   // end if (gauge)
+  }
+
+  // 6. Light Quality
+  const lq = computeLightQuality(d.hourly);
+  if (lq) {
+    insights.push({
+      type:  'light',
+      icon:  lq.diffuseFraction > 0.6 ? '☁️' : '🌤️',
+      label: `Light Quality · ${lq.label}`,
+      title: lq.label,
+      desc:  lq.advice,
+      meta:  `Diffuse ${Math.round(lq.diffuseFraction * 100)}% · Peak direct ${Math.round(lq.peakDirect)} W/m²`,
+      level: lq.level,
+    });
+  }
 
   return insights;
 }
@@ -291,6 +629,10 @@ function computeAlerts(d, soilTemp) {
   const alerts = [];
   const daily   = d.daily;
   const hourly  = d.hourly;
+
+  // Precipitation type alerts (freezing rain, wet snow)
+  const precipAlerts = computePrecipTypeAlerts(hourly);
+  alerts.push(...precipAlerts);
   const dayNames = daily.time.map(t =>
     new Date(t + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' })
   );
@@ -399,5 +741,7 @@ if (typeof module !== 'undefined') {
     buildForecastDays, findWorkWindow, computeDiseaseRisk,
     computeGreenhouseAlert, computePotCheck, computeSeasonGauge,
     gddBaseline, computeInsights, computeAlerts, computeActionText,
+    computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
+    computeDualGDD, computeFrostEnsemble, computeSpringReadiness,
   };
 }
