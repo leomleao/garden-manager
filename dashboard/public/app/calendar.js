@@ -218,6 +218,38 @@ function getSowNowBadges(weatherData, seed, mode, confidence) {
     }
   }
 
+  // ── TRANSITION ───────────────────────────────────────────────────────────
+  if (mode === 'transition') {
+    if (!seed.plant_out_start) return badges;
+    const [dd, mm] = seed.plant_out_start.split('-').map(Number);
+    const today     = new Date();
+    const startDate = new Date(today.getFullYear(), mm - 1, dd);
+    const diffDays  = (startDate - today) / 86400000;
+
+    // 1. Hardening off (within 10 days BEFORE plant_out_start, min temp > 10°C)
+    if (diffDays > 0 && diffDays <= 10) {
+      const minTemp = (daily.temperature_2m_min || [])[0] ?? null;
+      if (minTemp !== null && minTemp > 10) {
+        const daysLeft = Math.ceil(diffDays);
+        badges.push({
+          label: '🪜 Hardening Off', cls: 'caution',
+          title: `Plant out window starts in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}. Begin hardening off — place outside for 2 hours in a sheltered, shaded spot, increasing exposure daily.`,
+        });
+      }
+    }
+
+    // 2. UV shock risk (within first 3 days AFTER plant_out_start, UV > 6)
+    if (diffDays <= 0 && diffDays > -3) {
+      const uvMax = (daily.uv_index_max || [])[0] ?? 0;
+      if (uvMax > 6) {
+        badges.push({
+          label: '☀️ UV Shock Risk', cls: 'warn',
+          title: `Danger: UV index is ${uvMax} today. Do not move indoor seedlings into direct sun. Start hardening off in a shaded spot for 2 hours only.`,
+        });
+      }
+    }
+  }
+
   return badges;
 }
 

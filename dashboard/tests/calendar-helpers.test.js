@@ -321,6 +321,94 @@ describe('getSowNowBadges outdoor', () => {
   });
 });
 
+describe('getSowNowBadges transition', () => {
+  function makeWeather({ uvMax, minTemp } = {}) {
+    return {
+      hourly: {
+        soil_temperature_6cm: Array(168).fill(15),
+        wind_gusts_10m:       Array(168).fill(0),
+        relative_humidity_2m: Array(24).fill(50),
+        temperature_2m:       Array(24).fill(15),
+        direct_radiation:     Array(168).fill(0),
+        diffuse_radiation:    Array(168).fill(0),
+      },
+      daily: {
+        temperature_2m_max:  Array(7).fill(20),
+        temperature_2m_min:  Array(7).fill(minTemp !== undefined ? minTemp : 12),
+        precipitation_sum:   Array(7).fill(0),
+        et0_fao_evapotranspiration: Array(7).fill(0),
+        uv_index_max:        Array(7).fill(uvMax !== undefined ? uvMax : 3),
+        growing_degree_days_base_0_limit_50: Array(7).fill(5),
+      },
+    };
+  }
+
+  function plantOutSeed(daysFromNow) {
+    // Build a plant_out_start date exactly N days from today
+    const d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return { name: 'Tomato', optimum_soil_temp: '18-22°C', plant_out_start: `${dd}-${mm}` };
+  }
+
+  test('hardening off badge when within 10 days before plant_out and min temp > 10', () => {
+    const seed = plantOutSeed(5);
+    const badges = getSowNowBadges(makeWeather({ minTemp: 12 }), seed, 'transition', null);
+    const b = badges.find(b => b.label === '🪜 Hardening Off');
+    expect(b).toBeDefined();
+    expect(b.cls).toBe('caution');
+    expect(b.title).toContain('5 days');
+  });
+
+  test('hardening off badge says "1 day" (singular)', () => {
+    const seed = plantOutSeed(1);
+    const badges = getSowNowBadges(makeWeather({ minTemp: 12 }), seed, 'transition', null);
+    const b = badges.find(b => b.label === '🪜 Hardening Off');
+    expect(b).toBeDefined();
+    expect(b.title).toContain('1 day');
+    expect(b.title).not.toContain('1 days');
+  });
+
+  test('no hardening off badge when min temp <= 10°C', () => {
+    const seed = plantOutSeed(5);
+    const badges = getSowNowBadges(makeWeather({ minTemp: 8 }), seed, 'transition', null);
+    expect(badges.find(b => b.label === '🪜 Hardening Off')).toBeUndefined();
+  });
+
+  test('no hardening off badge when > 10 days away', () => {
+    const seed = plantOutSeed(11);
+    const badges = getSowNowBadges(makeWeather({ minTemp: 12 }), seed, 'transition', null);
+    expect(badges.find(b => b.label === '🪜 Hardening Off')).toBeUndefined();
+  });
+
+  test('UV shock badge in first 3 days after plant_out_start when UV > 6', () => {
+    const seed = plantOutSeed(-1); // 1 day after start
+    const badges = getSowNowBadges(makeWeather({ uvMax: 7 }), seed, 'transition', null);
+    const b = badges.find(b => b.label === '☀️ UV Shock Risk');
+    expect(b).toBeDefined();
+    expect(b.cls).toBe('warn');
+    expect(b.title).toContain('7');
+  });
+
+  test('no UV shock badge when UV <= 6', () => {
+    const seed = plantOutSeed(-1);
+    const badges = getSowNowBadges(makeWeather({ uvMax: 5 }), seed, 'transition', null);
+    expect(badges.find(b => b.label === '☀️ UV Shock Risk')).toBeUndefined();
+  });
+
+  test('no UV shock badge more than 3 days after start', () => {
+    const seed = plantOutSeed(-4);
+    const badges = getSowNowBadges(makeWeather({ uvMax: 9 }), seed, 'transition', null);
+    expect(badges.find(b => b.label === '☀️ UV Shock Risk')).toBeUndefined();
+  });
+
+  test('returns empty array when plant_out_start is missing', () => {
+    const badges = getSowNowBadges(makeWeather(), { name: 'X', optimum_soil_temp: '18-22°C' }, 'transition', null);
+    expect(badges).toEqual([]);
+  });
+});
+
 describe('getSowNowBadges indoor', () => {
   function makeWeather({ airTemps, direct, diffuse, gdd } = {}) {
     return {
