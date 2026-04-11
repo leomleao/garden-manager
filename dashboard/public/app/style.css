@@ -1365,6 +1365,10 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
 [data-theme="light"] .sow-now-badge--good { background: var(--green-dim);  color: #166534;      }
 [data-theme="light"] .sow-now-badge--cold { background: var(--blue-dim);   color: #1e40af;      }
 [data-theme="light"] .sow-now-badge--warm { background: var(--red-dim);    color: #991b1b;      }
+[data-theme="dark"]  .sow-now-badge--caution { background: #2d1f00;           color: #f59e0b; }
+[data-theme="light"] .sow-now-badge--caution { background: #fffbeb;           color: #b45309; }
+[data-theme="dark"]  .sow-now-badge--warn    { background: #2d0f00;           color: #f97316; }
+[data-theme="light"] .sow-now-badge--warn    { background: #fff7ed;           color: #c2410c; }
 
 /* ── Soil Intelligence ────────────────────────────────────────────── */
 .soil-intel-table { display: flex; flex-direction: column; gap: .4rem; margin-top: .4rem; padding: 0 1.125rem .625rem; }
