@@ -1031,7 +1031,7 @@
               <div class="sow-now-top">
                 <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
                 <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
-                <template x-for="badge in badges" :key="badge.label">
+                <template x-for="badge in badges" :key="badge.label + '-' + badge.cls">
                   <span class="sow-now-badge"
                         :class="'sow-now-badge--' + badge.cls"
                         :title="badge.title"
@@ -1062,7 +1062,7 @@
               <div class="sow-now-top">
                 <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
                 <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
-                <template x-for="badge in badges" :key="badge.label">
+                <template x-for="badge in badges" :key="badge.label + '-' + badge.cls">
                   <span class="sow-now-badge"
                         :class="'sow-now-badge--' + badge.cls"
                         :title="badge.title"
@@ -1090,7 +1090,7 @@
               <div class="sow-now-top">
                 <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
                 <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
-                <template x-for="badge in badges" :key="badge.label">
+                <template x-for="badge in badges" :key="badge.label + '-' + badge.cls">
                   <span class="sow-now-badge"
                         :class="'sow-now-badge--' + badge.cls"
                         :title="badge.title"
