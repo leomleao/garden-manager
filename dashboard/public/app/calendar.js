@@ -224,6 +224,9 @@ function getSowNowBadges(weatherData, seed, mode, confidence) {
     const [dd, mm] = seed.plant_out_start.split('-').map(Number);
     const today     = new Date();
     const startDate = new Date(today.getFullYear(), mm - 1, dd);
+    // Roll to next year if the date is more than 3 days in the past
+    // (UV shock window is only 3 days; anything older is truly a next-year event)
+    if ((today - startDate) / 86400000 > 3) startDate.setFullYear(today.getFullYear() + 1);
     const diffDays  = (startDate - today) / 86400000;
 
     // 1. Hardening off (within 10 days BEFORE plant_out_start, min temp > 10°C)

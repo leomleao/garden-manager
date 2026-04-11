@@ -317,6 +317,20 @@ describe('getSowNowBadges transition', () => {
     const badges = getSowNowBadges(makeWeather(), { name: 'X', optimum_soil_temp: '18-22°C' }, 'transition', null);
     expect(badges).toEqual([]);
   });
+
+  test('hardening off badge fires at exactly 10 days before plant_out', () => {
+    const seed = plantOutSeed(10);
+    const badges = getSowNowBadges(makeWeather({ minTemp: 12 }), seed, 'transition', null);
+    expect(badges.find(b => b.label === '🪜 Hardening Off')).toBeDefined();
+  });
+
+  test('hardening off does not fire on the exact day of plant_out_start', () => {
+    // plantOutSeed(0) = today's date; startDate is midnight so diffDays is slightly negative
+    // — hardening off requires diffDays > 0, so it must NOT fire
+    const seed = plantOutSeed(0);
+    const badges = getSowNowBadges(makeWeather({ minTemp: 12, uvMax: 9 }), seed, 'transition', null);
+    expect(badges.find(b => b.label === '🪜 Hardening Off')).toBeUndefined();
+  });
 });
 
 describe('getSowNowBadges indoor', () => {
