@@ -774,3 +774,60 @@ describe('computeInsights waterbalance wateringWindow', () => {
     expect(wb.wateringWindow).toBeUndefined();
   });
 });
+
+// ── computeVPD ────────────────────────────────────────────────────────────────
+describe('computeVPD', () => {
+  function makeHourly(middayKpa) {
+    const arr = Array(24).fill(null);
+    if (middayKpa !== null) arr[12] = middayKpa;
+    return { vapour_pressure_deficit: arr };
+  }
+
+  test('returns null when vapour_pressure_deficit absent', () => {
+    expect(computeVPD({})).toBeNull();
+  });
+
+  test('returns null when midday value is null', () => {
+    expect(computeVPD(makeHourly(null))).toBeNull();
+  });
+
+  test('kPa < 0.4 → level low, no badge', () => {
+    const r = computeVPD(makeHourly(0.3));
+    expect(r.level).toBe('low');
+    expect(r.badge).toBeNull();
+    expect(r.tooltip).toBeNull();
+  });
+
+  test('kPa 0.4–1.19 → level moderate, no badge', () => {
+    const r = computeVPD(makeHourly(0.8));
+    expect(r.level).toBe('moderate');
+    expect(r.badge).toBeNull();
+    expect(r.tooltip).toBeNull();
+  });
+
+  test('kPa 1.2 → level high, badge caution', () => {
+    const r = computeVPD(makeHourly(1.2));
+    expect(r.level).toBe('high');
+    expect(r.badge).toBe('caution');
+    expect(r.tooltip).toContain('1.2 kPa');
+    expect(r.tooltip).toContain('Transplant shock risk elevated');
+  });
+
+  test('kPa 1.99 → level high, badge caution', () => {
+    const r = computeVPD(makeHourly(1.99));
+    expect(r.level).toBe('high');
+    expect(r.badge).toBe('caution');
+  });
+
+  test('kPa 2.0 → level very-high, badge warn', () => {
+    const r = computeVPD(makeHourly(2.0));
+    expect(r.level).toBe('very-high');
+    expect(r.badge).toBe('warn');
+    expect(r.tooltip).toContain('2.0 kPa');
+  });
+
+  test('kPa value is rounded to 1 decimal in tooltip', () => {
+    const r = computeVPD(makeHourly(1.456));
+    expect(r.tooltip).toContain('1.5 kPa');
+  });
+});
