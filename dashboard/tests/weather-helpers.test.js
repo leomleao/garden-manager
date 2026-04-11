@@ -6,7 +6,7 @@ const {
   computeSeasonGauge, computeInsights, computeAlerts,
   computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
   computeDualGDD, computeFrostEnsemble, computeSpringReadiness,
-  computeWateringWindow,                                          // ← new
+  computeWateringWindow, computeVPD,                              // ← new
 } = require('../public/app/weather-helpers');
 
 // ── codeToIcon / codeToDesc ───────────────────────────────────────────────────
