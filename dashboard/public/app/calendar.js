@@ -33,33 +33,6 @@ function _gddBaselineLocal(dayOfYear) {
   return Math.round(84 + (dayOfYear - 152) * 0.47);
 }
 
-function getSowNowBadge(weatherData, seed, isOutdoor) {
-  if (!weatherData || !seed) return null;
-  const range = parseSoilTempRange(seed.optimum_soil_temp);
-  if (!range) return null;
-  const { min, max } = range;
-
-  if (isOutdoor) {
-    const temps = weatherData.hourly?.soil_temperature_6cm;
-    if (!temps) return null;
-    const avg = arrAvg(temps);
-    if (avg === null) return null;
-    const avgStr = avg.toFixed(1);
-    if (avg >= min && avg <= max)
-      return { label: '🌡 Soil Good', cls: 'good', title: `Avg soil temp ${avgStr}°C over next 7 days — ideal for this seed` };
-    if (avg < min)
-      return { label: '❄ Too Cold', cls: 'cold', title: `Avg soil temp ${avgStr}°C — below the ${min}–${max}°C optimum` };
-    return   { label: '🔥 Too Warm', cls: 'warm', title: `Avg soil temp ${avgStr}°C — above the ${min}–${max}°C optimum` };
-  } else {
-    const temps = weatherData.daily?.temperature_2m_max;
-    if (!temps) return null;
-    const avg = arrAvg(temps);
-    if (avg === null) return null;
-    if (avg >= min && avg <= max)
-      return { label: '🌤 Good Conditions', cls: 'good', title: `Avg air temp ${avg.toFixed(1)}°C over next 7 days — seasonally ideal for starting indoors` };
-    return null;
-  }
-}
 
 function getSowNowBadges(weatherData, seed, mode, confidence) {
   if (!weatherData || !seed) return [];
@@ -289,6 +262,18 @@ if (typeof document !== 'undefined') {
         return this.seeds.filter(s => monthInWindow(m, s.sow_outdoors_start, s.sow_outdoors_end));
       },
 
+      get plantOutNow() {
+        const today = new Date();
+        return this.seeds.filter(s => {
+          if (!s.plant_out_start) return false;
+          const [dd, mm] = s.plant_out_start.split('-').map(Number);
+          const startDate = new Date(today.getFullYear(), mm - 1, dd);
+          if ((today - startDate) / 86400000 > 3) startDate.setFullYear(today.getFullYear() + 1);
+          const diffDays = (startDate - today) / 86400000;
+          return diffDays > -3 && diffDays <= 10;
+        });
+      },
+
       get calendarTypes() {
         const types = [...new Set(this.seeds.map(s => s.type).filter(Boolean))].sort();
         return types;
@@ -335,8 +320,8 @@ if (typeof document !== 'undefined') {
         return parts.join(' · ') || 'No growing info';
       },
 
-      weatherForecastBadge(seed, isOutdoor) {
-        return getSowNowBadge(this.weatherData, seed, isOutdoor);
+      weatherForecastBadge(seed, mode) {
+        return getSowNowBadges(this.weatherData, seed, mode, this.weather?.confidence);
       },
     }));
   });
