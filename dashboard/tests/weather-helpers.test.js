@@ -6,6 +6,7 @@ const {
   computeSeasonGauge, computeInsights, computeAlerts,
   computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
   computeDualGDD, computeFrostEnsemble, computeSpringReadiness,
+  computeWateringWindow,                                          // ← new
 } = require('../public/app/weather-helpers');
 
 // ── codeToIcon / codeToDesc ───────────────────────────────────────────────────
@@ -643,5 +644,80 @@ describe('computeSpringReadiness', () => {
 
   test('returns null when no years found in climate data', () => {
     expect(computeSpringReadiness({ daily: { time: [], temperature_2m_min: [] } }, currentDoy, 0)).toBeNull();
+  });
+});
+
+// ── computeWateringWindow ─────────────────────────────────────────────────────
+
+describe('computeWateringWindow', () => {
+  // Helper: build a minimal hourly object with 24 slots for today
+  function makeHourly({ moisture, surfaceTemp, airTemp } = {}) {
+    return {
+      soil_moisture_1_to_3cm:    moisture    ?? Array(24).fill(20),
+      soil_temperature_0_to_7cm: surfaceTemp ?? Array(24).fill(15),
+      temperature_2m:            airTemp     ?? Array(24).fill(10),
+    };
+  }
+
+  // Freeze time at 10:00 so hour-indexed reads are deterministic
+  const at10 = new Date('2026-04-11T10:00:00');
+
+  test('returns null when soil_moisture_1_to_3cm is missing', () => {
+    const hourly = makeHourly();
+    delete hourly.soil_moisture_1_to_3cm;
+    expect(computeWateringWindow(hourly, at10)).toBeNull();
+  });
+
+  test('returns null when root moisture >= 25%', () => {
+    const moisture = Array(24).fill(30); // 30% — above threshold
+    expect(computeWateringWindow(makeHourly({ moisture }), at10)).toBeNull();
+  });
+
+  test('returns null when surface temp not elevated at current hour', () => {
+    // surfaceTemp <= airTemp + 5 at hour 10 → no evap risk
+    const surfaceTemp = Array(24).fill(14); // 14 = 10 + 4 (not > +5)
+    expect(computeWateringWindow(makeHourly({ surfaceTemp }), at10)).toBeNull();
+  });
+
+  test('returns result when both gates pass', () => {
+    // moisture < 25, surfaceTemp[10] = 15 > airTemp[10] (10) + 5 = 15 — wait, that's NOT > +5
+    // Need surfaceTemp[10] > airTemp[10] + 5, e.g. surf=16, air=10 → 16 > 15 ✓
+    const surfaceTemp = Array(24).fill(16);
+    const result = computeWateringWindow(makeHourly({ surfaceTemp }), at10);
+    expect(result).not.toBeNull();
+    expect(result).toHaveProperty('recommendedHour');
+    expect(result).toHaveProperty('soilMoisture');
+  });
+
+  test('soilMoisture is rounded to 1 decimal place', () => {
+    const surfaceTemp = Array(24).fill(16);
+    const moisture = Array(24).fill(19.456);
+    const result = computeWateringWindow(makeHourly({ moisture, surfaceTemp }), at10);
+    expect(result.soilMoisture).toBe(19.5);
+  });
+
+  test('finds first hour in 17-20 where surface cools (surf <= air + 5)', () => {
+    // Hours 17-19 still hot (surf = 16, air = 10 → delta 6 > 5)
+    // Hour 20: surf = 14, air = 10 → delta 4 ≤ 5 → cool
+    const surfaceTemp = Array(24).fill(16);
+    surfaceTemp[20] = 14;
+    const result = computeWateringWindow(makeHourly({ surfaceTemp }), at10);
+    expect(result.recommendedHour).toBe(20);
+  });
+
+  test('defaults to 18 when all hours 17-20 remain hot', () => {
+    // All hours 17-20: surf = 16, air = 10 → still above +5
+    const surfaceTemp = Array(24).fill(16);
+    const result = computeWateringWindow(makeHourly({ surfaceTemp }), at10);
+    expect(result.recommendedHour).toBe(18);
+  });
+
+  test('picks earliest qualifying hour in range', () => {
+    // Hour 17 already cool, hour 18 also cool — should pick 17
+    const surfaceTemp = Array(24).fill(16);
+    surfaceTemp[17] = 14; // 14 ≤ 10 + 5 = 15 → cool
+    surfaceTemp[18] = 14;
+    const result = computeWateringWindow(makeHourly({ surfaceTemp }), at10);
+    expect(result.recommendedHour).toBe(17);
   });
 });
