@@ -113,4 +113,4 @@ Formatted as a small muted row, consistent with the `meta` line style already us
 
 - Soil moisture gauge or history chart
 - Per-zone moisture tracking
-- Push notifications or scheduling
+- 
