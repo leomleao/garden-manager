@@ -721,3 +721,56 @@ describe('computeWateringWindow', () => {
     expect(result.recommendedHour).toBe(17);
   });
 });
+
+// ── computeInsights: waterbalance insight enrichment ──────────────────────────
+
+describe('computeInsights waterbalance wateringWindow', () => {
+  // Minimal d object that satisfies computeInsights without throwing.
+  function makeD({ moisture, surfaceTemp, airTemp } = {}) {
+    const daily = {
+      time: ['2026-04-11'],
+      precipitation_sum:              [0],
+      et0_fao_evapotranspiration:     [4],
+      temperature_2m_max:             [15],
+      temperature_2m_min:             [5],
+      weather_code:                   [0],
+      uv_index_max:                   [3],
+      growing_degree_days_base_0_limit_50: [5],
+    };
+    const hourly = {
+      soil_temperature_6cm:          Array(168).fill(12),
+      soil_temperature_0_to_7cm:     surfaceTemp ?? Array(168).fill(16),
+      soil_temperature_7_to_28cm:    Array(168).fill(14),
+      soil_temperature_28_to_100cm:  Array(168).fill(10),
+      temperature_2m:                airTemp     ?? Array(168).fill(10),
+      precipitation_probability:     Array(168).fill(90),
+      precipitation:                 Array(168).fill(0),
+      relative_humidity_2m:          Array(168).fill(50),
+      leaf_wetness_probability:      Array(168).fill(10),
+      direct_radiation:              Array(168).fill(0),
+      diffuse_radiation:             Array(168).fill(0),
+      wind_gusts_10m:                Array(168).fill(20),
+      dewpoint_2m:                   Array(168).fill(5),
+      precipitation_type:            Array(168).fill(0),
+      soil_moisture_1_to_3cm:        moisture ?? Array(168).fill(20),
+    };
+    return { daily, hourly };
+  }
+
+  const at10 = new Date('2026-04-11T10:00:00');
+
+  test('waterbalance insight has wateringWindow when both gates pass', () => {
+    const insights = computeInsights(makeD(), null, at10);
+    const wb = insights.find(i => i.type === 'waterbalance');
+    expect(wb).toBeDefined();
+    expect(wb.wateringWindow).toBeDefined();
+    expect(wb.wateringWindow.soilMoisture).toBe(20);
+  });
+
+  test('waterbalance insight has no wateringWindow when moisture is high', () => {
+    const insights = computeInsights(makeD({ moisture: Array(168).fill(30) }), null, at10);
+    const wb = insights.find(i => i.type === 'waterbalance');
+    expect(wb).toBeDefined();
+    expect(wb.wateringWindow).toBeUndefined();
+  });
+});

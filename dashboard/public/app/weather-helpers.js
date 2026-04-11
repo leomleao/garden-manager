@@ -620,9 +620,9 @@ function computeSeasonGauge(daily) {
 // Returns array of insight objects for display. Only includes insights with
 // conditions met.
 
-function computeInsights(d, zones) {
+function computeInsights(d, zones, now = new Date()) {
   const insights = [];
-  const currentHour = new Date().getHours();
+  const currentHour = now.getHours();
 
   // 1. Work Window
   const win = findWorkWindow(d.hourly, currentHour);
@@ -684,7 +684,7 @@ function computeInsights(d, zones) {
   if (wb) {
     const wbIcon       = wb.level === 'surplus' ? '🪣' : wb.level === 'deficit' ? '🏜️' : '⚖️';
     const wbLevelLabel = wb.level === 'surplus' ? 'Surplus' : wb.level === 'deficit' ? 'Deficit' : 'Balanced';
-    insights.push({
+    const wbInsight = {
       type:       'waterbalance',
       icon:        wbIcon,
       label:      `Water Balance · ${wbLevelLabel}`,
@@ -697,7 +697,10 @@ function computeInsights(d, zones) {
       meta:       `7-day: Rain ${wb.weekRain}mm · ET\u2080 ${wb.weekET0}mm · Net ${wb.weekNet >= 0 ? '+' : ''}${wb.weekNet}mm`,
       batteryPct: wb.batteryPct,
       level:      wb.level,
-    });
+    };
+    const wateringWindow = computeWateringWindow(d.hourly, now);
+    if (wateringWindow) wbInsight.wateringWindow = wateringWindow;
+    insights.push(wbInsight);
   }
 
   // 6. Season Gauge — dual GDD (cool + warm)
