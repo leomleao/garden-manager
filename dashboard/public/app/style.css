@@ -1352,8 +1352,13 @@ input[type="date"]:focus::-webkit-calendar-picker-indicator {
   padding-left: 1.6rem;
 }
 
-.sow-now-badge {
+.sow-now-badges {
   margin-left: auto;
+  display: flex;
+  gap: .3rem;
+  flex-shrink: 0;
+}
+.sow-now-badge {
   font-size: .7rem;
   padding: .1rem .45rem;
   border-radius: 9999px;
