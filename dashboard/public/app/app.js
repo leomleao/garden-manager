@@ -2,6 +2,14 @@
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function extractEmoji(str) {
+  const rx = /\p{Extended_Pictographic}/gu;
+  const matches = str.match(rx) || [];
+  const emoji = matches[0] ?? null;
+  const name  = str.replace(rx, '').replace(/\s+/g, ' ').trim();
+  return { emoji, name };
+}
+
 function app() {
   return {
     // Shared state
@@ -884,4 +892,8 @@ function app() {
       } catch(e) { console.error('Reset soil failed:', e); }
     },
   };
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = { extractEmoji };
 }
