@@ -229,7 +229,7 @@ function app() {
           `&hourly=soil_temperature_6cm,soil_temperature_0_to_7cm,soil_temperature_7_to_28cm,` +
           `soil_temperature_28_to_100cm,temperature_2m,precipitation_probability,precipitation,` +
           `relative_humidity_2m,leaf_wetness_probability,direct_radiation,diffuse_radiation,` +
-          `wind_gusts_10m,dewpoint_2m,precipitation_type` +
+          `wind_gusts_10m,dewpoint_2m,precipitation_type,soil_moisture_1_to_3cm` +
           `&timezone=auto&forecast_days=7`
         );
         const d = await r.json();
