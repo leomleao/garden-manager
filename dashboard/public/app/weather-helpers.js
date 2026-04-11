@@ -260,7 +260,7 @@ function computeFrostEnsemble(ensembleData) {
 
     const prob    = freezeCount / totalMembers;
     const probPct = Math.round(prob * 100);
-    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' });
+    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' });
 
     let level, label;
     if (prob < 0.2)      { level = 'low';      label = 'Low risk'; }
@@ -1010,6 +1010,49 @@ function computeFrostCurve(climateData) {
   return { weeks, safeLabel, currentWeekPct, maxPct: Math.round(maxPct) };
 }
 
+// ── Watering Window indicator ─────────────────────────────────────────────────
+// Returns { recommendedHour, soilMoisture } when both gates are true:
+//   1. Root zone soil moisture (1-3cm) < 25%
+//   2. Surface temp is > air temp + 5°C at current hour (evap risk active)
+// Recommended hour is the first slot in 17–20 where surface has cooled,
+// defaulting to 18 if all slots remain hot.
+// Returns null when conditions are not met.
+
+function computeWateringWindow(hourly, now = new Date()) {
+  const moisture    = hourly.soil_moisture_1_to_3cm;
+  const surfaceTemp = hourly.soil_temperature_0_to_7cm;
+  const airTemp     = hourly.temperature_2m;
+
+  if (!moisture || !surfaceTemp || !airTemp) return null;
+
+  const currentHour  = now.getHours();
+  const soilMoisture = moisture[currentHour];
+
+  // Gate 1: root zone must be dry enough to need irrigation
+  if (soilMoisture == null || soilMoisture >= 25) return null;
+
+  // Gate 2: surface evaporation risk must be active right now
+  const surfNow = surfaceTemp[currentHour];
+  const airNow  = airTemp[currentHour];
+  if (surfNow == null || airNow == null || surfNow <= airNow + 5) return null;
+
+  // Find first evening slot where evaporation pressure drops
+  let recommendedHour = 18;
+  for (let h = 17; h <= 20; h++) {
+    const surf = surfaceTemp[h];
+    const air  = airTemp[h];
+    if (surf != null && air != null && surf <= air + 5) {
+      recommendedHour = h;
+      break;
+    }
+  }
+
+  return {
+    recommendedHour,
+    soilMoisture: Math.round(soilMoisture * 10) / 10,
+  };
+}
+
 // ── CommonJS export (for Jest tests) ─────────────────────────────────────────
 if (typeof module !== 'undefined') {
   module.exports = {
@@ -1020,5 +1063,6 @@ if (typeof module !== 'undefined') {
     computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
     computeDualGDD, computeFrostEnsemble, computeSpringReadiness,
     computeWaterBalance, computeBlightPressure, computeFrostCurve,
+    computeWateringWindow,  // ← new
   };
 }
