@@ -254,7 +254,7 @@ function getSowNowBadges(weatherData, seed, mode, confidence) {
 }
 
 // Allow Jest to require this file in Node (Alpine is absent there)
-if (typeof module !== 'undefined') module.exports = { parseSoilTempRange, arrAvg, parseGerminationDays, getSowNowBadges, getSowNowBadge };
+if (typeof module !== 'undefined') module.exports = { parseSoilTempRange, arrAvg, parseGerminationDays, getSowNowBadges };
 
 // ── Alpine component ──────────────────────────────────────────────
 // Only initialize Alpine component in browser environment (not in Node/Jest)
