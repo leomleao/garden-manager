@@ -179,13 +179,13 @@
                             data-tip="Light is split into direct (beam from the sun) and diffuse (scattered by clouds and atmosphere). When diffuse fraction exceeds 60% of total radiation, light is even and non-scorching — ideal for seedlings. When direct radiation peaks above 500 W/m², shade-sensitive plants risk leaf scorch. Peak direct radiation is the single highest hourly value recorded today.">🛈︎</span>
                       <span class="tip" x-show="insight.type === 'blight'"
                             data-tip="Based on the next 48 hours of forecast data. Counts hours where leaf wetness probability exceeds 50% and air temperature is between 12–20°C — the classic conditions for Potato Blight and Downy Mildew.">🛈︎</span>
+                      <span class="tip" x-show="insight.type === 'waterbalance'"
+                            data-tip="Net water in the soil this week: total rain minus evapotranspiration (ET₀). Plants 'breathe out' water even on rainy days — this tracks the true balance.">🛈︎</span>
                     </div>
                     <div class="weather-insight-desc" x-text="insight.desc"></div>
                     <div x-show="insight.type === 'waterbalance'" style="margin-top:6px;">
                       <div class="soil-battery">
-                        <div class="soil-battery-label">Soil Tank
-                          <span class="tip" data-tip="Net water in the soil this week: total rain minus evapotranspiration (ET₀). Plants 'breathe out' water even on rainy days — this tracks the true balance.">🛈︎</span>
-                        </div>
+                        <div class="soil-battery-label">Soil Tank</div>
                         <div class="soil-battery-track">
                           <div class="soil-battery-midline"></div>
                           <div class="soil-battery-fill"
@@ -198,6 +198,16 @@
                           <span>Full</span>
                         </div>
                       </div>
+                    </div>
+                    <div x-show="insight.type === 'waterbalance' && insight.wateringWindow"
+                         style="margin-top:8px; display:flex; align-items:flex-start; gap:6px; font-size:0.8rem; color:var(--text-muted);">
+                      <span>⏳</span>
+                      <span>Delay irrigation until
+                        <strong x-text="String(insight.wateringWindow?.recommendedHour ?? 18).padStart(2,'0') + ':00'"></strong>
+                        — surface evaporation is high
+                        (<span x-text="insight.wateringWindow?.soilMoisture"></span>% root moisture).
+                        Water reaches the root zone better once the soil surface cools.
+                      </span>
                     </div>
                     <div x-show="insight.type === 'season'">
                       <div class="gdd-dual">
