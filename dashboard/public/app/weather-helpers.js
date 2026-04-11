@@ -260,7 +260,7 @@ function computeFrostEnsemble(ensembleData) {
 
     const prob    = freezeCount / totalMembers;
     const probPct = Math.round(prob * 100);
-    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' });
+    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' });
 
     let level, label;
     if (prob < 0.2)      { level = 'low';      label = 'Low risk'; }
