@@ -177,6 +177,8 @@
                             data-tip="Triggered when gusts exceed 30 km/h and ET₀ is above 1.5 mm. Wind dramatically speeds up evaporation from pots and hanging baskets — the windward side can dry out completely even after rain. ET₀ (evapotranspiration) measures how much water plants and soil 'breathe out' in a day.">🛈︎</span>
                       <span class="tip" x-show="insight.type === 'light'"
                             data-tip="Light is split into direct (beam from the sun) and diffuse (scattered by clouds and atmosphere). When diffuse fraction exceeds 60% of total radiation, light is even and non-scorching — ideal for seedlings. When direct radiation peaks above 500 W/m², shade-sensitive plants risk leaf scorch. Peak direct radiation is the single highest hourly value recorded today.">🛈︎</span>
+                      <span class="tip" x-show="insight.type === 'blight'"
+                            data-tip="Based on the next 48 hours of forecast data. Counts hours where leaf wetness probability exceeds 50% and air temperature is between 12–20°C — the classic conditions for Potato Blight and Downy Mildew.">🛈︎</span>
                     </div>
                     <div class="weather-insight-desc" x-text="insight.desc"></div>
                     <div x-show="insight.type === 'waterbalance'" style="margin-top:6px;">
@@ -221,10 +223,7 @@
                     </div>
                     <div x-show="insight.type === 'blight'" style="margin-top:6px;">
                       <div class="blight-meter">
-                        <div class="blight-meter-label">
-                          Fungal Pressure
-                          <span class="tip" data-tip="Based on the next 48 hours of forecast data. Counts hours where leaf wetness probability exceeds 50% and air temperature is between 12–20°C — the classic conditions for Potato Blight and Downy Mildew.">🛈︎</span>
-                        </div>
+                        <div class="blight-meter-label">Fungal Pressure</div>
                         <div class="blight-track">
                           <div class="blight-segment blight-segment--low"    :class="{'active': insight.blightLevel === 'low'}">Low</div>
                           <div class="blight-segment blight-segment--medium" :class="{'active': insight.blightLevel === 'medium'}">Elevated</div>
@@ -290,6 +289,7 @@
             <!-- Layer 6: Forecast Confidence panel -->
             <div class="confidence-panel">
               <div class="weather-section-label">Forecast confidence</div>
+              <div style="padding:0 1.125rem .625rem">
 
               <!-- Shimmer skeleton while loading -->
               <template x-if="weather.confidence.loading">
@@ -305,15 +305,19 @@
               <!-- Frost Probability Meter -->
               <template x-if="!weather.confidence.loading && weather.confidence.frostProbability.length > 0">
                 <div>
-                  <div style="font-size:.8rem;color:var(--text-3);margin-bottom:.4rem">7-day frost probability (50 ensemble models)</div>
+                  <div style="font-size:.8rem;color:var(--text-3);margin-bottom:.4rem;display:flex;align-items:center;gap:.25rem">
+                    Frost probability (ensemble models)
+                    <span class="tip" data-tip="Ensemble models run the same forecast dozens of times with slightly different starting conditions — each 'member' represents one plausible version of the future. For each of the next 3 nights, every member is checked for sub-zero temperatures between 20:00–06:00. The probability is the fraction of members that forecast a frost: Low = under 20%, Possible = 20–49%, High = 50%+.">🛈︎</span>
+                  </div>
                   <template x-for="day in weather.confidence.frostProbability" :key="day.date">
                     <div class="frost-prob-row">
-                      <span class="frost-prob-date" x-text="day.date"></span>
-                      <div class="gdd-track frost-prob-track">
-                        <div :class="'frost-prob-fill--' + day.level"
-                             :style="'width:' + Math.round(day.prob * 100) + '%'"></div>
+                      <span class="frost-prob-date" x-text="day.dayName"></span>
+                      <div class="blight-track">
+                        <div class="blight-segment frost-segment--low"      :class="{'active': day.level === 'low' && day.probPct > 0}">Low</div>
+                        <div class="blight-segment frost-segment--possible" :class="{'active': day.level === 'possible'}">Possible</div>
+                        <div class="blight-segment frost-segment--high"     :class="{'active': day.level === 'high'}">High</div>
                       </div>
-                      <span class="frost-prob-pct" x-text="Math.round(day.prob * 100) + '%'"></span>
+                      <span class="frost-prob-pct" x-text="day.probPct + '%'"></span>
                     </div>
                   </template>
                 </div>
@@ -331,8 +335,11 @@
               <!-- Last Frost Probability Curve -->
               <template x-if="!weather.confidence.loading && weather.confidence.frostCurve">
                 <div style="margin-top:1rem">
-                  <div style="font-size:.8rem;color:var(--text-3);margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:baseline">
-                    <span>❄️ Last frost probability curve</span>
+                  <div style="margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-2);display:flex;align-items:center;gap:.25rem">
+                      ❄️ Last frost probability curve
+                      <span class="tip" data-tip="Uses 20 years of daily minimum temperature records (Open-Meteo Climate API) split into weekly windows from March to June. For each calendar week, it counts how many of those years recorded at least one sub-zero night (≤ 0°C) — the bar shows that fraction as a percentage. The Safe Zone marks the first week where probability drops below 10% after the historical peak.">🛈︎</span>
+                    </span>
                     <span style="font-size:.68rem;color:var(--text-4)">20-yr history · Mar–Jun</span>
                   </div>
 
@@ -341,14 +348,16 @@
                     <div class="frost-curve-row"
                          :class="week.isCurrent ? 'frost-curve-row--current' : (week.isPast ? 'frost-curve-row--past' : '')">
                       <span class="frost-curve-label" x-text="week.label"></span>
-                      <div class="gdd-track frost-prob-track" style="position:relative">
+                      <div class="gdd-track frost-prob-track">
                         <div :class="'frost-curve-fill--' + week.level"
                              :style="'width:' + week.barWidth + '%'"></div>
-                        <span x-show="week.isSafeZone && !week.isCurrent && !week.isPast"
-                              class="frost-curve-badge frost-curve-badge--safe">? safe zone</span>
-                        <span x-show="week.isCurrent"
-                              class="frost-curve-badge frost-curve-badge--now">? now</span>
                       </div>
+                      <span x-show="week.isSafeZone && !week.isCurrent && !week.isPast"
+                            class="frost-curve-badge frost-curve-badge--safe">✓ safe zone</span>
+                      <span x-show="week.isCurrent"
+                            class="frost-curve-badge frost-curve-badge--now">▶ now</span>
+                      <span x-show="!week.isCurrent && !(week.isSafeZone && !week.isPast)"
+                            class="frost-curve-badge"></span>
                       <span class="frost-prob-pct" x-text="week.frostPct + '%'"></span>
                     </div>
                   </template>
@@ -375,6 +384,7 @@
                   </div>
                 </div>
               </template>
+              </div>
             </div>
 
             <!-- Layer 7: Action footer -->

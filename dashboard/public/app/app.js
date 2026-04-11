@@ -276,7 +276,7 @@ function app() {
         this.weather.confidence.frostCurve       = null;
 
         const ensembleUrl =
-          `https://api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lng}` +
+          `https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${lat}&longitude=${lng}` +
           `&hourly=temperature_2m&models=icon_seamless&forecast_days=3&timezone=auto`;
 
         const archiveNow   = new Date();
