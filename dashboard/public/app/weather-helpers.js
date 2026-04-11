@@ -33,6 +33,37 @@ function soilStatus(soilTemp) {
   return 'Warm Season (Tomatoes, Peppers)';
 }
 
+// ── Vapour Pressure Deficit (VPD) ─────────────────────────────────────────────
+// Reads hourly.vapour_pressure_deficit at midday (index 12).
+// Returns { kPa, level, badge, tooltip } or null if data unavailable.
+// badge is 'caution' (1.2–2.0 kPa) or 'warn' (≥ 2.0 kPa); null below threshold.
+
+function computeVPD(hourly) {
+  const arr = hourly.vapour_pressure_deficit;
+  if (!arr || arr[12] == null) return null;
+
+  const raw = arr[12];
+  const kPa = Math.round(raw * 10) / 10;
+  const kPaDisplay = kPa.toFixed(1);
+
+  let level, badge, tooltip;
+  if (raw < 0.4) {
+    level = 'low'; badge = null; tooltip = null;
+  } else if (raw < 1.2) {
+    level = 'moderate'; badge = null; tooltip = null;
+  } else if (raw < 2.0) {
+    level = 'high';
+    badge = 'caution';
+    tooltip = `VPD ${kPaDisplay} kPa — leaves are losing water faster than cold roots can supply. Transplant shock risk elevated.`;
+  } else {
+    level = 'very-high';
+    badge = 'warn';
+    tooltip = `VPD ${kPaDisplay} kPa — leaves are losing water faster than cold roots can supply. Transplant shock risk elevated.`;
+  }
+
+  return { kPa, level, badge, tooltip };
+}
+
 // ── Multi-depth soil layer analysis ──────────────────────────────────────────
 // Reads three hourly soil temperature arrays at hour 12 (midday).
 // Returns { surface, root, deep } each { temp, status, advice }, or null if
@@ -104,6 +135,7 @@ function computeSoilLayers(hourly, now = new Date()) {
     surface: s != null ? { temp: s, status: surfaceStatus(s),    advice: surfaceAdvice(s)    } : null,
     root:    r != null ? { temp: r, status: rootStatus(s, r),     advice: rootAdvice(s, r)    } : null,
     deep:    d != null ? { temp: d, status: deepStatus(d, doy),   advice: deepAdvice(d, doy)  } : null,
+    vpd:     computeVPD(hourly),
   };
 }
 
@@ -260,7 +292,7 @@ function computeFrostEnsemble(ensembleData) {
 
     const prob    = freezeCount / totalMembers;
     const probPct = Math.round(prob * 100);
-    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' });
+    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' });
 
     let level, label;
     if (prob < 0.2)      { level = 'low';      label = 'Low risk'; }
@@ -1066,6 +1098,7 @@ if (typeof module !== 'undefined') {
     computeSoilLayers, computePrecipTypeAlerts, computeLightQuality,
     computeDualGDD, computeFrostEnsemble, computeSpringReadiness,
     computeWaterBalance, computeBlightPressure, computeFrostCurve,
-    computeWateringWindow,  // ← new
+    computeWateringWindow,
+    computeVPD,
   };
 }
