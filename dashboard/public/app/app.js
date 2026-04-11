@@ -122,7 +122,8 @@ function app() {
     openSeedEdit(seed) {
       const { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, notes, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture } = seed;
       const pictureDataUrl = picture ? `data:image/jpeg;base64,${picture}` : null;
-      this.seedModal = { show: true, editingId: seed.id, germinationError: false, form: { name, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, notes, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture: pictureDataUrl } };
+      const displayName = (seed.emoji ? seed.emoji + ' ' : '') + (name ?? '');
+      this.seedModal = { show: true, editingId: seed.id, germinationError: false, form: { name: displayName, variety, type, quantity, box_id, supplier, purchase_year, sow_by_year, notes, purchase_link, days_to_germinate, optimum_soil_temp, optimum_soil_type, plant_height, light_requirements, growing_instructions, sow_indoors_start, sow_indoors_end, sow_outdoors_start, sow_outdoors_end, plant_out_start, plant_out_end, harvest_start, harvest_end, picture: pictureDataUrl } };
       this.$nextTick(() => {
         ['Notes...', 'Growing instructions...'].forEach(placeholder => {
           const textarea = document.querySelector(`textarea[placeholder="${placeholder}"]`);
@@ -213,6 +214,11 @@ function app() {
         const url = this.seedModal.editingId ? `/api/seeds/${this.seedModal.editingId}` : '/api/seeds';
         const method = this.seedModal.editingId ? 'PATCH' : 'POST';
         const formData = { ...this.seedModal.form };
+        // Extract emoji from name field before saving
+        const { emoji, name: cleanName } = extractEmoji(formData.name ?? '');
+        if (!cleanName) return;
+        formData.name  = cleanName;
+        formData.emoji = emoji;
         // Extract base64 from data URL if present
         if (formData.picture && formData.picture.startsWith('data:')) {
           formData.picture = formData.picture.split(',')[1];
