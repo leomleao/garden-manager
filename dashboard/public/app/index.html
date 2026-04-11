@@ -1027,16 +1027,17 @@
           </template>
           <template x-for="s in sowIndoorsNow" :key="s.id">
             <div @click="openSeedEdit(s)" class="sow-now-row"
-                 x-data="{ get badge() { return weatherForecastBadge(s, false) } }">
+                 x-data="{ get badges() { return weatherForecastBadge(s, 'indoor') } }">
               <div class="sow-now-top">
                 <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
                 <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
-                <span x-show="badge"
-                      class="sow-now-badge"
-                      :class="badge ? 'sow-now-badge--' + badge.cls : ''"
-                      :title="badge?.title"
-                      x-text="badge?.label">
-                </span>
+                <template x-for="badge in badges" :key="badge.label">
+                  <span class="sow-now-badge"
+                        :class="'sow-now-badge--' + badge.cls"
+                        :title="badge.title"
+                        x-text="badge.label">
+                  </span>
+                </template>
               </div>
               <div class="sow-now-meta" x-show="s.purchase_year || s.sow_by_year || s.days_to_germinate || s.optimum_soil_temp || s.optimum_soil_type || s.light_requirements">
                 <template x-if="s.purchase_year"><span x-text="'📅 ' + s.purchase_year"></span></template>
@@ -1051,22 +1052,51 @@
         </div>
 
         <div class="card">
+          <h2>&#x1FAB4; Ready to Plant Out</h2>
+          <template x-if="plantOutNow.length === 0">
+            <p class="text-muted" style="font-size:.875rem">No plants approaching their outdoor transplant window.</p>
+          </template>
+          <template x-for="s in plantOutNow" :key="s.id">
+            <div @click="openSeedEdit(s)" class="sow-now-row"
+                 x-data="{ get badges() { return weatherForecastBadge(s, 'transition') } }">
+              <div class="sow-now-top">
+                <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
+                <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
+                <template x-for="badge in badges" :key="badge.label">
+                  <span class="sow-now-badge"
+                        :class="'sow-now-badge--' + badge.cls"
+                        :title="badge.title"
+                        x-text="badge.label">
+                  </span>
+                </template>
+              </div>
+              <div class="sow-now-meta" x-show="s.plant_out_start || s.days_to_germinate || s.light_requirements">
+                <template x-if="s.plant_out_start"><span x-text="'&#x1F33F; Plant out: ' + s.plant_out_start"></span></template>
+                <template x-if="s.days_to_germinate"><span x-text="'&#x1F331; ' + s.days_to_germinate + 'd'"></span></template>
+                <template x-if="s.light_requirements"><span x-text="'&#x2600; ' + s.light_requirements"></span></template>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="card">
           <h2>&#x1F535; Sow Outdoors Now</h2>
           <template x-if="sowOutdoorsNow.length === 0">
             <p class="text-muted" style="font-size:.875rem">Nothing to sow outdoors right now.</p>
           </template>
           <template x-for="s in sowOutdoorsNow" :key="s.id">
             <div @click="openSeedEdit(s)" class="sow-now-row"
-                 x-data="{ get badge() { return weatherForecastBadge(s, true) } }">
+                 x-data="{ get badges() { return weatherForecastBadge(s, 'outdoor') } }">
               <div class="sow-now-top">
                 <span x-text="getSeedEmoji(s)" style="font-size:1.1rem"></span>
                 <span x-text="s.name + (s.variety ? ' · ' + s.variety : '')"></span>
-                <span x-show="badge"
-                      class="sow-now-badge"
-                      :class="badge ? 'sow-now-badge--' + badge.cls : ''"
-                      :title="badge?.title"
-                      x-text="badge?.label">
-                </span>
+                <template x-for="badge in badges" :key="badge.label">
+                  <span class="sow-now-badge"
+                        :class="'sow-now-badge--' + badge.cls"
+                        :title="badge.title"
+                        x-text="badge.label">
+                  </span>
+                </template>
               </div>
               <div class="sow-now-meta" x-show="s.purchase_year || s.sow_by_year || s.days_to_germinate || s.optimum_soil_temp || s.optimum_soil_type || s.light_requirements">
                 <template x-if="s.purchase_year"><span x-text="'📅 ' + s.purchase_year"></span></template>
