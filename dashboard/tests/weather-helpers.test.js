@@ -669,8 +669,9 @@ describe('computeWateringWindow', () => {
   });
 
   test('returns null when root moisture >= 25%', () => {
-    const moisture = Array(24).fill(30); // 30% — above threshold
-    expect(computeWateringWindow(makeHourly({ moisture }), at10)).toBeNull();
+    const moisture = Array(24).fill(30);    // 30% — above Gate 1 threshold
+    const surfaceTemp = Array(24).fill(16); // ensure Gate 2 would pass; null is from Gate 1
+    expect(computeWateringWindow(makeHourly({ moisture, surfaceTemp }), at10)).toBeNull();
   });
 
   test('returns null when surface temp not elevated at current hour', () => {
@@ -680,8 +681,7 @@ describe('computeWateringWindow', () => {
   });
 
   test('returns result when both gates pass', () => {
-    // moisture < 25, surfaceTemp[10] = 15 > airTemp[10] (10) + 5 = 15 — wait, that's NOT > +5
-    // Need surfaceTemp[10] > airTemp[10] + 5, e.g. surf=16, air=10 → 16 > 15 ✓
+    // Gate 1: moisture=20 < 25 ✓   Gate 2: surf=16 > air(10)+5=15 ✓ → expects non-null result
     const surfaceTemp = Array(24).fill(16);
     const result = computeWateringWindow(makeHourly({ surfaceTemp }), at10);
     expect(result).not.toBeNull();
