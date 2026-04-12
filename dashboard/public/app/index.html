@@ -266,6 +266,16 @@
                         <span class="soil-intel-status" x-text="weather.soilLayers.surface.status"></span>
                         <span class="soil-intel-advice" x-text="weather.soilLayers.surface.advice"></span>
                       </div>
+                      <template x-if="weather.soilLayers.vpd && weather.soilLayers.vpd.badge">
+                        <span class="sow-now-badge"
+                              :class="'sow-now-badge--' + weather.soilLayers.vpd.badge"
+                              :title="weather.soilLayers.vpd.tooltip"
+                              x-text="'⚠ VPD'">
+                        </span>
+                      </template>
+                      <template x-if="!(weather.soilLayers.vpd && weather.soilLayers.vpd.badge)">
+                        <div></div>
+                      </template>
                     </div>
                   </template>
                   <template x-if="weather.soilLayers.root">
@@ -278,6 +288,7 @@
                         <span class="soil-intel-status" x-text="weather.soilLayers.root.status"></span>
                         <span class="soil-intel-advice" x-text="weather.soilLayers.root.advice"></span>
                       </div>
+                      <div></div>
                     </div>
                   </template>
                   <template x-if="weather.soilLayers.deep">
@@ -290,6 +301,7 @@
                         <span class="soil-intel-status" x-text="weather.soilLayers.deep.status"></span>
                         <span class="soil-intel-advice" x-text="weather.soilLayers.deep.advice"></span>
                       </div>
+                      <div></div>
                     </div>
                   </template>
                 </div>
