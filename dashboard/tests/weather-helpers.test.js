@@ -813,10 +813,10 @@ describe('computeVPD', () => {
     expect(r.tooltip).toContain('Transplant shock risk elevated');
   });
 
-  test('kPa 1.99 → level high, badge caution', () => {
+  test('kPa 1.99 rounds to 2.0 → level very-high, badge warn', () => {
     const r = computeVPD(makeHourly(1.99));
-    expect(r.level).toBe('high');
-    expect(r.badge).toBe('caution');
+    expect(r.level).toBe('very-high');
+    expect(r.badge).toBe('warn');
   });
 
   test('kPa 2.0 → level very-high, badge warn', () => {

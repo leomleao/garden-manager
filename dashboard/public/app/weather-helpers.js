@@ -42,16 +42,15 @@ function computeVPD(hourly) {
   const arr = hourly.vapour_pressure_deficit;
   if (!arr || arr[12] == null) return null;
 
-  const raw = arr[12];
-  const kPa = Math.round(raw * 10) / 10;
+  const kPa = Math.round(arr[12] * 10) / 10;
   const kPaDisplay = kPa.toFixed(1);
 
   let level, badge, tooltip;
-  if (raw < 0.4) {
+  if (kPa < 0.4) {
     level = 'low'; badge = null; tooltip = null;
-  } else if (raw < 1.2) {
+  } else if (kPa < 1.2) {
     level = 'moderate'; badge = null; tooltip = null;
-  } else if (raw < 2.0) {
+  } else if (kPa < 2.0) {
     level = 'high';
     badge = 'caution';
     tooltip = `VPD ${kPaDisplay} kPa — leaves are losing water faster than cold roots can supply. Transplant shock risk elevated.`;
@@ -292,7 +291,7 @@ function computeFrostEnsemble(ensembleData) {
 
     const prob    = freezeCount / totalMembers;
     const probPct = Math.round(prob * 100);
-    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' });
+    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' });
 
     let level, label;
     if (prob < 0.2)      { level = 'low';      label = 'Low risk'; }
