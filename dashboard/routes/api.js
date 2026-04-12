@@ -216,7 +216,7 @@ router.get('/seeds', (req, res) => {
   if (q) {
     res.json(db.prepare("SELECT * FROM seeds WHERE name LIKE ? OR variety LIKE ?").all([`%${q}%`, `%${q}%`]));
   } else {
-    res.json(db.prepare('SELECT * FROM seeds ORDER BY name').all());
+    res.json(db.prepare('SELECT * FROM seeds ORDER BY box_id NULLS LAST, name').all());
   }
 });
 

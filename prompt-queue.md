@@ -1,20 +1,42 @@
 ## First
-I've added someone changes to the weather overview and API call, this means we will have even more information available in the app. Can we use this in the calendar tab? 
-I want you to check all the fields we're pulling from the weather API calls and add information to the seeds, this is stored on the sow-now-meta
-
-Specifically we have the sow indoors now and sow outdoors now, I want to add tooltips based on the weather info we have. Examples here:
-1. "Sow Outdoors Now" Tooltip (The Soil Gatekeeper)This is the most critical logic. Just because it is "April" (within the sow_outdoors_start window) doesn't mean the soil is ready.Logic: Compare optimum_soil_temp from your DB to the API’s soil_temperature_6cm.The Tooltip Content:Condition A (Too Cold): "Calendar says YES, but Soil says NO. Soil is 7.4°C; {seed.name} needs {seed.optimum_soil_temp} to germinate. Wait for a warmer spell to avoid seed rot."Condition B (Frost Risk): "Soil is warm enough, but a frost alert is active for Monday. If these germinate in {seed.days_to_germinate} days, they might hit a late freeze. Consider cloche protection."Condition C (Perfect): "Perfect conditions! Soil temp is ideal and rain today will help settle the seeds."
-2. "Sow Indoors Now" Tooltip (The Light & Heat Logic)Indoor sowing is less about the weather outside and more about the growing conditions the user can provide.Logic: Use shortwave_radiation and uv_index to determine if windowsill light is enough.The Tooltip Content:Condition (Low Light): "Sow now, but use grow lights. Next 4 days are 90% overcast; windowsill light won't be enough to prevent 'leggy' (weak) seedlings."Condition (Season Lag): "Season Progress (GDD) is 50% behind average. Sowing now is fine, but don't expect to plant out until {adjusted_date} based on current warming trends."
-3. "Plant Out" Tooltip (The Hardening Off Logic)When the user moves a plant from sow_indoors to the garden, this is the highest risk of plant death.Logic: Compare temperature_2m_min and uv_index.The Tooltip Content:Condition (UV Shock): "Danger: High UV (6) today. Do not move indoor seedlings directly into the sun. Start 'hardening off' in a shaded spot for 2 hours only."Condition (Wind Stress): "High wind gusts (38 km/h). Newly transplanted {seed.name} will struggle with windburn. Wait for Tuesday’s calm window."Suggested Database & Logic MappingSince your optimum_soil_temp is currently TEXT, you’ll likely want to parse it to an integer for comparison.DB FieldAPI MatchLogic / Tooltip Triggeroptimum_soil_tempsoil_temperature_6cmIf soil_temp < optimum_temp, show "Soil Too Cold" warning.days_to_germinatedaily_min_temp (7-day)If min_temp < 0°C inside the germination window, show "Late Frost Risk".light_requirementscloud_cover / radiationIf "Full Sun" required but 100% cloud cover forecast, show "Grow Light Recommended".typevapor_pressure_deficitIf type is "Vegetable" (like Tomatoes) and VPD is low, show "Blight Alert".
 
 ## Second
-Add gardening insights to plant lifecicly, combining data from seeds and weather API.
+I want to enhance the soil intelligence section with additional metrics and insights.
 
-3. The "Blight & Mildew" Pressure GaugeFungal issues are the #1 cause of crop failure in wet climates like Stirling.API Variables: hourly -> leaf_wetness_probability and relative_humidity_2m.Logic: If leaf wetness is $>50\%$ for more than 10 hours and temps are between $12^{\circ}\text{C}$ and $20^{\circ}\text{C}$, trigger a high-risk alert.UI Element: A "Bio-Hazard" or "Fungal Risk" meter (Green → Yellow → Red).Warning: "Red Alert: Perfect conditions for Potato Blight over the next 48 hours. If you haven't sprayed your copper/organic treatment, do it now."
+Add this one inline as a warning, with a tooltip explaining the reasoning.
+Vapour Pressure Deficit (VPD):
+Requested via vapour_pressure_deficit in the forecast API.
 
+The Idea: While soil temperature tells you if the roots are ready, VPD tells you if the leaves can handle the air. A low soil temp + high VPD = a plant that can't pull water fast enough to meet evaporation demands, leading to transplant shock.
+
+
+
+Soil Moisture (Volumetric Water Content): Open-Meteo provides soil_moisture_0_to_7cm, 7_to_28cm, etc.
+
+The Idea: Use this to calculate Seed Imbibition Risk. If the soil is at 10°C (perfect!) but moisture is < 20%, seeds may stall. Conversely, > 45% moisture in cold soil leads to "damping off" (fungal rot).
+
+
+
+
+Add this one inline as a warning, with a tooltip explaining the reasoning.
+Probabilistic "Safe-to-Sow" Window
+Combine your Ensemble logic with a "Consecutive Days" check.
+
+The Logic: Instead of just checking if today is > 10°C, check the Ensemble Forecast for the next 5 days.
+
+Threshold: If > 80% of ensemble members stay above 8°C for 120 consecutive hours.
+
+The Insight: This prevents the "Fool's Spring" trap where a single warm day triggers a planting decision that gets wiped out by a frost 3 days later.
+
+
+Not sure how to add the below, but do it:
+Volumetric Water Content (VWC) vs. AerationOpen-Meteo provides soil moisture in $m^3/m^3$ (e.g., 0.35).The Science: Seeds need a "Goldilocks" zone. Too dry ($<15\%$), and they can't hydrate (Imbibition). Too wet ($>45\%$), and you hit the Anaerobic Threshold, where oxygen is pushed out of soil pores and seeds literally drown/rot.The Intelligence: Create a Germination Safety Index.Red (Dry): $VWC < 0.15$Green (Optimal): $0.20 < VWC < 0.40$Yellow (Anoxic): $VWC > 0.45$ (Warning: "Soil is saturated. High rot risk for large seeds like beans/corn.")
+
+Add this as a badge on the Surface level, like "Soil dressing window" with a tooltip explaining the reasoning.
+Mineralization & Bio-Activity TriggerThe bacteria that turn organic matter (compost/fertilizer) into plant-available Nitrogen only "wake up" at specific soil temperatures.The Thresholds:$< 5°C$: Microbes are dormant. Fertilizing now is a waste/runoff risk.$10°C - 15°C$: Nitrogen mineralization begins.$> 20°C$: Peak microbial activity.The Intelligence: Add a "Nutrient Availability" gauge.If soil stays $>10°C$ for 48 hours, trigger: "Soil Biology Active: Ideal window for organic top-dressing."
 
 ## Third
-The "Last Frost" Survival ChartSince you’ve already integrated historical data, you can visualize the Frost Probability Curve.API Source: Open-Meteo Historical API (fetch min_temperature_2m for March–June over the last 20 years).UI Element: A simple line or area chart showing the probability of a frost ($<0^{\circ}\text{C}$) dropping week-by-week.Feature: "Safe Sowing Countdown."Display: A bar that fills as the risk drops.Status: "Risk is currently 45%. Wait until May 15th for the 'Safe Zone' (sub-10% risk)."
+
 
 ## Forth
 

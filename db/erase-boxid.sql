@@ -1,0 +1,1 @@
+UPDATE seeds SET box_id = NULL;
